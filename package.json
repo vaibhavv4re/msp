@@ -9,8 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@instantdb/react": "latest",
     "@instantdb/admin": "latest",
+    "@instantdb/react": "latest",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "next": "15.4.8",
     "react": "19.1.0",
     "react-dom": "19.1.0"
