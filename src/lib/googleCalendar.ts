@@ -20,6 +20,10 @@ export interface GoogleCalendarEvent {
   reminders?: {
     useDefault: boolean;
   };
+  extendedProperties?: {
+    private?: Record<string, string>;
+    shared?: Record<string, string>;
+  };
 }
 
 export class GoogleCalendarAPI {
@@ -42,7 +46,7 @@ export class GoogleCalendarAPI {
 
   static async createEvent(eventData: GoogleCalendarEvent): Promise<{ success: boolean; eventId?: string; error?: string }> {
     const token = this.getAccessToken();
-    
+
     if (!token) {
       return { success: false, error: "Not authenticated with Google Calendar" };
     }
@@ -78,7 +82,7 @@ export class GoogleCalendarAPI {
     eventData: GoogleCalendarEvent
   ): Promise<{ success: boolean; error?: string }> {
     const token = this.getAccessToken();
-    
+
     if (!token) {
       return { success: false, error: "Not authenticated with Google Calendar" };
     }
@@ -110,7 +114,7 @@ export class GoogleCalendarAPI {
 
   static async deleteEvent(eventId: string): Promise<{ success: boolean; error?: string }> {
     const token = this.getAccessToken();
-    
+
     if (!token) {
       console.error('❌ No Google access token found');
       return { success: false, error: "Not authenticated with Google Calendar" };

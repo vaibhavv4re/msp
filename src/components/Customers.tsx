@@ -236,14 +236,16 @@ export function Customers({
   );
 }
 
-function CustomerModal({
+export function CustomerModal({
   client,
   userId,
   onClose,
+  onSuccess,
 }: {
   client: Client | null;
   userId: string;
   onClose: () => void;
+  onSuccess?: (clientId: string) => void;
 }) {
   const [customerType, setCustomerType] = useState(client?.customerType || "Individual");
   const [salutation, setSalutation] = useState(client?.salutation || "");
@@ -315,6 +317,7 @@ function CustomerModal({
       // Updating existing customer - no need to relink owner
       db.transact(db.tx.clients[clientId].update(clientData));
     }
+    if (onSuccess) onSuccess(clientId);
     onClose();
   }
 

@@ -6,6 +6,7 @@ import { AppSchema } from "@/instant.schema";
 import { Business } from "@/app/page";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { CustomerModal } from "./Customers";
 
 export type Client = InstaQLEntity<AppSchema, "clients"> & { invoices?: Invoice[] };
 export type Invoice = InstaQLEntity<AppSchema, "invoices"> & {
@@ -775,6 +776,7 @@ function InvoiceModal({
   });
 
   const [modalTab, setModalTab] = useState<"general" | "usage">("general");
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
   const [taxType, setTaxType] = useState<"intrastate" | "interstate">(
     invoice && invoice.igst && invoice.igst > 0 ? "interstate" : "intrastate"
@@ -827,6 +829,10 @@ function InvoiceModal({
   }
 
   function handleClientChange(clientId: string) {
+    if (clientId === "add_new") {
+      setIsCustomerModalOpen(true);
+      return;
+    }
     const client = clients.find(c => c.id === clientId);
     const paymentTerms = client?.paymentTerms || "net_30";
 
@@ -1122,6 +1128,7 @@ function InvoiceModal({
                     required
                   >
                     <option value="">Select Customer</option>
+                    <option value="add_new" className="font-bold text-blue-600">+ Add New Customer</option>
                     {clients.map((client) => (
                       <option key={client.id} value={client.id}>
                         {client.displayName || client.firstName || "Unnamed"}
@@ -1543,6 +1550,18 @@ function InvoiceModal({
           </div>
         </div>
       </div>
+
+      {isCustomerModalOpen && (
+        <CustomerModal
+          client={null}
+          userId={userId}
+          onClose={() => setIsCustomerModalOpen(false)}
+          onSuccess={(clientId) => {
+            handleClientChange(clientId);
+            setIsCustomerModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

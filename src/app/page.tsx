@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { db } from "@/lib/db";
 import { AppSchema } from "@/instant.schema";
-import { InstaQLEntity } from "@instantdb/react";
+import { id, InstaQLEntity } from "@instantdb/react";
 import { Dashboard } from "@/components/Dashboard";
 import { Invoices } from "@/components/Invoices";
 import { Calendar } from "@/components/Calendar";
@@ -140,15 +140,36 @@ function App() {
     }
   }, [user]);
 
+
   const { isLoading: dataLoading, error, data } = db.useQuery({
     clients: { invoices: {} },
     invoices: { lineItems: {}, client: {}, business: {} },
     calendarEvents: {},
+    $users: {},
     services: {},
     taxes: {},
     termsTemplates: {},
     businesses: {},
   });
+
+  // Extract data safely
+  const clients = data?.clients || [];
+  const invoices = data?.invoices || [];
+  const calendarEvents = data?.calendarEvents || [];
+  const services = data?.services || [];
+  const taxes = data?.taxes || [];
+  const termsTemplates = data?.termsTemplates || [];
+  const businesses = data?.businesses || [];
+  const $users = data?.$users || [];
+
+  const currentUser = $users.find((u: any) => u.id === user?.id);
+
+  // Generate calendar secret if missing
+  useEffect(() => {
+    if (user?.id && currentUser && !currentUser.calendarSecret) {
+      db.transact(db.tx.$users[user.id].update({ calendarSecret: id() }));
+    }
+  }, [currentUser, user?.id]);
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -196,7 +217,8 @@ function App() {
     return <div className="text-red-500 p-4">Error: {error.message}</div>;
   }
 
-  const { clients, invoices, calendarEvents, services, taxes, termsTemplates, businesses } = data;
+  // No changes needed here, just removing the misplaced block from previous edit
+  // if it exists.
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -394,6 +416,7 @@ function App() {
           <Calendar
             calendarEvents={calendarEvents as any}
             userId={user.id}
+            calendarSecret={currentUser?.calendarSecret}
             initiallyOpenModal={modalToOpen === "mark-availability"}
             onModalClose={() => setModalToOpen(null)}
           />

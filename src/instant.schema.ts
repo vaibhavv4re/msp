@@ -12,15 +12,20 @@ const _schema = i.schema({
       email: i.string().unique().indexed().optional(),
       imageURL: i.string().optional(),
       type: i.string().optional(),
+      calendarSecret: i.string().optional(), // Secret key for iCal feed
     }),
     calendarEvents: i.entity({
-      date: i.string(),
-      status: i.string(),
       title: i.string().optional(),
+      start: i.string(), // ISO string
+      end: i.string(),   // ISO string
+      status: i.string(), // "tentative" | "confirmed" | "cancelled"
+      icalUid: i.string(), // Stable UID for iCal
+      googleEventId: i.string().optional(),
+      // Keep legacy fields for migration support if needed
+      date: i.string().optional(),
       duration: i.string().optional(),
       callTime: i.string().optional(),
       syncToGoogle: i.boolean().optional(),
-      googleEventId: i.string().optional(),
     }),
     clients: i.entity({
       customerType: i.string().optional(), // Business or Individual

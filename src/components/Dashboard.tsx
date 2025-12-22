@@ -90,7 +90,7 @@ export function Dashboard({
 
   const upcomingEvents = calendarEvents
     .filter(event => {
-      const eventDate = new Date(event.date);
+      const eventDate = new Date(event.start || "");
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const nextWeek = new Date();
@@ -98,7 +98,7 @@ export function Dashboard({
       nextWeek.setHours(23, 59, 59, 999);
       return eventDate >= today && eventDate <= nextWeek;
     })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .sort((a, b) => (a.start || "").localeCompare(b.start || ""));
 
   const paymentInvoices = invoices.filter(inv => {
     if (inv.status === "Paid") return false;
@@ -354,14 +354,14 @@ export function Dashboard({
                   <p className="text-[10px] text-gray-400 uppercase mt-1">Time to market yourself!</p>
                 </div>
               ) : (
-                upcomingEvents.map((event, idx) => {
-                  const eventDate = new Date(event.date);
+                upcomingEvents.map((event) => {
+                  const eventDate = new Date(event.start || "");
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
                   const isTomorrow = new Date(today.getTime() + 86400000).toDateString() === eventDate.toDateString();
                   const isToday = today.toDateString() === eventDate.toDateString();
 
-                  let dateLabel = event.date;
+                  let dateLabel = event.start?.split("T")[0] || "";
                   if (isToday) dateLabel = "Today";
                   else if (isTomorrow) dateLabel = "Tomorrow";
                   else {
@@ -376,9 +376,9 @@ export function Dashboard({
                           <h4 className="text-sm font-black text-gray-900 leading-tight">{event.title}</h4>
                           <p className="text-[10px] font-bold text-blue-600 uppercase mt-1">{dateLabel}</p>
                         </div>
-                        {event.callTime && (
-                          <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-bold">{event.callTime}</span>
-                        )}
+                        <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-bold">
+                          {new Date(event.start || "").toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
                     </div>
                   );
