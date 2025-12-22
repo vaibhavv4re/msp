@@ -9,6 +9,7 @@ import { Calendar } from "@/components/Calendar";
 import { Customers } from "@/components/Customers";
 import { Services } from "@/components/Services";
 import { Settings } from "@/components/Settings";
+import { TaxZone } from "@/components/TaxZone";
 import { GoogleCalendarAPI } from "@/lib/googleCalendar";
 import { GoogleCalendarAuth } from "@/lib/googleOAuth";
 
@@ -22,7 +23,7 @@ export type LineItem = InstaQLEntity<AppSchema, "lineItems">;
 export type CalendarEvent = InstaQLEntity<AppSchema, "calendarEvents">;
 export type Business = InstaQLEntity<AppSchema, "businesses">;
 
-type View = "dashboard" | "invoices" | "calendar" | "customers" | "services" | "settings";
+type View = "dashboard" | "invoices" | "calendar" | "customers" | "services" | "taxzone" | "settings";
 
 function LoginPage() {
   const handleGoogleLogin = () => {
@@ -150,6 +151,10 @@ function App() {
     taxes: {},
     termsTemplates: {},
     businesses: {},
+    expenses: {},
+    tdsEntries: {
+      client: {}
+    }
   });
 
   // Extract data safely
@@ -160,6 +165,8 @@ function App() {
   const taxes = data?.taxes || [];
   const termsTemplates = data?.termsTemplates || [];
   const businesses = data?.businesses || [];
+  const expenses = data?.expenses || [];
+  const tdsEntries = data?.tdsEntries || [];
   const $users = data?.$users || [];
 
   const currentUser = $users.find((u: any) => u.id === user?.id);
@@ -280,6 +287,15 @@ function App() {
                 Services
               </button>
               <button
+                onClick={() => setView("taxzone")}
+                className={`px-3 py-2 rounded-md text-sm font-medium ${view === "taxzone"
+                  ? "text-white bg-gray-900"
+                  : "text-gray-700 hover:bg-gray-200"
+                  }`}
+              >
+                Tax Zone
+              </button>
+              <button
                 onClick={() => setView("settings")}
                 className={`px-3 py-2 rounded-md text-sm font-medium ${view === "settings"
                   ? "text-white bg-gray-900"
@@ -328,6 +344,13 @@ function App() {
         >
           <svg className="w-6 h-6" fill={view === "calendar" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
           <span className="text-[10px] font-black uppercase tracking-tighter">Calendar</span>
+        </button>
+        <button
+          onClick={() => { setView("taxzone"); setIsMoreMenuOpen(false); }}
+          className={`flex flex-col items-center gap-1 ${view === "taxzone" ? "text-gray-900" : "text-gray-400"}`}
+        >
+          <svg className="w-6 h-6" fill={view === "taxzone" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m3 2h12a3 3 0 003-3v-2a3 3 0 00-3-3H9a3 3 0 00-3 3v2a3 3 0 003 3z" /></svg>
+          <span className="text-[10px] font-black uppercase tracking-tighter">Tax Zone</span>
         </button>
         <button
           onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
@@ -430,6 +453,15 @@ function App() {
             invoices={invoices}
             clients={clients}
             businesses={businesses}
+          />
+        )}
+        {view === "taxzone" && (
+          <TaxZone
+            invoices={invoices as any}
+            clients={clients as any}
+            expenses={expenses as any}
+            tdsEntries={tdsEntries as any}
+            userId={user.id}
           />
         )}
       </main>

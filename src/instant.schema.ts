@@ -111,6 +111,19 @@ const _schema = i.schema({
       isDefault: i.boolean(),
       sgstRate: i.number(),
     }),
+    expenses: i.entity({
+      description: i.string().optional(),
+      amount: i.number(),
+      date: i.string(), // ISO string
+      category: i.string(), // Travel, Assistants, Studio/Rent, Equipment/Rentals, Miscellaneous
+      notes: i.string().optional(),
+    }),
+    tdsEntries: i.entity({
+      amount: i.number(),
+      fy: i.string(), // Financial Year
+      hasCertificate: i.boolean(),
+      notes: i.string().optional(),
+    }),
   },
   links: {
     $usersLinkedPrimaryUser: {
@@ -257,6 +270,42 @@ const _schema = i.schema({
         on: "services",
         has: "many",
         label: "lineItems",
+      },
+    },
+    expensesOwner: {
+      forward: {
+        on: "expenses",
+        has: "one",
+        label: "owner",
+      },
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "expenses",
+      },
+    },
+    tdsEntriesOwner: {
+      forward: {
+        on: "tdsEntries",
+        has: "one",
+        label: "owner",
+      },
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "tdsEntries",
+      },
+    },
+    tdsEntriesClient: {
+      forward: {
+        on: "tdsEntries",
+        has: "one",
+        label: "client",
+      },
+      reverse: {
+        on: "clients",
+        has: "many",
+        label: "tdsEntries",
       },
     },
   },

@@ -216,80 +216,6 @@ export function Dashboard({
         </div>
       </div>
 
-      {/* GST Snapshot Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-full">
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Snapshot</h3>
-              <div className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded uppercase">PAID ONLY</div>
-            </div>
-            <div className="p-6 md:p-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                <div className="flex flex-row md:flex-col justify-between items-center md:items-start border-b md:border-b-0 pb-4 md:pb-0">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase">Received</h4>
-                  <p className="text-xl md:text-2xl font-black text-gray-900">₹{totalReceived.toLocaleString("en-IN")}</p>
-                </div>
-                <div className="flex flex-row md:flex-col justify-between items-center md:items-start border-b md:border-b-0 pb-4 md:pb-0">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase">GST Portion</h4>
-                  <p className="text-xl md:text-2xl font-black text-red-600">₹{gstCollected.toLocaleString("en-IN")}</p>
-                </div>
-                <div className="flex flex-row md:flex-col justify-between items-center md:items-start">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase">True Income</h4>
-                  <p className="text-xl md:text-2xl font-black text-green-600">₹{usableIncome.toLocaleString("en-IN")}</p>
-                </div>
-              </div>
-
-              <div className="mt-6 md:mt-8 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-start gap-4">
-                <div className="hidden md:flex w-10 h-10 rounded-full bg-blue-100 items-center justify-center shrink-0">
-                  <span className="text-xl">💡</span>
-                </div>
-                <div>
-                  <h5 className="font-black text-blue-900 uppercase text-[10px] tracking-tight mb-1">Human Explanation</h5>
-                  <p className="text-xs text-blue-800 leading-relaxed">
-                    GST collected is <span className="font-bold">₹{gstCollected.toLocaleString("en-IN")}</span>. Keep this aside for the government. Your true earnings are <span className="font-bold">₹{usableIncome.toLocaleString("en-IN")}</span>.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* GST Timeline */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Timeline</h3>
-          </div>
-          <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
-            {timeline.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-xs font-bold text-gray-400 uppercase">No GST collected yet</p>
-              </div>
-            ) : (
-              timeline.map((entry, idx) => {
-                const now = new Date();
-                const isCurrentMonth = entry.date.getMonth() === now.getMonth() && entry.date.getFullYear() === now.getFullYear();
-
-                return (
-                  <div key={idx} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-xs font-black text-gray-900 uppercase">{entry.monthYear}</h4>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Status: {isCurrentMonth ? 'Ongoing' : 'Likely Payable'}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-black text-red-600">₹{entry.gst.toLocaleString("en-IN")}</p>
-                        <p className="text-[8px] font-black text-gray-400 uppercase mt-0.5">GST Portion</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Quick Actions */}
         <div className="lg:col-span-2">
@@ -385,6 +311,80 @@ export function Dashboard({
                 })
               )}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* GST Snapshot Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-full">
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Snapshot</h3>
+              <div className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded uppercase">PAID ONLY</div>
+            </div>
+            <div className="p-6 md:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                <div className="flex flex-row md:flex-col justify-between items-center md:items-start border-b md:border-b-0 pb-4 md:pb-0">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase">Received</h4>
+                  <p className="text-xl md:text-2xl font-black text-gray-900">₹{totalReceived.toLocaleString("en-IN")}</p>
+                </div>
+                <div className="flex flex-row md:flex-col justify-between items-center md:items-start border-b md:border-b-0 pb-4 md:pb-0">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase">GST Portion</h4>
+                  <p className="text-xl md:text-2xl font-black text-red-600">₹{gstCollected.toLocaleString("en-IN")}</p>
+                </div>
+                <div className="flex flex-row md:flex-col justify-between items-center md:items-start">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase">True Income</h4>
+                  <p className="text-xl md:text-2xl font-black text-green-600">₹{usableIncome.toLocaleString("en-IN")}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 md:mt-8 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-start gap-4">
+                <div className="hidden md:flex w-10 h-10 rounded-full bg-blue-100 items-center justify-center shrink-0">
+                  <span className="text-xl">💡</span>
+                </div>
+                <div>
+                  <h5 className="font-black text-blue-900 uppercase text-[10px] tracking-tight mb-1">Human Explanation</h5>
+                  <p className="text-xs text-blue-800 leading-relaxed">
+                    GST collected is <span className="font-bold">₹{gstCollected.toLocaleString("en-IN")}</span>. Keep this aside for the government. Your true earnings are <span className="font-bold">₹{usableIncome.toLocaleString("en-IN")}</span>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* GST Timeline */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Timeline</h3>
+          </div>
+          <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
+            {timeline.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-xs font-bold text-gray-400 uppercase">No GST collected yet</p>
+              </div>
+            ) : (
+              timeline.map((entry, idx) => {
+                const now = new Date();
+                const isCurrentMonth = entry.date.getMonth() === now.getMonth() && entry.date.getFullYear() === now.getFullYear();
+
+                return (
+                  <div key={idx} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-xs font-black text-gray-900 uppercase">{entry.monthYear}</h4>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Status: {isCurrentMonth ? 'Ongoing' : 'Likely Payable'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-black text-red-600">₹{entry.gst.toLocaleString("en-IN")}</p>
+                        <p className="text-[8px] font-black text-gray-400 uppercase mt-0.5">GST Portion</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
