@@ -78,6 +78,7 @@ export function Invoices({
       setIsModalOpen(true);
     }
   }, [initiallyOpenModal]);
+
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
@@ -137,48 +138,65 @@ export function Invoices({
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Invoices</h2>
+    <div className="space-y-16 py-12">
+      {/* Editorial Header */}
+      <section className="flex flex-col md:flex-row justify-between items-end gap-8 pb-12 border-b border-border-subtle">
+        <div className="max-w-2xl">
+          <h2 className="text-6xl font-serif text-foreground tracking-tighter mb-4">The Ledger</h2>
+          <p className="text-muted text-sm uppercase tracking-[0.2em] leading-relaxed">
+            A record of all your invoices, payments, and settlements. <br />
+            Refinement in every transaction.
+          </p>
+        </div>
         <button
           onClick={() => openModal()}
-          className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800"
+          className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-foreground border border-foreground px-12 py-3 rounded-full hover:bg-foreground hover:text-background transition-all"
         >
-          Create Invoice
+          Issue Invoice
         </button>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <input
-          type="text"
-          placeholder="Search items..."
-          className="border p-2 rounded-md"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <select
-          className="border p-2 rounded-md"
-          value={businessFilter}
-          onChange={(e) => setBusinessFilter(e.target.value)}
-        >
-          <option value="all">All Businesses</option>
-          {businesses.map(b => (
-            <option key={b.id} value={b.id}>{b.name}</option>
-          ))}
-        </select>
-        <select
-          className="border p-2 rounded-md font-bold"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Statuses</option>
-          <option value="Paid">Paid</option>
-          <option value="Unpaid">Unpaid</option>
-          <option value="Sent">Sent</option>
-          <option value="Partially Paid">Partially Paid</option>
-          <option value="Overdue">Overdue (Calculated)</option>
-        </select>
-      </div>
+      {/* Narrative Filters */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="space-y-4">
+          <label className="text-[9px] text-muted font-sans font-black uppercase tracking-[0.3em]">Query Records</label>
+          <input
+            type="text"
+            placeholder="NAME / INVOICE #"
+            className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle focus:border-foreground py-2"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="space-y-4">
+          <label className="text-[9px] text-muted font-sans font-black uppercase tracking-[0.3em]">Profile Filter</label>
+          <select
+            className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle focus:border-foreground py-2 bg-transparent"
+            value={businessFilter}
+            onChange={(e) => setBusinessFilter(e.target.value)}
+          >
+            <option value="all">ALL PROFILES</option>
+            {businesses.map(b => (
+              <option key={b.id} value={b.id}>{b.name.toUpperCase()}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-4">
+          <label className="text-[9px] text-muted font-sans font-black uppercase tracking-[0.3em]">Invoice Status</label>
+          <select
+            className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle focus:border-foreground py-2 bg-transparent"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">ALL STATUTES</option>
+            <option value="Paid">SETTLED</option>
+            <option value="Unpaid">UNSETTLED</option>
+            <option value="Sent">MANIFESTED</option>
+            <option value="Partially Paid">PARTIALLY PAID</option>
+            <option value="Overdue">PAST MATURITY</option>
+          </select>
+        </div>
+      </section>
 
       <InvoiceTable
         invoices={sortedInvoices as any}
@@ -562,39 +580,38 @@ function InvoiceTable({
   return (
     <div className="space-y-4">
       {/* Table for Desktop */}
-      <div className="hidden md:block overflow-x-auto bg-white rounded-2xl shadow-sm border border-gray-100">
-        <table className="min-w-full">
+      <div className="hidden md:block overflow-x-auto bg-[#FAF9F7]">
+        <table className="min-w-full border-separate border-spacing-y-4">
           <thead>
-            <tr className="bg-gray-50/50 border-b border-gray-100">
-              <th className="py-4 px-6 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onSort('business')}>
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Business / Inv #</span>
+            <tr className="text-left">
+              <th className="pb-6 px-4 cursor-pointer" onClick={() => onSort('business')}>
+                <span className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.3em]">Record</span>
               </th>
-              <th className="py-4 px-6 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onSort('client')}>
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer</span>
+              <th className="pb-6 px-4 cursor-pointer" onClick={() => onSort('client')}>
+                <span className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.3em]">Customer</span>
               </th>
-              <th className="py-4 px-6 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onSort('dueDate')}>
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Due Date</span>
+              <th className="pb-6 px-4 cursor-pointer" onClick={() => onSort('dueDate')}>
+                <span className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.3em]">Maturity</span>
               </th>
-              <th className="py-4 px-6 text-right">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount & Bal</span>
+              <th className="pb-6 px-4 text-right">
+                <span className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.3em]">Valuation</span>
               </th>
-              <th className="py-4 px-6 text-center">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</span>
+              <th className="pb-6 px-4 text-center">
+                <span className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.3em]">Status</span>
               </th>
-              <th className="py-4 px-6 text-center">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</span>
+              <th className="pb-6 px-4 text-right">
+                <span className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.3em]">Directives</span>
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody>
             {invoices.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-gray-400 font-bold uppercase text-xs">No invoices found</td>
+                <td colSpan={6} className="py-24 text-center text-muted font-serif italic text-xl">No invoices found.</td>
               </tr>
             ) : (
               invoices.map((invoice) => {
                 const client = clients.find((c) => c.id === invoice.client?.id);
-                const displayName = client?.displayName || client?.firstName || "Unknown";
                 const business = businesses.find(b => b.id === (invoice as any).business?.id);
                 const total = calculateInvoiceTotal(invoice);
                 const balance = calculatePendingBalance(invoice);
@@ -603,38 +620,47 @@ function InvoiceTable({
                 const displayStatus = isOverdue ? "Overdue" : invoice.status;
 
                 return (
-                  <tr key={invoice.id} className="hover:bg-gray-50 transition-colors group">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <span className="w-1.5 h-10 rounded-full" style={{ backgroundColor: business?.color || "#e5e7eb" }}></span>
-                        <div>
-                          <div className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors">{invoice.invoiceNumber}</div>
-                          <div className="text-[9px] font-black text-gray-400 uppercase tracking-tight">{business?.name || "No Profile"}</div>
-                        </div>
+                  <tr key={invoice.id} className="group transition-all hover:bg-white/50">
+                    <td className="py-8 px-4 border-b border-border-subtle">
+                      <div className="text-xl font-serif tracking-tighter text-foreground group-hover:text-accent transition-colors">
+                        {invoice.invoiceNumber}
+                      </div>
+                      <div className="text-[9px] font-sans font-black text-muted uppercase tracking-widest mt-1">
+                        {business?.name || "PERSONAL LEDGER"}
                       </div>
                     </td>
-                    <td className="py-4 px-6">
-                      <div className="text-sm font-bold text-gray-700">{displayName}</div>
-                      {invoice.sentAt && <div className="text-[8px] font-black text-blue-500 uppercase">Sent {new Date(invoice.sentAt).toLocaleDateString()}</div>}
+                    <td className="py-8 px-4 border-b border-border-subtle">
+                      <div className="text-sm font-sans font-black tracking-widest uppercase text-foreground">
+                        {client?.displayName || client?.firstName || "ANONYMOUS"}
+                      </div>
+                      {invoice.sentAt && <div className="text-[8px] font-sans font-black text-accent uppercase mt-1">SENT {new Date(invoice.sentAt).toLocaleDateString()}</div>}
                     </td>
-                    <td className="py-4 px-6">
-                      <span className={`text-xs font-mono ${isOverdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{invoice.dueDate}</span>
+                    <td className="py-8 px-4 border-b border-border-subtle">
+                      <span className={`text-xs font-serif ${isOverdue ? "text-status-overdue" : "text-muted"}`}>
+                        {new Date(invoice.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
                     </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="text-sm font-black text-gray-900">₹{total.toLocaleString("en-IN")}</div>
-                      {balance > 0 && <div className="text-[9px] font-bold text-red-500 uppercase">Bal: ₹{balance.toLocaleString("en-IN")}</div>}
+                    <td className="py-8 px-4 text-right border-b border-border-subtle">
+                      <div className="text-2xl font-serif tracking-tighter text-foreground">₹{total.toLocaleString("en-IN")}</div>
+                      {balance > 0 && <div className="text-[9px] font-sans font-black text-status-overdue uppercase tracking-widest mt-1">BAL: ₹{balance.toLocaleString("en-IN")}</div>}
                     </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tight ${displayStatus === "Paid" ? "bg-green-100 text-green-700" :
-                        displayStatus === "Overdue" ? "bg-red-100 text-red-700" :
-                          "bg-yellow-100 text-yellow-700"
+                    <td className="py-8 px-4 text-center border-b border-border-subtle">
+                      <span className={`text-[9px] font-sans font-black uppercase tracking-[0.2em] ${displayStatus === "Paid" ? "text-status-paid" :
+                        displayStatus === "Overdue" ? "text-status-overdue" :
+                          "text-status-pending"
                         }`}>{displayStatus}</span>
                     </td>
-                    <td className="py-4 px-6">
-                      <div className="flex justify-center gap-4">
-                        <button onClick={() => onEdit(invoice)} className="text-gray-400 hover:text-blue-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
-                        <button onClick={() => downloadPDF(invoice)} className="text-gray-400 hover:text-red-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></button>
-                        <button onClick={() => recordPayment(invoice)} className="text-gray-400 hover:text-yellow-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
+                    <td className="py-8 px-4 border-b border-border-subtle">
+                      <div className="flex justify-end gap-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => downloadPDF(invoice)} className="text-muted hover:text-foreground">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </button>
+                        <button onClick={() => onEdit(invoice)} className="text-muted hover:text-foreground">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button onClick={() => recordPayment(invoice)} className="text-muted hover:text-foreground">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -646,13 +672,12 @@ function InvoiceTable({
       </div>
 
       {/* Card List for Mobile */}
-      <div className="md:hidden space-y-4">
+      <div className="md:hidden space-y-12">
         {invoices.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 font-bold uppercase text-xs">No invoices found</div>
+          <p className="py-12 text-center text-muted font-serif italic">No invoices found.</p>
         ) : (
           invoices.map((invoice) => {
             const client = clients.find((c) => c.id === invoice.client?.id);
-            const displayName = client?.displayName || client?.firstName || "Unknown";
             const business = businesses.find(b => b.id === (invoice as any).business?.id);
             const total = calculateInvoiceTotal(invoice);
             const balance = calculatePendingBalance(invoice);
@@ -661,48 +686,33 @@ function InvoiceTable({
             const displayStatus = isOverdue ? "Overdue" : invoice.status;
 
             return (
-              <div key={invoice.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+              <div key={invoice.id} className="space-y-6 pb-12 border-b border-border-subtle last:border-0" onClick={() => onEdit(invoice)}>
                 <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-6 rounded-full" style={{ backgroundColor: business?.color || "#e5e7eb" }}></span>
-                    <span className="text-xs font-black text-gray-900 uppercase tracking-tighter">{invoice.invoiceNumber}</span>
+                  <div>
+                    <h3 className="text-4xl font-serif tracking-tighter text-foreground mb-1">{invoice.invoiceNumber}</h3>
+                    <p className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.2em]">{business?.name || "MSP"}</p>
                   </div>
-                  <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight ${displayStatus === "Paid" ? "bg-green-100 text-green-700" :
-                    displayStatus === "Overdue" ? "bg-red-100 text-red-700" :
-                      "bg-yellow-100 text-yellow-700"
+                  <span className={`text-[9px] font-sans font-black uppercase tracking-widest ${displayStatus === "Paid" ? "text-status-paid" :
+                    displayStatus === "Overdue" ? "text-status-overdue" :
+                      "text-status-pending"
                     }`}>{displayStatus}</span>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-bold text-gray-800">{displayName}</h4>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{business?.name}</p>
+                  <p className="text-[9px] font-black text-muted uppercase tracking-[0.3em] mb-2">Customer</p>
+                  <p className="text-lg font-serif tracking-tight">{client?.displayName || "Anonymous"}</p>
                 </div>
 
-                <div className="flex justify-between items-end pt-2 border-t border-gray-50">
+                <div className="grid grid-cols-2 gap-12 pt-4">
                   <div>
-                    <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5">Total & Bal</p>
-                    <div className="text-sm font-black text-gray-900">₹{total.toLocaleString("en-IN")}</div>
-                    {balance > 0 && <div className="text-[9px] font-bold text-red-500">Bal: ₹{balance.toLocaleString("en-IN")}</div>}
+                    <p className="text-[9px] font-black text-muted uppercase tracking-[0.3em] mb-2">Valuation</p>
+                    <p className="text-2xl font-serif">₹{total.toLocaleString("en-IN")}</p>
+                    {balance > 0 && <p className="text-[8px] font-bold text-status-overdue">BAL: ₹{balance.toLocaleString()}</p>}
                   </div>
                   <div className="text-right">
-                    <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5">Due On</p>
-                    <p className={`text-xs font-mono ${isOverdue ? "text-red-500 font-bold" : "text-gray-600"}`}>{invoice.dueDate}</p>
+                    <p className="text-[9px] font-black text-muted uppercase tracking-[0.3em] mb-2">Maturity</p>
+                    <p className={`text-sm font-serif ${isOverdue ? "text-status-overdue" : ""}`}>{new Date(invoice.dueDate).toLocaleDateString()}</p>
                   </div>
-                </div>
-
-                <div className="flex gap-2 pt-1">
-                  <button onClick={() => downloadPDF(invoice)} className="flex-1 py-3 bg-gray-50 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black text-gray-600 uppercase tracking-tight hover:bg-gray-100 active:scale-95 transition-all">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    PDF
-                  </button>
-                  <button onClick={() => onEdit(invoice)} className="flex-1 py-3 bg-gray-50 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black text-gray-600 uppercase tracking-tight hover:bg-gray-100 active:scale-95 transition-all">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    Edit
-                  </button>
-                  <button onClick={() => recordPayment(invoice)} className="flex-1 py-3 bg-gray-900 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black text-white uppercase tracking-tight hover:bg-gray-800 active:scale-95 transition-all">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Pay
-                  </button>
                 </div>
               </div>
             );
@@ -970,192 +980,171 @@ function InvoiceModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-6xl max-h-[95vh] flex flex-col">
-        <div className="bg-white border-b px-6 pt-6 rounded-t-lg flex-shrink-0">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold">
-              {invoice ? "Edit Invoice" : "Create New Invoice"}
+    <div className="fixed inset-0 bg-[#FAF9F7]/95 backdrop-blur-sm flex justify-center items-center z-50 p-4 md:p-12">
+      <div className="bg-background w-full max-w-7xl max-h-[95vh] flex flex-col border border-border-subtle shadow-2xl overflow-hidden">
+        {/* Modal Header */}
+        <div className="p-8 md:p-12 border-b border-border-subtle flex flex-col md:flex-row justify-between items-start md:items-end gap-8 bg-white/50">
+          <div>
+            <h2 className="text-5xl font-serif tracking-tighter text-foreground mb-4">
+              {invoice ? "Edit Invoice" : "Add New Invoice"}
             </h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              ✕
-            </button>
+            <p className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.3em]">
+              {invoice ? `INVOICE ID: ${invoice.invoiceNumber}` : "CREATING NEW INVOICE"}
+            </p>
           </div>
-
-          <nav className="-mb-px flex space-x-8">
+          <div className="flex gap-12">
             <button
               onClick={() => setModalTab("general")}
-              className={`${modalTab === "general"
-                ? "border-gray-900 text-gray-900"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                } whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+              className={`text-[10px] font-sans font-black uppercase tracking-[0.2em] pb-2 border-b-2 transition-all ${modalTab === "general" ? "border-foreground text-foreground" : "border-transparent text-muted hover:text-foreground"
+                }`}
             >
-              General & Items
+              01 — General & Items
             </button>
             <button
               onClick={() => setModalTab("usage")}
-              className={`${modalTab === "usage"
-                ? "border-gray-900 text-gray-900"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                } whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+              className={`text-[10px] font-sans font-black uppercase tracking-[0.2em] pb-2 border-b-2 transition-all ${modalTab === "usage" ? "border-foreground text-foreground" : "border-transparent text-muted hover:text-foreground"
+                }`}
             >
-              Usage Rights & Licensing
+              02 — Licensing & Rights
             </button>
-          </nav>
+            <button onClick={onClose} className="text-muted hover:text-foreground transition-colors ml-4">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-6">
-          <form id="invoice-form" onSubmit={handleSubmit} className="space-y-6">
+        <div className="overflow-y-auto flex-1 p-8 md:p-12">
+          <form id="invoice-form" onSubmit={handleSubmit} className="space-y-16">
             {modalTab === "general" ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-bold mb-1 uppercase text-gray-500 tracking-wider">
-                      Business Profile <span className="text-red-500">*</span>
-                    </label>
+                {/* Identity Section */}
+                <section className="grid grid-cols-1 md:grid-cols-12 gap-12">
+                  <div className="md:col-span-8 space-y-8">
+                    <div className="space-y-4">
+                      <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Selection of Profile</label>
+                      <select
+                        name="business"
+                        className="w-full text-2xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                        value={formData.business?.id || ""}
+                        onChange={(e) => setFormData((prev: any) => ({ ...prev, business: { id: e.target.value } }))}
+                        required
+                      >
+                        <option value="">Choose profile...</option>
+                        {businesses.map((b) => (
+                          <option key={b.id} value={b.id}>{b.name.toUpperCase()}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Subject of Interest</label>
+                      <input
+                        type="text"
+                        name="subject"
+                        className="w-full text-xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                        value={formData.subject}
+                        onChange={handleChange}
+                        placeholder="Project title or thematic focus..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-4 space-y-8">
+                    <div className="space-y-4">
+                      <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Manifest Identifier</label>
+                      <input
+                        type="text"
+                        name="invoiceNumber"
+                        className="w-full text-xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                        value={formData.invoiceNumber}
+                        onChange={handleChange}
+                        placeholder="INV-XXXX"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Manifest Status</label>
+                      <select
+                        name="status"
+                        className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                        value={formData.status}
+                        onChange={handleChange}
+                      >
+                        <option value="Unpaid">UNSETTLED</option>
+                        <option value="Sent">MANIFESTED</option>
+                        <option value="Paid">SETTLED</option>
+                        <option value="Partially Paid">PARTIALLY PAID</option>
+                        <option value="Overdue">PAST MATURITY</option>
+                      </select>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Chronology & Customer Section */}
+                <section className="grid grid-cols-1 md:grid-cols-4 gap-12 pt-12 border-t border-border-subtle">
+                  <div className="space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">The Client</label>
                     <select
-                      name="business"
-                      className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-bold"
-                      value={formData.business?.id || ""}
-                      onChange={(e) => setFormData((prev: any) => ({ ...prev, business: { id: e.target.value } }))}
+                      className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                      value={formData.client?.id || ""}
+                      onChange={(e) => handleClientChange(e.target.value)}
                       required
                     >
-                      <option value="">Select Business</option>
-                      {businesses.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
+                      <option value="">Select individual...</option>
+                      <option value="add_new" className="font-bold">+ Register New Entity</option>
+                      {clients.map((client) => (
+                        <option key={client.id} value={client.id}>
+                          {(client.displayName || client.firstName || "Anonymous").toUpperCase()}
                         </option>
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold mb-1 uppercase text-gray-500 tracking-wider">
-                      Invoice # <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="invoiceNumber"
-                      className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-mono"
-                      value={formData.invoiceNumber}
-                      onChange={handleChange}
-                      placeholder="INV-001"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold mb-1 uppercase text-gray-500 tracking-wider">Status</label>
-                    <select
-                      name="status"
-                      className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-bold"
-                      value={formData.status}
-                      onChange={handleChange}
-                    >
-                      <option value="Unpaid">Unpaid</option>
-                      <option value="Sent">Sent</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Partially Paid">Partially Paid</option>
-                      <option value="Overdue">Overdue</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Order Number</label>
-                    <input
-                      type="text"
-                      name="orderNumber"
-                      className="border p-2 rounded-md w-full"
-                      value={formData.orderNumber}
-                      onChange={handleChange}
-                      placeholder="PO-001"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Invoice Date <span className="text-red-500">*</span>
-                    </label>
+                  <div className="space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Initiation Date</label>
                     <input
                       type="date"
                       name="invoiceDate"
-                      className="border p-2 rounded-md w-full"
+                      className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2"
                       value={formData.invoiceDate}
                       onChange={handleChange}
                       required
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Payment Terms</label>
+                  <div className="space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Payment Terms</label>
                     <select
                       name="paymentTerms"
-                      className="border p-2 rounded-md w-full"
+                      className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle bg-transparent focus:border-foreground py-2"
                       value={formData.paymentTerms}
                       onChange={handleChange}
                     >
-                      <option value="">Select Terms</option>
+                      <option value="">Select terms...</option>
                       {PAYMENT_TERMS.map((term) => (
-                        <option key={term.value} value={term.value}>
-                          {term.label}
-                        </option>
+                        <option key={term.value} value={term.value}>{term.label.toUpperCase()}</option>
                       ))}
                     </select>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Due Date <span className="text-red-500">*</span>
-                    </label>
+                  <div className="space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Date of Maturity</label>
                     <input
                       type="date"
                       name="dueDate"
-                      className="border p-2 rounded-md w-full"
+                      className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2"
                       value={formData.dueDate}
                       onChange={handleChange}
                       required
                     />
                   </div>
-                </div>
+                </section>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Customer <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    className="border p-2 rounded-md w-full"
-                    value={formData.client?.id || ""}
-                    onChange={(e) => handleClientChange(e.target.value)}
-                    required
-                  >
-                    <option value="">Select Customer</option>
-                    <option value="add_new" className="font-bold text-blue-600">+ Add New Customer</option>
-                    {clients.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {client.displayName || client.firstName || "Unnamed"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Subject / Project Title</label>
-                  <input
-                    type="text"
-                    name="subject"
-                    className="border p-2 rounded-md w-full"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    placeholder="e.g., Photography services for Wedding Shoot"
-                  />
-                </div>
-
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-lg font-semibold">Line Items</h3>
-                    <div className="flex gap-2">
+                {/* Line Items Section */}
+                <section className="space-y-8 pt-12 border-t border-border-subtle">
+                  <div className="flex justify-between items-end">
+                    <h3 className="text-3xl font-serif tracking-tighter">Inventory of Services</h3>
+                    <div className="flex gap-8">
                       {activeServices.length > 0 && (
                         <select
-                          className="border p-2 rounded-md text-sm"
+                          className="text-[9px] font-sans font-black uppercase tracking-[0.2em] border-b border-foreground focus:outline-none bg-transparent transition-colors pb-1"
                           onChange={(e) => {
                             if (e.target.value) {
                               addServiceLineItem(e.target.value);
@@ -1163,10 +1152,10 @@ function InvoiceModal({
                             }
                           }}
                         >
-                          <option value="">+ Add Service</option>
+                          <option value="">+ Append Service</option>
                           {activeServices.map((service) => (
                             <option key={service.id} value={service.id}>
-                              {service.name} - ₹{service.rate}
+                              {service.name.toUpperCase()} (₹{service.rate})
                             </option>
                           ))}
                         </select>
@@ -1174,43 +1163,52 @@ function InvoiceModal({
                       <button
                         type="button"
                         onClick={addCustomLineItem}
-                        className="px-3 py-2 bg-gray-900 text-white rounded-md text-sm hover:bg-gray-800"
+                        className="text-[9px] font-sans font-black uppercase tracking-[0.2em] border-b border-foreground pb-1"
                       >
-                        + Custom Item
+                        + Append Line
                       </button>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    {formData.lineItems.map((item: any, index: number) => (
-                      <div key={index} className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm md:grid md:grid-cols-12 md:items-center md:p-2 md:gap-2">
-                        <div className="md:col-span-4">
-                          <label className="md:hidden block text-[9px] font-black text-gray-400 uppercase mb-1">Description</label>
-                          <input
-                            type="text"
-                            className="border p-2 rounded-md w-full text-sm md:text-sm"
-                            value={item.description}
-                            onChange={(e) => handleLineItemChange(index, 'description', e.target.value)}
-                            placeholder="e.g. Headshot Session"
-                            required
-                          />
-                        </div>
-                        <div className="flex gap-2 md:contents">
-                          <div className="flex-1 md:col-span-2">
-                            <label className="md:hidden block text-[9px] font-black text-gray-400 uppercase mb-1">SAC</label>
+                    {/* Table Headers (Desktop) */}
+                    <div className="hidden md:grid md:grid-cols-12 gap-4 pb-2 border-b border-border-subtle">
+                      <div className="col-span-6 text-[8px] font-sans font-black text-muted uppercase tracking-[0.3em]">Description of Delivery</div>
+                      <div className="col-span-2 text-[8px] font-sans font-black text-muted uppercase tracking-[0.3em]">SAC Code</div>
+                      <div className="col-span-1 text-[8px] font-sans font-black text-muted uppercase tracking-[0.3em] text-center">Qty</div>
+                      <div className="col-span-2 text-[8px] font-sans font-black text-muted uppercase tracking-[0.3em] text-right">Unit Rate</div>
+                      <div className="col-span-1 text-right"></div>
+                    </div>
+
+                    <div className="space-y-12 md:space-y-4">
+                      {formData.lineItems.map((item: any, index: number) => (
+                        <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 md:items-center py-4 border-b border-border-subtle/50 group">
+                          <div className="md:col-span-6 space-y-2">
+                            <label className="md:hidden text-[8px] font-black text-muted uppercase tracking-widest">Description</label>
                             <input
                               type="text"
-                              className="border p-2 rounded-md w-full text-sm"
+                              className="w-full text-lg font-serif border-b md:border-0 border-border-subtle bg-transparent focus:outline-none"
+                              value={item.description}
+                              onChange={(e) => handleLineItemChange(index, 'description', e.target.value)}
+                              placeholder="Describe the contribution..."
+                              required
+                            />
+                          </div>
+                          <div className="md:col-span-2 space-y-2">
+                            <label className="md:hidden text-[8px] font-black text-muted uppercase tracking-widest">SAC Code</label>
+                            <input
+                              type="text"
+                              className="w-full text-sm font-sans border-b md:border-0 border-border-subtle bg-transparent focus:outline-none"
                               value={item.sacCode || ""}
                               onChange={(e) => handleLineItemChange(index, 'sacCode', e.target.value)}
                               placeholder="998311"
                             />
                           </div>
-                          <div className="flex-1 md:col-span-2">
-                            <label className="md:hidden block text-[9px] font-black text-gray-400 uppercase mb-1">Qty</label>
+                          <div className="md:col-span-1 space-y-2 text-center">
+                            <label className="md:hidden text-[8px] font-black text-muted uppercase tracking-widest text-center">Quantity</label>
                             <input
                               type="number"
-                              className="border p-2 rounded-md w-full text-sm text-right"
+                              className="w-full text-sm font-sans border-b md:border-0 border-border-subtle bg-transparent focus:outline-none text-center"
                               value={item.quantity}
                               onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
                               min="0"
@@ -1218,13 +1216,11 @@ function InvoiceModal({
                               required
                             />
                           </div>
-                        </div>
-                        <div className="flex items-end gap-2 md:contents">
-                          <div className="flex-1 md:col-span-2">
-                            <label className="md:hidden block text-[9px] font-black text-gray-400 uppercase mb-1">Rate</label>
+                          <div className="md:col-span-2 space-y-2 text-right">
+                            <label className="md:hidden text-[8px] font-black text-muted uppercase tracking-widest text-right">Unit Rate</label>
                             <input
                               type="number"
-                              className="border p-2 rounded-md w-full text-sm text-right font-bold"
+                              className="w-full text-xl font-serif border-b md:border-0 border-border-subtle bg-transparent focus:outline-none text-right tracking-tighter"
                               value={item.rate}
                               onChange={(e) => handleLineItemChange(index, 'rate', e.target.value)}
                               min="0"
@@ -1232,175 +1228,164 @@ function InvoiceModal({
                               required
                             />
                           </div>
-                          <div className="flex-1 md:col-span-1 text-right md:text-center flex flex-col justify-center">
-                            <label className="md:hidden block text-[9px] font-black text-gray-400 uppercase mb-1">Total</label>
-                            <div className="text-sm font-black text-gray-900 md:font-bold">
-                              ₹{item.amount?.toLocaleString('en-IN') || '0'}
-                            </div>
-                          </div>
-                          <div className="md:col-span-1 text-center">
+                          <div className="md:col-span-1 flex justify-end">
                             <button
                               type="button"
                               onClick={() => removeLineItem(index)}
-                              className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 md:bg-transparent md:text-red-400 md:p-0 md:hover:text-red-600"
+                              className="text-muted hover:text-status-overdue transition-colors"
                             >
-                              <span className="md:hidden text-[10px] font-black uppercase">Remove</span>
-                              <span className="hidden md:inline text-xl">✕</span>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </section>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-2 uppercase text-gray-500">Tax Configuration</h4>
-                      <div className="space-y-2">
-                        <select
-                          className="border p-2 rounded-md w-full"
-                          value={taxType}
-                          onChange={(e) => setTaxType(e.target.value as any)}
-                        >
-                          <option value="intrastate">Intra-State (CGST + SGST)</option>
-                          <option value="interstate">Inter-State (IGST)</option>
-                        </select>
+                {/* Tax Summary Section */}
+                <section className="grid grid-cols-1 md:grid-cols-2 gap-24 pt-12 border-t border-border-subtle">
+                  <div className="space-y-12">
+                    <div className="space-y-6">
+                      <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Taxation Architecture</label>
+                      <select
+                        className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                        value={taxType}
+                        onChange={(e) => setTaxType(e.target.value as any)}
+                      >
+                        <option value="intrastate">INTRA-STATE REVENUE (CGST + SGST)</option>
+                        <option value="interstate">INTER-STATE REVENUE (IGST)</option>
+                      </select>
 
-                        {taxType === "intrastate" ? (
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-gray-500">CGST %</span>
-                              <input
-                                type="number"
-                                className="border p-2 rounded-md w-full text-right"
-                                value={cgstRate}
-                                onChange={(e) => setCgstRate(Number(e.target.value))}
-                                step="0.01"
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-gray-500">SGST %</span>
-                              <input
-                                type="number"
-                                className="border p-2 rounded-md w-full text-right"
-                                value={sgstRate}
-                                onChange={(e) => setSgstRate(Number(e.target.value))}
-                                step="0.01"
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-gray-500">IGST %</span>
+                      {taxType === "intrastate" ? (
+                        <div className="grid grid-cols-2 gap-12">
+                          <div className="space-y-2">
+                            <span className="text-[8px] font-black text-muted uppercase">CGST Allocation (%)</span>
                             <input
                               type="number"
-                              className="border p-2 rounded-md w-full text-right"
-                              value={igstRate}
-                              onChange={(e) => setIgstRate(Number(e.target.value))}
+                              className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                              value={cgstRate}
+                              onChange={(e) => setCgstRate(Number(e.target.value))}
                               step="0.01"
                             />
                           </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                      <h4 className="text-sm font-bold mb-2 uppercase text-yellow-800">Recording Advance</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            id="isAdvanceReceived"
-                            name="isAdvanceReceived"
-                            checked={formData.isAdvanceReceived}
-                            onChange={handleChange}
-                            className="w-4 h-4"
-                          />
-                          <label htmlFor="isAdvanceReceived" className="text-sm font-bold text-yellow-900">Advance Payment Received?</label>
-                        </div>
-                        {formData.isAdvanceReceived && (
-                          <div>
-                            <label className="block text-xs font-bold mb-1 text-yellow-700">Advance Amount (INR)</label>
+                          <div className="space-y-2">
+                            <span className="text-[8px] font-black text-muted uppercase">SGST Allocation (%)</span>
                             <input
                               type="number"
-                              name="advanceAmount"
-                              value={formData.advanceAmount}
-                              onChange={handleChange}
-                              className="border-2 border-yellow-300 p-2 rounded-md w-full bg-white font-bold"
-                              placeholder="0.00"
+                              className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                              value={sgstRate}
+                              onChange={(e) => setSgstRate(Number(e.target.value))}
+                              step="0.01"
                             />
                           </div>
-                        )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <span className="text-[8px] font-black text-muted uppercase">IGST Allocation (%)</span>
+                          <input
+                            type="number"
+                            className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                            value={igstRate}
+                            onChange={(e) => setIgstRate(Number(e.target.value))}
+                            step="0.01"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-6 p-8 bg-black/5 border border-border-subtle">
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="checkbox"
+                          id="isAdvanceReceived"
+                          name="isAdvanceReceived"
+                          checked={formData.isAdvanceReceived}
+                          onChange={handleChange}
+                          className="w-4 h-4 accent-foreground"
+                        />
+                        <label htmlFor="isAdvanceReceived" className="text-[9px] font-sans font-black uppercase tracking-widest">Record Advance Payment</label>
                       </div>
+                      {formData.isAdvanceReceived && (
+                        <div className="space-y-2">
+                          <label className="text-[8px] font-black text-muted uppercase">Contribution amount (INR)</label>
+                          <input
+                            type="number"
+                            name="advanceAmount"
+                            value={formData.advanceAmount}
+                            onChange={handleChange}
+                            className="w-full text-xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="border rounded-lg p-6 bg-gray-50 space-y-3">
-                    <h4 className="text-sm font-bold mb-2 uppercase text-gray-500">Summary</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">Subtotal</span>
-                        <span className="font-mono">₹{formData.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  <div className="space-y-6">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Tax Details</label>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <span className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.1em]">Net Contribution</span>
+                        <span className="text-xl font-serif">₹{formData.subtotal.toLocaleString('en-IN')}</span>
                       </div>
                       {taxType === "intrastate" ? (
                         <>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">CGST ({cgstRate}%)</span>
-                            <span className="font-mono">₹{formData.cgst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          <div className="flex justify-between items-end">
+                            <span className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.1em]">CGST ({cgstRate}%)</span>
+                            <span className="text-sm font-serif">₹{formData.cgst?.toLocaleString('en-IN')}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">SGST ({sgstRate}%)</span>
-                            <span className="font-mono">₹{formData.sgst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          <div className="flex justify-between items-end">
+                            <span className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.1em]">SGST ({sgstRate}%)</span>
+                            <span className="text-sm font-serif">₹{formData.sgst?.toLocaleString('en-IN')}</span>
                           </div>
                         </>
                       ) : (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">IGST ({igstRate}%)</span>
-                          <span className="font-mono">₹{formData.igst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        <div className="flex justify-between items-end">
+                          <span className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.1em]">IGST ({igstRate}%)</span>
+                          <span className="text-sm font-serif">₹{formData.igst?.toLocaleString('en-IN')}</span>
                         </div>
                       )}
 
-                      <div className="flex justify-between font-black text-xl pt-3 border-t-2 border-gray-200">
-                        <span className="uppercase tracking-tighter">Total</span>
-                        <span className="text-gray-900">₹{formData.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <div className="flex justify-between items-end pt-8 border-t border-foreground mt-8">
+                        <span className="text-[12px] font-sans font-black uppercase tracking-[0.2em]">Aggregate Total</span>
+                        <span className="text-5xl font-serif tracking-tighter">₹{formData.total.toLocaleString('en-IN')}</span>
                       </div>
 
                       {formData.isAdvanceReceived && (
-                        <div className="space-y-2 pt-3 border-t border-dashed border-gray-300">
-                          <div className="flex justify-between text-yellow-700 font-bold">
-                            <span className="uppercase text-[11px]">Advance Received</span>
-                            <span>- ₹{Number(formData.advanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        <div className="space-y-4 pt-8 bg-accent/5 p-6 mt-8">
+                          <div className="flex justify-between items-end">
+                            <span className="text-[10px] font-black text-accent uppercase underline underline-offset-4 tracking-[0.1em]">Advance Retained</span>
+                            <span className="text-sm font-serif text-accent">— ₹{Number(formData.advanceAmount).toLocaleString('en-IN')}</span>
                           </div>
-                          <div className="flex justify-between text-red-600 font-black text-lg">
-                            <span className="uppercase text-[12px] tracking-tight">Pending Balance</span>
-                            <span>₹{(formData.total - Number(formData.advanceAmount)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          <div className="flex justify-between items-end pt-2 border-t border-accent/20">
+                            <span className="text-[10px] font-black text-status-overdue uppercase tracking-[0.1em]">Remaining Resolution</span>
+                            <span className="text-xl font-serif text-status-overdue">₹{(formData.total - Number(formData.advanceAmount)).toLocaleString('en-IN')}</span>
                           </div>
                         </div>
                       )}
                     </div>
                   </div>
-                </div>
+                </section>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Internal Notes</label>
+                {/* Annotation Section */}
+                <section className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-12 border-t border-border-subtle">
+                  <div className="space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Internal Documentation</label>
                     <textarea
                       name="notes"
-                      className="border p-2 rounded-md w-full bg-white"
+                      className="w-full text-sm font-serif border border-border-subtle border-dashed p-4 bg-transparent min-h-[120px] focus:outline-none"
                       value={formData.notes}
                       onChange={handleChange}
-                      placeholder="Visible only to you"
-                      rows={4}
+                      placeholder="Add private observations or records..."
                     />
                   </div>
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium uppercase text-gray-500 text-[11px] font-bold">Terms & Conditions</label>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Terms & Conditions</label>
                       {termsTemplates.length > 0 && (
                         <select
-                          className="text-[10px] border p-1 rounded font-bold uppercase"
+                          className="text-[8px] font-sans font-black uppercase tracking-[0.2em] border-b border-foreground focus:outline-none bg-transparent"
                           onChange={(e) => {
                             const template = termsTemplates.find(t => t.id === e.target.value);
                             if (template) {
@@ -1408,144 +1393,131 @@ function InvoiceModal({
                             }
                           }}
                         >
-                          <option value="">Load Template</option>
+                          <option value="">Select Terms</option>
                           {termsTemplates.map((template) => (
-                            <option key={template.id} value={template.id}>
-                              {template.title}
-                            </option>
+                            <option key={template.id} value={template.id}>{template.title.toUpperCase()}</option>
                           ))}
                         </select>
                       )}
                     </div>
                     <textarea
                       name="termsAndConditions"
-                      className="border p-2 rounded-md w-full font-mono text-[11px] leading-relaxed"
+                      className="w-full text-[10px] font-sans tracking-wider leading-relaxed border border-border-subtle p-4 bg-[#FAF9F7] min-h-[120px] focus:outline-none"
                       value={formData.termsAndConditions}
                       onChange={handleChange}
-                      placeholder="Visible to customer"
-                      rows={4}
+                      placeholder="Formalize the terms of engagement..."
                     />
                   </div>
-                </div>
+                </section>
               </>
             ) : (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Usage Type</label>
-                      <select
-                        name="usageType"
-                        className="border p-2 rounded-md w-full"
-                        value={formData.usageType}
-                        onChange={handleChange}
-                      >
-                        <option value="">Select Type</option>
-                        <option value="Editorial">Editorial</option>
-                        <option value="Social media">Social media</option>
-                        <option value="Website">Website</option>
-                        <option value="Print">Print</option>
-                        <option value="Commercial / Ads">Commercial / Ads</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-
-                    {formData.usageType === "Other" && (
-                      <div>
-                        <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Usage Description</label>
-                        <input
-                          type="text"
-                          name="usageOther"
-                          className="border p-2 rounded-md w-full"
-                          value={formData.usageOther}
+              /* Usage Rights Tab */
+              <div className="max-w-4xl space-y-24 py-12">
+                <section className="space-y-16">
+                  <h3 className="text-3xl font-serif tracking-tighter border-b border-border-subtle pb-8">Intellectual Property & Dissemination</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-24">
+                    <div className="space-y-12">
+                      <div className="space-y-4">
+                        <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Mode of Utilization</label>
+                        <select
+                          name="usageType"
+                          className="w-full text-xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                          value={formData.usageType}
                           onChange={handleChange}
-                          placeholder="Describe specific usage rights"
-                        />
+                        >
+                          <option value="">Specify modality...</option>
+                          <option value="Editorial">EDITORIAL USE</option>
+                          <option value="Social media">SOCIAL CHANNEL DISSEMINATION</option>
+                          <option value="Website">DIGITAL ARCHITECTURE</option>
+                          <option value="Print">PHYSICAL REPRODUCTION</option>
+                          <option value="Commercial / Ads">COMMERCIAL EXPLOITATION</option>
+                          <option value="Other">OTHER MODALITY</option>
+                        </select>
                       </div>
-                    )}
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Duration</label>
-                      <select
-                        name="usageDuration"
-                        className="border p-2 rounded-md w-full"
-                        value={formData.usageDuration}
-                        onChange={handleChange}
-                      >
-                        <option value="">Select Duration</option>
-                        <option value="3 months">3 months</option>
-                        <option value="1 year">1 year</option>
-                        <option value="perpetual">perpetual</option>
-                      </select>
+                      {formData.usageType === "Other" && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-4">
+                          <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Detailed Modality</label>
+                          <input
+                            type="text"
+                            name="usageOther"
+                            className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2 uppercase tracking-widest"
+                            value={formData.usageOther}
+                            onChange={handleChange}
+                            placeholder="SPECIFY UNIQUE RIGHTS..."
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Spatial Scope</label>
+                        <select
+                          name="usageGeography"
+                          className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                          value={formData.usageGeography}
+                          onChange={handleChange}
+                        >
+                          <option value="">Select scope...</option>
+                          <option value="India">TERRITORY OF INDIA</option>
+                          <option value="Global">GLOBAL USE</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-12">
+                      <div className="space-y-4">
+                        <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Temporal Duration</label>
+                        <select
+                          name="usageDuration"
+                          className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                          value={formData.usageDuration}
+                          onChange={handleChange}
+                        >
+                          <option value="">Select term...</option>
+                          <option value="3 months">QUARTERLY (90 DAYS)</option>
+                          <option value="1 year">ANNUAL (365 DAYS)</option>
+                          <option value="perpetual">PERPETUAL ENDURANCE</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-4">
+                        <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Exclusivity Protocol</label>
+                        <select
+                          name="usageExclusivity"
+                          className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                          value={formData.usageExclusivity}
+                          onChange={handleChange}
+                        >
+                          <option value="">Select degree...</option>
+                          <option value="Exclusive">EXCLUSIVE DOMINION</option>
+                          <option value="Non-exclusive">NON-EXCLUSIVE UTILIZATION</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Geography</label>
-                      <select
-                        name="usageGeography"
-                        className="border p-2 rounded-md w-full"
-                        value={formData.usageGeography}
-                        onChange={handleChange}
-                      >
-                        <option value="">Select Geography</option>
-                        <option value="India">India</option>
-                        <option value="Global">Global</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Exclusivity</label>
-                      <select
-                        name="usageExclusivity"
-                        className="border p-2 rounded-md w-full"
-                        value={formData.usageExclusivity}
-                        onChange={handleChange}
-                      >
-                        <option value="">Select Option</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
-                  <h4 className="text-blue-900 font-black mb-3 text-lg uppercase tracking-tight">Understanding Usage Rights</h4>
-                  <p className="text-sm text-blue-800 leading-relaxed mb-4">
-                    Usage rights define how your client can consume the intellectual property (photographs/videos) you deliver.
-                    Misunderstandings here often lead to legal disputes or lost revenue.
-                  </p>
-                  <ul className="text-sm text-blue-800 space-y-2 font-medium">
-                    <li>• <strong className="text-blue-900">Geography:</strong> Restrict usage to specific regions if necessary.</li>
-                    <li>• <strong className="text-blue-900">Duration:</strong> Limit how long the assets can be used before license renewal.</li>
-                    <li>• <strong className="text-blue-900">Exclusivity:</strong> Decides if you can sell/re-use these images for other clients.</li>
-                  </ul>
-                </div>
+                </section>
               </div>
             )}
           </form>
         </div>
 
-        <div className="bg-gray-100 border-t p-6 rounded-b-lg flex justify-between items-center flex-shrink-0">
-          <div className="text-sm font-bold text-gray-500 uppercase tracking-widest italic">
-            {formData.invoiceNumber || "Draft Invoice"}
-          </div>
-          <div className="flex gap-3">
+        {/* Modal Footer */}
+        <div className="p-8 md:p-12 border-t border-border-subtle bg-white/50 flex justify-between items-center">
+          <p className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.4em]">{formData.invoiceNumber || "Draft Manifest"}</p>
+          <div className="flex gap-12">
             <button
               type="button"
               onClick={onClose}
-              className="px-8 py-2 border-2 border-gray-300 font-bold uppercase text-xs rounded-md hover:bg-gray-200"
+              className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-muted hover:text-foreground transition-all"
             >
-              Cancel
+              Discard Changes
             </button>
             <button
               type="submit"
               form="invoice-form"
-              className="px-10 py-2 bg-gray-900 text-white font-bold uppercase text-xs rounded-md hover:bg-black transition-all shadow-lg"
+              className="px-16 py-4 bg-foreground text-background text-[10px] font-sans font-black uppercase tracking-[0.3em] rounded-full hover:bg-black transition-all shadow-xl shadow-black/5"
             >
-              {invoice ? "Update" : "Create"} Invoice
+              {invoice ? "Update Record" : "Finalize Manifest"}
             </button>
           </div>
         </div>

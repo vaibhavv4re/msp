@@ -76,162 +76,171 @@ export function Customers({
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Customers</h2>
-        <button
-          onClick={() => openModal()}
-          className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800"
-        >
-          Add Customer
-        </button>
-      </div>
-
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search customers..."
-          className="border p-2 rounded-md w-full"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {/* Mobile Card View */}
-      <div className="md:hidden space-y-4">
-        {filteredClients.length === 0 ? (
-          <div className="py-12 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-            <p className="text-sm font-black text-gray-400 uppercase tracking-widest">No customers found</p>
+    <div className="bg-[#FAF9F7] min-h-screen">
+      <div className="max-w-7xl mx-auto px-6 py-12 md:px-12 md:py-24 space-y-16">
+        {/* Editorial Header */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 border-b border-border-subtle pb-12">
+          <div className="space-y-4">
+            <h2 className="text-6xl md:text-8xl font-serif tracking-tighter text-foreground">
+              Clientele
+            </h2>
+            <p className="text-xs md:text-sm font-sans text-muted uppercase tracking-[0.3em] max-w-md leading-relaxed">
+              A directory of your creative partners and clients.
+            </p>
           </div>
-        ) : (
-          filteredClients.map((client) => (
-            <div key={client.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden active:scale-[0.98] transition-all">
-              <div className="p-4 border-b border-gray-50 flex justify-between items-start">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`w-2 h-2 rounded-full ${client.customerType === "Business" ? "bg-blue-500" : "bg-green-500"}`}></span>
-                    <h3 className="font-black text-gray-900 uppercase tracking-tight truncate">
-                      {client.displayName || client.firstName || "Unnamed"}
+          <button
+            onClick={() => openModal()}
+            className="flex items-center gap-4 text-[10px] font-sans font-black uppercase tracking-[0.2em] group border border-foreground px-8 py-4 rounded-full transition-all hover:bg-foreground hover:text-background"
+          >
+            Register Entity
+          </button>
+        </header>
+
+        {/* Narrative Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-12">
+          <div className="space-y-4">
+            <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Find Client</label>
+            <input
+              type="text"
+              placeholder="NAME, EMAIL, OR INSTITUTION..."
+              className="w-full text-xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2 placeholder:text-muted/30 uppercase"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Mobile Clientele List */}
+        <div className="md:hidden space-y-12">
+          {filteredClients.length === 0 ? (
+            <div className="py-24 text-center">
+              <p className="text-xl font-serif italic text-muted">No clients found.</p>
+            </div>
+          ) : (
+            filteredClients.map((client) => (
+              <div key={client.id} className="space-y-6 pb-12 border-b border-border-subtle last:border-0">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <h3 className="text-3xl font-serif tracking-tighter">
+                      {client.displayName || client.firstName || "Anonymous"}
                     </h3>
+                    <span className="text-[8px] font-sans font-black uppercase tracking-[0.2em] text-muted border border-border-subtle px-2 py-1 rounded">
+                      {client.customerType?.toUpperCase() || "INDIVIDUAL"}
+                    </span>
                   </div>
                   {client.companyName && (
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-4">{client.companyName}</p>
+                    <p className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.2em]">{client.companyName}</p>
                   )}
                 </div>
-                <div className="text-right">
-                  <span className={`inline-block px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${client.customerType === "Business" ? "bg-blue-50 text-blue-600" : "bg-green-50 text-green-600"
-                    }`}>
-                    {client.customerType || "Individual"}
-                  </span>
+
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-1">
+                    <p className="text-[8px] font-black text-muted uppercase tracking-widest leading-none">Record</p>
+                    <p className="text-xs font-sans text-foreground">{client.email || "No digital record"}</p>
+                    {client.phone && <p className="text-xs font-sans text-muted">{client.phone}</p>}
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <p className="text-[8px] font-black text-muted uppercase tracking-widest leading-none">Terms</p>
+                    <p className="text-xs font-sans text-foreground uppercase tracking-widest">
+                      {PAYMENT_TERMS.find(t => t.value === client.paymentTerms)?.label || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-8 items-center pt-4">
+                  <button
+                    onClick={() => openModal(client)}
+                    className="text-[9px] font-sans font-black uppercase tracking-[0.2em] border-b border-foreground pb-1"
+                  >
+                    Modify Profile
+                  </button>
+                  <button
+                    onClick={() => deleteClient(client)}
+                    className="text-[9px] font-sans font-black uppercase tracking-[0.2em] text-muted hover:text-status-overdue transition-colors"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
+            ))
+          )}
+        </div>
 
-              <div className="p-4 grid grid-cols-2 gap-4 bg-gray-50/30">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Contact</p>
-                  <p className="text-[11px] font-bold text-gray-700 truncate">{client.email || "No Email"}</p>
-                  {client.phone && <p className="text-[11px] font-bold text-gray-500">{client.phone}</p>}
-                </div>
-                <div className="space-y-1 text-right">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Terms</p>
-                  <p className="text-[11px] font-bold text-gray-700">
-                    {PAYMENT_TERMS.find(t => t.value === client.paymentTerms)?.label || "—"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3 bg-white flex gap-2 border-t border-gray-100">
-                <button
-                  onClick={() => openModal(client)}
-                  className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
-                >
-                  Edit profile
-                </button>
-                <button
-                  onClick={() => deleteClient(client)}
-                  className="px-4 py-3 bg-red-50 text-red-600 rounded-xl active:scale-95 transition-all"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full bg-white">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="py-2 px-4 text-left">Display Name</th>
-              <th className="py-2 px-4 text-left">Type</th>
-              <th className="py-2 px-4 text-left">Contact</th>
-              <th className="py-2 px-4 text-left">Payment Terms</th>
-              <th className="py-2 px-4 text-center">Invoices</th>
-              <th className="py-2 px-4 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredClients.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-4 text-center text-gray-500">
-                  No customers found. Add your first customer to get started.
-                </td>
+        {/* Desktop Clientele View */}
+        <div className="hidden md:block">
+          <table className="w-full border-separate border-spacing-y-4">
+            <thead>
+              <tr className="text-left">
+                <th className="pb-8 text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Identity & Institution</th>
+                <th className="pb-8 text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Classification</th>
+                <th className="pb-8 text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Communication</th>
+                <th className="pb-8 text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Terms</th>
+                <th className="pb-8 text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em] text-center">Activity</th>
+                <th className="pb-8 text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em] text-right">Actions</th>
               </tr>
-            ) : (
-              filteredClients.map((client) => (
-                <tr key={client.id} className="border-t hover:bg-gray-50">
-                  <td className="py-2 px-4">
-                    <div className="font-medium">{client.displayName || "—"}</div>
-                    {client.companyName && (
-                      <div className="text-sm text-gray-500">{client.companyName}</div>
-                    )}
-                  </td>
-                  <td className="py-2 px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${client.customerType === "Business"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-green-100 text-green-800"
-                      }`}>
-                      {client.customerType || "Individual"}
-                    </span>
-                  </td>
-                  <td className="py-2 px-4">
-                    <div className="text-sm">
-                      {client.email && <div>{client.email}</div>}
-                      {client.phone && <div className="text-gray-600">{client.phone}</div>}
-                    </div>
-                  </td>
-                  <td className="py-2 px-4">
-                    {PAYMENT_TERMS.find(t => t.value === client.paymentTerms)?.label || "—"}
-                  </td>
-                  <td className="py-2 px-4 text-center">
-                    {client.invoices?.length || 0}
-                  </td>
-                  <td className="py-2 px-4 text-center">
-                    <button
-                      onClick={() => openModal(client)}
-                      className="text-blue-500 hover:underline mr-3"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteClient(client)}
-                      className="text-red-500 hover:underline"
-                    >
-                      Delete
-                    </button>
+            </thead>
+            <tbody>
+              {filteredClients.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-24 text-center">
+                    <p className="text-2xl font-serif italic text-muted">No clients found in the current directory.</p>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                filteredClients.map((client) => (
+                  <tr key={client.id} className="group hover:bg-black/[0.02] transition-colors">
+                    <td className="py-6 border-b border-border-subtle/50">
+                      <div className="text-2xl font-serif tracking-tight">{client.displayName || "—"}</div>
+                      {client.companyName && (
+                        <div className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.2em] mt-1">{client.companyName}</div>
+                      )}
+                    </td>
+                    <td className="py-6 border-b border-border-subtle/50">
+                      <span className="text-[10px] font-sans tracking-widest uppercase border border-border-subtle px-3 py-1 rounded-full text-muted group-hover:text-foreground group-hover:border-foreground transition-all">
+                        {client.customerType || "Individual"}
+                      </span>
+                    </td>
+                    <td className="py-6 border-b border-border-subtle/50">
+                      <div className="text-sm font-sans text-foreground">{client.email || "—"}</div>
+                      {client.phone && <div className="text-[10px] font-sans text-muted uppercase mt-1 tracking-widest">{client.phone}</div>}
+                    </td>
+                    <td className="py-6 border-b border-border-subtle/50">
+                      <div className="text-[10px] font-sans font-black uppercase tracking-[0.2em]">
+                        {PAYMENT_TERMS.find(t => t.value === client.paymentTerms)?.label || "No Terms"}
+                      </div>
+                    </td>
+                    <td className="py-6 border-b border-border-subtle/50 text-center font-serif text-xl italic text-muted">
+                      {client.invoices?.length || 0}
+                    </td>
+                    <td className="py-6 border-b border-border-subtle/50">
+                      <div className="flex justify-end gap-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => openModal(client)}
+                          className="text-muted hover:text-foreground transition-colors"
+                          title="Modify"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button
+                          onClick={() => deleteClient(client)}
+                          className="text-muted hover:text-status-overdue transition-colors"
+                          title="Archive"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      {isModalOpen && (
-        <CustomerModal client={editingClient} userId={userId} onClose={closeModal} />
-      )}
+        {isModalOpen && (
+          <CustomerModal client={editingClient} userId={userId} onClose={closeModal} />
+        )}
+      </div>
     </div>
   );
 }
@@ -308,13 +317,11 @@ export function CustomerModal({
 
     const isNew = !client;
     if (isNew) {
-      // Creating new customer - link owner
       db.transact([
         db.tx.clients[clientId].update(clientData),
         db.tx.clients[clientId].link({ owner: userId })
       ]);
     } else {
-      // Updating existing customer - no need to relink owner
       db.transact(db.tx.clients[clientId].update(clientData));
     }
     if (onSuccess) onSuccess(clientId);
@@ -322,278 +329,267 @@ export function CustomerModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[95vh] overflow-y-auto">
-        <h3 className="text-xl font-bold mb-4">
-          {client ? "Edit Customer" : "Add Customer"}
-        </h3>
-
-        <form onSubmit={handleSubmit}>
-          {/* Customer Type */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">
-              Customer Type <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  value="Business"
-                  checked={customerType === "Business"}
-                  onChange={(e) => setCustomerType(e.target.value)}
-                  className="mr-2"
-                />
-                Business
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  value="Individual"
-                  checked={customerType === "Individual"}
-                  onChange={(e) => setCustomerType(e.target.value)}
-                  className="mr-2"
-                />
-                Individual
-              </label>
-            </div>
+    <div className="fixed inset-0 bg-[#FAF9F7]/95 backdrop-blur-sm flex items-center justify-center z-50 p-4 md:p-12">
+      <div className="bg-[#FAF9F7] w-full max-w-7xl max-h-[95vh] border border-border-subtle shadow-2xl flex flex-col overflow-hidden">
+        {/* Modal Header */}
+        <div className="p-8 md:p-12 border-b border-border-subtle flex justify-between items-end bg-white/50">
+          <div className="space-y-4">
+            <h3 className="text-4xl md:text-5xl font-serif tracking-tighter">
+              {client ? "Edit Client" : "Add New Client"}
+            </h3>
+            <p className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.4em]">
+              {client ? "CUSTOMER REF: " + client.id.slice(0, 8).toUpperCase() : "ADDING NEW CUSTOMER"}
+            </p>
           </div>
+          <button
+            onClick={onClose}
+            className="p-4 hover:rotate-90 transition-transform duration-300"
+          >
+            <svg className="w-6 h-6 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
 
-          {/* Primary Contact */}
-          <div className="mb-6">
-            <h4 className="text-lg font-semibold mb-3 text-gray-700">Primary Contact</h4>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Salutation</label>
-                <select
-                  className="border p-2 rounded-md w-full"
-                  value={salutation}
-                  onChange={(e) => setSalutation(e.target.value)}
-                >
-                  <option value="">Select</option>
-                  <option value="Mr.">Mr.</option>
-                  <option value="Mrs.">Mrs.</option>
-                  <option value="Ms.">Ms.</option>
-                  <option value="Dr.">Dr.</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">First Name</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="First name"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-1">Last Name</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Last name"
-                />
-              </div>
-            </div>
-
-            {customerType === "Business" && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">Company Name</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Company name"
-                />
-              </div>
-            )}
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium mb-1">
-                Display Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                className="border p-2 rounded-md w-full"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder={generateDisplayName() || "Display name for invoices"}
-              />
-              {generateDisplayName() && !displayName && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Will use: {generateDisplayName()}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="mb-6">
-            <h4 className="text-lg font-semibold mb-3 text-gray-700">Contact Information</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <input
-                  type="email"
-                  className="border p-2 rounded-md w-full"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Phone</label>
-                <input
-                  type="tel"
-                  className="border p-2 rounded-md w-full"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 1234567890"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Work Phone</label>
-                <input
-                  type="tel"
-                  className="border p-2 rounded-md w-full"
-                  value={workPhone}
-                  onChange={(e) => setWorkPhone(e.target.value)}
-                  placeholder="Work phone"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Mobile</label>
-                <input
-                  type="tel"
-                  className="border p-2 rounded-md w-full"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
-                  placeholder="Mobile number"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium mb-1">Address</label>
-              <textarea
-                className="border p-2 rounded-md w-full"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Full address"
-                rows={3}
-              />
-            </div>
-          </div>
-
-          {/* Additional Fields */}
-          <div className="mb-6">
-            <h4 className="text-lg font-semibold mb-3 text-gray-700">Additional Details</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">PAN</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full uppercase"
-                  value={pan}
-                  onChange={(e) => setPan(e.target.value.toUpperCase())}
-                  placeholder="ABCDE1234F"
-                  maxLength={10}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">TAN</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full uppercase"
-                  value={tan}
-                  onChange={(e) => setTan(e.target.value.toUpperCase())}
-                  placeholder="ABCD12345E"
-                  maxLength={10}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">GST Number</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full uppercase"
-                  value={gst}
-                  onChange={(e) => setGst(e.target.value.toUpperCase())}
-                  placeholder="27AAPFU0939F1ZV"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Currency</label>
-                <select
-                  className="border p-2 rounded-md w-full"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                >
-                  <option value="INR">INR - Indian Rupee</option>
-                  <option value="USD">USD - US Dollar</option>
-                  <option value="EUR">EUR - Euro</option>
-                  <option value="GBP">GBP - British Pound</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Payment Terms</label>
-                <select
-                  className="border p-2 rounded-md w-full"
-                  value={paymentTerms}
-                  onChange={(e) => setPaymentTerms(e.target.value)}
-                >
-                  {PAYMENT_TERMS.map((term) => (
-                    <option key={term.value} value={term.value}>
-                      {term.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {paymentTerms === "custom" && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Custom Days</label>
+        <div className="overflow-y-auto flex-1 p-8 md:p-12">
+          <form id="customer-form" onSubmit={handleSubmit} className="space-y-24">
+            {/* Classification Selection */}
+            <section className="space-y-8">
+              <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Category</label>
+              <div className="flex gap-16">
+                <label className="flex items-center gap-4 cursor-pointer group">
                   <input
-                    type="number"
-                    className="border p-2 rounded-md w-full"
-                    value={customTermDays}
-                    onChange={(e) => setCustomTermDays(e.target.value)}
-                    placeholder="Number of days"
-                    min="1"
+                    type="radio"
+                    value="Business"
+                    checked={customerType === "Business"}
+                    onChange={(e) => setCustomerType(e.target.value)}
+                    className="w-4 h-4 accent-foreground"
+                  />
+                  <span className={`text-sm font-sans uppercase tracking-[0.2em] transition-colors ${customerType === "Business" ? "font-black" : "text-muted group-hover:text-foreground"}`}>Business</span>
+                </label>
+                <label className="flex items-center gap-4 cursor-pointer group">
+                  <input
+                    type="radio"
+                    value="Individual"
+                    checked={customerType === "Individual"}
+                    onChange={(e) => setCustomerType(e.target.value)}
+                    className="w-4 h-4 accent-foreground"
+                  />
+                  <span className={`text-sm font-sans uppercase tracking-[0.2em] transition-colors ${customerType === "Individual" ? "font-black" : "text-muted group-hover:text-foreground"}`}>Individual</span>
+                </label>
+              </div>
+            </section>
+
+            {/* Primary Identity */}
+            <section className="grid grid-cols-1 md:grid-cols-12 gap-12">
+              <div className="md:col-span-8 space-y-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                  <div className="space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Honorific</label>
+                    <select
+                      className="w-full text-xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                      value={salutation}
+                      onChange={(e) => setSalutation(e.target.value)}
+                    >
+                      <option value="">None...</option>
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Ms.">Ms.</option>
+                      <option value="Dr.">Dr.</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-1 space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Given Name</label>
+                    <input
+                      type="text"
+                      className="w-full text-xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="John..."
+                    />
+                  </div>
+                  <div className="md:col-span-1 space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Surname</label>
+                    <input
+                      type="text"
+                      className="w-full text-xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Doe..."
+                    />
+                  </div>
+                </div>
+
+                {customerType === "Business" && (
+                  <div className="space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Legal Title</label>
+                    <input
+                      type="text"
+                      className="w-full text-3xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2 tracking-tighter"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="Organization Name..."
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-4 pt-12 border-t border-border-subtle">
+                  <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Manifest Display Name</label>
+                  <input
+                    type="text"
+                    className="w-full text-xl font-serif border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder={generateDisplayName() || "Full name for records..."}
+                  />
+                  {generateDisplayName() && !displayName && (
+                    <p className="text-[10px] font-sans text-muted italic">
+                      Automatic Resolution: {generateDisplayName()}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Communication & Location */}
+            <section className="space-y-16 pt-12 border-t border-border-subtle">
+              <h4 className="text-3xl font-serif tracking-tighter">Communication & Domain</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-24">
+                <div className="space-y-12">
+                  <div className="space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Electronic Post</label>
+                    <input
+                      type="email"
+                      className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="CLIENT@DOMAIN.COM"
+                    />
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Primary Telephony</label>
+                    <input
+                      type="tel"
+                      className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+91..."
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Office Address</label>
+                  <textarea
+                    className="w-full text-sm font-serif border border-border-subtle p-4 bg-transparent min-h-[120px] focus:outline-none"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Physical locus of operations..."
                   />
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </section>
 
-          <div className="flex justify-end gap-2 border-t pt-4">
+            {/* Tax Details */}
+            <section className="space-y-16 pt-12 border-t border-border-subtle pb-12">
+              <h4 className="text-3xl font-serif tracking-tighter">Tax Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                <div className="space-y-4">
+                  <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Permanent Account (PAN)</label>
+                  <input
+                    type="text"
+                    className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2 uppercase tracking-widest"
+                    value={pan}
+                    onChange={(e) => setPan(e.target.value.toUpperCase())}
+                    placeholder="ABCDE1234F"
+                    maxLength={10}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Tax Deduction (TAN)</label>
+                  <input
+                    type="text"
+                    className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2 uppercase tracking-widest"
+                    value={tan}
+                    onChange={(e) => setTan(e.target.value.toUpperCase())}
+                    placeholder="ABCD12345E"
+                    maxLength={10}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">GST Number</label>
+                  <input
+                    type="text"
+                    className="w-full text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2 uppercase tracking-widest"
+                    value={gst}
+                    onChange={(e) => setGst(e.target.value.toUpperCase())}
+                    placeholder="27AAPFU0939F1ZV"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12">
+                <div className="space-y-4">
+                  <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Monetary Standard</label>
+                  <select
+                    className="w-full text-sm font-sans tracking-widest uppercase border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                  >
+                    <option value="INR">INR — INDIAN RUPEE</option>
+                    <option value="USD">USD — US DOLLAR</option>
+                    <option value="EUR">EUR — EURO</option>
+                    <option value="GBP">GBP — BRITISH POUND</option>
+                  </select>
+                </div>
+                <div className="space-y-4">
+                  <label className="text-[9px] font-sans font-black text-muted uppercase tracking-[0.3em]">Terms of Resolution</label>
+                  <div className="flex gap-12 items-end">
+                    <select
+                      className="flex-1 text-sm font-sans tracking-widest uppercase border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                      value={paymentTerms}
+                      onChange={(e) => setPaymentTerms(e.target.value)}
+                    >
+                      {PAYMENT_TERMS.map((term) => (
+                        <option key={term.value} value={term.value}>{term.label.toUpperCase()}</option>
+                      ))}
+                    </select>
+                    {paymentTerms === "custom" && (
+                      <input
+                        type="number"
+                        className="w-24 text-sm font-sans border-b border-border-subtle bg-transparent focus:border-foreground py-2"
+                        value={customTermDays}
+                        onChange={(e) => setCustomTermDays(e.target.value)}
+                        placeholder="DAYS"
+                        min="1"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </form>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-8 md:p-12 border-t border-border-subtle bg-white/50 flex justify-between items-center">
+          <p className="text-[10px] font-sans font-black text-muted uppercase tracking-[0.4em]">Fidelity Verification Pending</p>
+          <div className="flex gap-12">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border rounded-md hover:bg-gray-100"
+              className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-muted hover:text-foreground transition-all"
             >
-              Cancel
+              Discard Entry
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
+              form="customer-form"
+              className="px-16 py-4 bg-foreground text-background text-[10px] font-sans font-black uppercase tracking-[0.3em] rounded-full hover:bg-black transition-all shadow-xl shadow-black/5"
             >
-              {client ? "Update" : "Add"} Customer
+              {client ? "Update Profile" : "Finalize Profile"}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
 }
+

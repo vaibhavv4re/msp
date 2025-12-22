@@ -64,97 +64,99 @@ export function Calendar({
     : null;
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header & Controls */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-4">
+    <div className="space-y-16 py-12">
+      {/* Editorial Header & Controls */}
+      <section className="flex flex-col md:flex-row justify-between items-end gap-8 pb-12 border-b border-border-subtle">
+        <div className="flex items-end gap-12">
+          <h2 className="text-6xl font-serif text-foreground tracking-tighter">
+            {currentDate.toLocaleString("default", { month: "long" })}
+            <span className="text-muted text-2xl ml-4 font-light">{year}</span>
+          </h2>
+          <div className="flex gap-4 pb-2">
             <button
               onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-              className="p-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
+              className="text-muted hover:text-foreground transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M15 19l-7-7 7-7"></path></svg>
             </button>
-            <h2 className="text-sm md:text-xl font-black text-gray-900 uppercase tracking-widest">
-              {currentDate.toLocaleString("default", { month: "long", year: "numeric" })}
-            </h2>
             <button
               onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-              className="p-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
+              className="text-muted hover:text-foreground transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
-            </button>
-          </div>
-
-          <div className="flex gap-2 w-full md:w-auto">
-            <div className="flex bg-gray-100 p-1 rounded-xl flex-1 md:flex-none">
-              <button
-                onClick={() => setView("agenda")}
-                className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${view === 'agenda' ? 'bg-white shadow-sm' : 'text-gray-400'}`}
-              >Agenda</button>
-              <button
-                onClick={() => setView("grid")}
-                className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${view === 'grid' ? 'bg-white shadow-sm' : 'text-gray-400'}`}
-              >Grid</button>
-            </div>
-            <button
-              onClick={() => handleDateClick(new Date())}
-              className="bg-gray-900 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all"
-            >
-              + New Event
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 5l7 7-7 7"></path></svg>
             </button>
           </div>
         </div>
-      </div>
+
+        <div className="flex items-center gap-12">
+          <div className="flex gap-8 border-l border-border-subtle pl-12">
+            <button
+              onClick={() => setView("agenda")}
+              className={`text-[10px] font-sans font-black uppercase tracking-[0.2em] transition-all hover:text-foreground ${view === 'agenda' ? 'text-foreground border-b border-foreground' : 'text-muted'}`}
+            >Agenda</button>
+            <button
+              onClick={() => setView("grid")}
+              className={`text-[10px] font-sans font-black uppercase tracking-[0.2em] transition-all hover:text-foreground ${view === 'grid' ? 'text-foreground border-b border-foreground' : 'text-muted'}`}
+            >Monthly</button>
+          </div>
+          <button
+            onClick={() => handleDateClick(new Date())}
+            className="text-[10px] font-sans font-black uppercase tracking-[0.2em] text-foreground border border-foreground px-8 py-3 rounded-full hover:bg-foreground hover:text-background transition-all"
+          >
+            Schedule
+          </button>
+        </div>
+      </section>
 
       {/* Main Content */}
-      {view === "agenda" ? (
-        <div className="space-y-4">
-          {events.length === 0 ? (
-            <div className="bg-white rounded-2xl border-2 border-dashed border-gray-100 p-12 text-center">
-              <p className="text-xs font-black text-gray-400 uppercase tracking-widest">No work scheduled</p>
-            </div>
-          ) : (
-            events.map(event => (
-              <div
-                key={event.id}
-                onClick={() => handleDateClick(new Date(event.start!), event)}
-                className={`bg-white p-4 rounded-2xl border transition-all cursor-pointer hover:shadow-md active:scale-[0.99] ${event.status === 'confirmed' ? 'border-gray-200 shadow-sm' : 'border-dashed border-gray-300 bg-gray-50/30'
-                  }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${event.status === 'confirmed' ? 'bg-gray-900 text-white' : 'bg-white border-2 border-gray-100 text-gray-400'
-                    }`}>
-                    <span className="text-[10px] font-black uppercase leading-none mb-1">
+      <section className="min-h-[600px]">
+        {view === "agenda" ? (
+          <div className="max-w-4xl space-y-24">
+            {events.length === 0 ? (
+              <p className="text-2xl font-serif text-muted italic py-12">No scheduled engagements for this period.</p>
+            ) : (
+              events.map(event => (
+                <div
+                  key={event.id}
+                  onClick={() => handleDateClick(new Date(event.start!), event)}
+                  className="group flex gap-24 items-start cursor-pointer border-b border-border-subtle pb-12 last:border-0"
+                >
+                  <div className="shrink-0 pt-2">
+                    <span className="text-[10px] text-accent font-black uppercase tracking-[0.3em] block mb-2">
                       {new Date(event.start!).toLocaleString('default', { month: 'short' })}
                     </span>
-                    <span className="text-xl font-black leading-none">{new Date(event.start!).getDate()}</span>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-black text-gray-900 uppercase text-sm tracking-tight">{event.title}</h4>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">
-                      {new Date(event.start!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
-                      {new Date(event.end!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded ${event.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                      }`}>
-                      {event.status}
+                    <span className="text-6xl font-serif tracking-tighter leading-none block">
+                      {new Date(event.start!).getDate()}
                     </span>
                   </div>
+                  <div className="flex-1 space-y-4">
+                    <h4 className="text-4xl font-serif tracking-tighter group-hover:text-accent transition-colors">
+                      {event.title}
+                    </h4>
+                    <div className="flex gap-12 text-[10px] text-muted font-sans font-black uppercase tracking-[0.2em]">
+                      <span>
+                        {new Date(event.start!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} —
+                        {new Date(event.end!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <span className={event.status === 'confirmed' ? "text-status-paid" : "text-status-pending"}>
+                        {event.status}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 md:p-6 shadow-sm">
-          <div className="grid grid-cols-7 gap-1 md:gap-4">
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-7 border-t border-l border-border-subtle">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => (
-              <div key={d} className="text-center text-[10px] font-black text-gray-300 uppercase tracking-widest py-2">{d}</div>
+              <div key={d} className="border-r border-b border-border-subtle p-4 text-[10px] font-sans font-black text-muted uppercase tracking-[0.3em]">
+                {d}
+              </div>
             ))}
-            {Array.from({ length: startingDay }).map((_, i) => <div key={i} />)}
+            {Array.from({ length: startingDay }).map((_, i) => (
+              <div key={i} className="border-r border-b border-border-subtle min-h-[160px] bg-background-alt/10" />
+            ))}
             {daysInMonth.map(day => {
               const dateStr = getLocalDateString(day);
               const dayEvents = events.filter(e => e.start?.startsWith(dateStr));
@@ -164,16 +166,16 @@ export function Calendar({
                 <div
                   key={dateStr}
                   onClick={() => handleDateClick(day)}
-                  className={`min-h-[100px] rounded-xl flex flex-col items-start p-2 relative border transition-all cursor-pointer ${isToday ? 'border-blue-500 bg-blue-50/50' : 'border-gray-50 hover:border-gray-200'
-                    }`}
+                  className={`min-h-[160px] border-r border-b border-border-subtle p-4 transition-all cursor-pointer group hover:bg-[#A68A64]/5 ${isToday ? 'bg-[#FAF9F7]' : ''}`}
                 >
-                  <span className={`text-xs font-black mb-1 ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>{day.getDate()}</span>
-                  <div className="flex flex-col gap-1 w-full overflow-hidden">
+                  <span className={`text-[11px] font-sans font-black tracking-widest ${isToday ? 'text-accent border-b border-accent' : 'text-muted'}`}>
+                    {day.getDate()}
+                  </span>
+                  <div className="mt-4 space-y-2">
                     {dayEvents.map(e => (
                       <div
                         key={e.id}
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded truncate w-full ${e.status === 'confirmed' ? 'bg-gray-900 text-white' : 'bg-blue-100 text-blue-700'
-                          }`}
+                        className="text-[9px] font-sans font-black uppercase tracking-tight text-foreground truncate block bg-border-subtle/30 px-2 py-1"
                       >
                         {e.title}
                       </div>
@@ -183,27 +185,32 @@ export function Calendar({
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
       {/* iCal Subscription Footer */}
       {icalUrl && (
-        <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-              <h4 className="text-sm font-black text-blue-900 uppercase">Subscribe to your Calendar</h4>
-              <p className="text-[10px] font-bold text-blue-700 uppercase mt-1">Sync your MSP events directly to your iPhone or Mac calendar.</p>
+        <section className="pt-24 border-t border-border-subtle">
+          <div className="max-w-2xl">
+            <h4 className="text-[10px] text-muted font-sans font-black uppercase tracking-[0.3em] mb-8 text-center sm:text-left">External Integration</h4>
+            <div className="flex flex-col sm:flex-row items-center gap-12 bg-foreground p-12 rounded-3xl text-background">
+              <div className="flex-1 space-y-2">
+                <h5 className="text-2xl font-serif tracking-tighter">Calendar Direct</h5>
+                <p className="text-xs text-background/60 leading-relaxed">
+                  Synchronize your creative schedule with local device repositories. Continuous mirroring ensures visibility across all endpoints.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  window.location.href = icalUrl.replace('http', 'webcal');
+                }}
+                className="text-[10px] font-sans font-black uppercase tracking-[0.2em] bg-background text-foreground px-8 py-4 rounded-full hover:bg-white transition-all whitespace-nowrap"
+              >
+                Configure Sync
+              </button>
             </div>
-            <button
-              onClick={() => {
-                window.location.href = icalUrl.replace('http', 'webcal');
-              }}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
-            >
-              Add to My Calendar
-            </button>
           </div>
-        </div>
+        </section>
       )}
 
       {isModalOpen && selectedDate && (
@@ -238,12 +245,6 @@ function EventModal({
   // Local date state (YYYY-MM-DD)
   const [eventDateStr, setEventDateStr] = useState(getLocalDateString(date));
 
-  // Default times: 09:00 - 18:00
-  const defaultStart = new Date(date);
-  defaultStart.setHours(9, 0, 0, 0);
-  const defaultEnd = new Date(date);
-  defaultEnd.setHours(18, 0, 0, 0);
-
   const [startTime, setStartTime] = useState(event?.start ? new Date(event.start).toTimeString().slice(0, 5) : "09:00");
   const [endTime, setEndTime] = useState(event?.end ? new Date(event.end).toTimeString().slice(0, 5) : "18:00");
 
@@ -273,7 +274,6 @@ function EventModal({
       date: eventDateStr,
     };
 
-    // Mirror to Google Calendar
     try {
       const { googleEventId } = await syncToCalendars({ id: eventId, ...eventData }, event ? 'update' : 'create');
       if (googleEventId) eventData.googleEventId = googleEventId;
@@ -295,7 +295,7 @@ function EventModal({
 
   async function handleDelete() {
     if (!event) return;
-    if (confirm("Permanently remove this event from all calendars?")) {
+    if (confirm("Permanently remove this event?")) {
       await syncToCalendars(event as any, 'delete');
       db.transact(db.tx.calendarEvents[event.id].delete());
       onClose();
@@ -303,69 +303,75 @@ function EventModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">
-            {event ? 'Edit Event' : 'New Event'}
-          </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-900">✕</button>
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-xl flex justify-center items-center z-[100] p-12 animate-in slide-in-from-bottom duration-300">
+      <div className="bg-background border border-border-subtle rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
+        <div className="p-12 flex justify-between items-start">
+          <div>
+            <h3 className="text-4xl font-serif text-foreground tracking-tighter mb-4">
+              {event ? 'Reformulate' : 'Chronicle'}
+            </h3>
+            <p className="text-[10px] text-muted font-sans font-black uppercase tracking-[0.2em]">Engagement parameters</p>
+          </div>
+          <button onClick={onClose} className="text-muted hover:text-foreground">
+            <svg className="w-8 h-8 font-thin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="px-12 pb-12 space-y-12">
           <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Shoot Title</label>
+            <label className="text-[9px] font-black text-muted uppercase tracking-[0.3em] block mb-4">Identification</label>
             <input
               type="text"
-              className="w-full border-b-2 border-gray-100 focus:border-gray-900 outline-none py-2 text-lg font-black uppercase transition-all"
-              placeholder="e.g. Brand X Shoot"
+              className="w-full text-2xl font-serif tracking-tighter border-b border-border-subtle focus:border-foreground py-4"
+              placeholder="THE SHOOT NAME"
               value={title}
               onChange={e => setTitle(e.target.value)}
               required
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Date</label>
-            <input
-              type="date"
-              className="w-full bg-gray-50 rounded-xl p-3 text-sm font-black outline-none"
-              value={eventDateStr}
-              onChange={e => setEventDateStr(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-12">
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Start</label>
+              <label className="text-[9px] font-black text-muted uppercase tracking-[0.3em] block mb-4">Date</label>
               <input
-                type="time"
-                className="w-full bg-gray-50 rounded-xl p-3 text-sm font-black outline-none"
-                value={startTime}
-                onChange={e => setStartTime(e.target.value)}
+                type="date"
+                className="w-full text-sm font-sans uppercase tracking-widest border-b border-border-subtle focus:border-foreground"
+                value={eventDateStr}
+                onChange={e => setEventDateStr(e.target.value)}
+                required
               />
             </div>
-            <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">End</label>
-              <input
-                type="time"
-                className="w-full bg-gray-50 rounded-xl p-3 text-sm font-black outline-none"
-                value={endTime}
-                onChange={e => setEndTime(e.target.value)}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[9px] font-black text-muted uppercase tracking-[0.3em] block mb-4">Start</label>
+                <input
+                  type="time"
+                  className="w-full text-sm font-sans border-b border-border-subtle focus:border-foreground"
+                  value={startTime}
+                  onChange={e => setStartTime(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-black text-muted uppercase tracking-[0.3em] block mb-4">End</label>
+                <input
+                  type="time"
+                  className="w-full text-sm font-sans border-b border-border-subtle focus:border-foreground"
+                  value={endTime}
+                  onChange={e => setEndTime(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Status</label>
-            <div className="flex gap-2">
+            <label className="text-[9px] font-black text-muted uppercase tracking-[0.3em] block mb-8 text-center md:text-left">Invoice Status</label>
+            <div className="flex gap-12 justify-center md:justify-start">
               {["confirmed", "tentative"].map(s => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setStatus(s as any)}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${status === s ? 'bg-gray-900 text-white shadow-lg' : 'bg-gray-100 text-gray-400'
+                  className={`text-[10px] font-sans font-black uppercase tracking-[0.2em] transition-all hover:text-foreground ${status === s ? "text-foreground border-b border-foreground" : "text-muted"
                     }`}
                 >
                   {s}
@@ -374,22 +380,22 @@ function EventModal({
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex justify-between items-center pt-12 border-t border-border-subtle">
             {event && (
               <button
                 type="button"
                 onClick={handleDelete}
-                className="p-4 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-all"
+                className="text-[9px] font-black uppercase tracking-widest text-status-overdue hover:opacity-50 transition-opacity"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                Void Engagement
               </button>
             )}
             <button
               type="submit"
               disabled={isSaving}
-              className="flex-1 bg-gray-900 text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black shadow-xl shadow-gray-200"
+              className="text-[11px] font-sans font-black uppercase tracking-[0.4em] bg-foreground text-background px-12 py-6 rounded-full hover:bg-black transition-all shadow-xl shadow-foreground/10"
             >
-              {isSaving ? "Syncing..." : event ? "Update Schedule" : "Create Shoot"}
+              {isSaving ? "MANIFESTING..." : event ? "REFORMULATE" : "CHRONICLE"}
             </button>
           </div>
         </form>
