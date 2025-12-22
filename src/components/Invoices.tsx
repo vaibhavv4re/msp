@@ -559,96 +559,155 @@ function InvoiceTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white">
-        <thead>
-          <tr className="bg-gray-100 border-b-2 border-gray-200">
-            <th className="py-3 px-4 text-left cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => onSort('business')}>
-              Business / Inv # <svg className="inline w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 16V4M7 4L3 8M7 4L11 8M17 8v12m0 0l4-4m-4 4l-4-4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </th>
-            <th className="py-3 px-4 text-left cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => onSort('client')}>
-              Customer <svg className="inline w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 16V4M7 4L3 8M7 4L11 8M17 8v12m0 0l4-4m-4 4l-4-4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </th>
-            <th className="py-3 px-4 text-left cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => onSort('dueDate')}>
-              Due Date <svg className="inline w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 16V4M7 4L3 8M7 4L11 8M17 8v12m0 0l4-4m-4 4l-4-4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </th>
-            <th className="py-3 px-4 text-right">Amount & Bal</th>
-            <th className="py-3 px-4 text-center">Status</th>
-            <th className="py-3 px-4 text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoices.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-8 text-center text-gray-500">
-                No invoices found
-              </td>
+    <div className="space-y-4">
+      {/* Table for Desktop */}
+      <div className="hidden md:block overflow-x-auto bg-white rounded-2xl shadow-sm border border-gray-100">
+        <table className="min-w-full">
+          <thead>
+            <tr className="bg-gray-50/50 border-b border-gray-100">
+              <th className="py-4 px-6 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onSort('business')}>
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Business / Inv #</span>
+              </th>
+              <th className="py-4 px-6 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onSort('client')}>
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer</span>
+              </th>
+              <th className="py-4 px-6 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onSort('dueDate')}>
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Due Date</span>
+              </th>
+              <th className="py-4 px-6 text-right">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount & Bal</span>
+              </th>
+              <th className="py-4 px-6 text-center">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</span>
+              </th>
+              <th className="py-4 px-6 text-center">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</span>
+              </th>
             </tr>
-          ) : (
-            invoices.map((invoice) => {
-              const client = clients.find((c) => c.id === invoice.client?.id);
-              const displayName = client?.displayName || client?.firstName || "Unknown";
-              const business = businesses.find(b => b.id === (invoice as any).business?.id);
-              const total = calculateInvoiceTotal(invoice);
-              const balance = calculatePendingBalance(invoice);
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {invoices.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-12 text-center text-gray-400 font-bold uppercase text-xs">No invoices found</td>
+              </tr>
+            ) : (
+              invoices.map((invoice) => {
+                const client = clients.find((c) => c.id === invoice.client?.id);
+                const displayName = client?.displayName || client?.firstName || "Unknown";
+                const business = businesses.find(b => b.id === (invoice as any).business?.id);
+                const total = calculateInvoiceTotal(invoice);
+                const balance = calculatePendingBalance(invoice);
+                const today = new Date().toISOString().split('T')[0];
+                const isOverdue = invoice.status !== "Paid" && invoice.dueDate < today;
+                const displayStatus = isOverdue ? "Overdue" : invoice.status;
 
-              // Effective Status Logic
-              const today = new Date().toISOString().split('T')[0];
-              const isOverdue = invoice.status !== "Paid" && invoice.dueDate < today;
-              const displayStatus = isOverdue ? "Overdue" : invoice.status;
-
-              return (
-                <tr key={invoice.id} className="border-t hover:bg-gray-50 group">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-3">
-                      <span className="w-1.5 h-10 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: business?.color || "#e5e7eb" }}></span>
-                      <div>
-                        <div className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{invoice.invoiceNumber}</div>
-                        {business && (
-                          <div className="text-[10px] uppercase font-black text-gray-400 tracking-widest">{business.name}</div>
-                        )}
+                return (
+                  <tr key={invoice.id} className="hover:bg-gray-50 transition-colors group">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <span className="w-1.5 h-10 rounded-full" style={{ backgroundColor: business?.color || "#e5e7eb" }}></span>
+                        <div>
+                          <div className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors">{invoice.invoiceNumber}</div>
+                          <div className="text-[9px] font-black text-gray-400 uppercase tracking-tight">{business?.name || "No Profile"}</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="text-sm font-semibold">{displayName}</div>
-                    {invoice.sentAt && (
-                      <div className="text-[10px] font-bold text-blue-500 uppercase tracking-tighter">Marked Sent: {new Date(invoice.sentAt).toLocaleDateString()}</div>
-                    )}
-                  </td>
-                  <td className="py-4 px-4 text-xs font-mono">
-                    <span className={isOverdue ? "text-red-600 font-bold" : ""}>{invoice.dueDate}</span>
-                  </td>
-                  <td className="py-4 px-4 text-right">
-                    <div className="font-bold text-gray-900">₹{total.toLocaleString("en-IN")}</div>
-                    {invoice.isAdvanceReceived && balance > 0 && (
-                      <div className="text-[10px] text-red-600 font-black uppercase tracking-widest">Bal: ₹{balance.toLocaleString("en-IN")}</div>
-                    )}
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-tight shadow-sm transition-all ${displayStatus === "Paid" ? "bg-green-600 text-white" :
-                      displayStatus === "Overdue" ? "bg-red-600 text-white animate-pulse" :
-                        displayStatus === "Sent" ? "bg-blue-600 text-white" :
-                          displayStatus === "Partially Paid" ? "bg-purple-600 text-white" :
-                            "bg-yellow-500 text-white"
-                      }`}>
-                      {displayStatus}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <div className="flex justify-center gap-4">
-                      <button onClick={() => onEdit(invoice)} title="Edit Details"><svg className="w-5 h-5 text-gray-400 hover:text-blue-600 transform hover:scale-125 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
-                      <button onClick={() => downloadPDF(invoice)} title="Export PDF"><svg className="w-5 h-5 text-gray-400 hover:text-red-600 transform hover:scale-125 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></button>
-                      <button onClick={() => markAsSent(invoice)} title="Confirm Sent"><svg className="w-5 h-5 text-gray-400 hover:text-green-600 transform hover:scale-125 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></button>
-                      <button onClick={() => recordPayment(invoice)} title="Record Payment"><svg className="w-5 h-5 text-gray-400 hover:text-yellow-600 transform hover:scale-125 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="text-sm font-bold text-gray-700">{displayName}</div>
+                      {invoice.sentAt && <div className="text-[8px] font-black text-blue-500 uppercase">Sent {new Date(invoice.sentAt).toLocaleDateString()}</div>}
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`text-xs font-mono ${isOverdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{invoice.dueDate}</span>
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <div className="text-sm font-black text-gray-900">₹{total.toLocaleString("en-IN")}</div>
+                      {balance > 0 && <div className="text-[9px] font-bold text-red-500 uppercase">Bal: ₹{balance.toLocaleString("en-IN")}</div>}
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tight ${displayStatus === "Paid" ? "bg-green-100 text-green-700" :
+                        displayStatus === "Overdue" ? "bg-red-100 text-red-700" :
+                          "bg-yellow-100 text-yellow-700"
+                        }`}>{displayStatus}</span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex justify-center gap-4">
+                        <button onClick={() => onEdit(invoice)} className="text-gray-400 hover:text-blue-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
+                        <button onClick={() => downloadPDF(invoice)} className="text-gray-400 hover:text-red-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></button>
+                        <button onClick={() => recordPayment(invoice)} className="text-gray-400 hover:text-yellow-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Card List for Mobile */}
+      <div className="md:hidden space-y-4">
+        {invoices.length === 0 ? (
+          <div className="p-12 text-center text-gray-400 font-bold uppercase text-xs">No invoices found</div>
+        ) : (
+          invoices.map((invoice) => {
+            const client = clients.find((c) => c.id === invoice.client?.id);
+            const displayName = client?.displayName || client?.firstName || "Unknown";
+            const business = businesses.find(b => b.id === (invoice as any).business?.id);
+            const total = calculateInvoiceTotal(invoice);
+            const balance = calculatePendingBalance(invoice);
+            const today = new Date().toISOString().split('T')[0];
+            const isOverdue = invoice.status !== "Paid" && invoice.dueDate < today;
+            const displayStatus = isOverdue ? "Overdue" : invoice.status;
+
+            return (
+              <div key={invoice.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1 h-6 rounded-full" style={{ backgroundColor: business?.color || "#e5e7eb" }}></span>
+                    <span className="text-xs font-black text-gray-900 uppercase tracking-tighter">{invoice.invoiceNumber}</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight ${displayStatus === "Paid" ? "bg-green-100 text-green-700" :
+                    displayStatus === "Overdue" ? "bg-red-100 text-red-700" :
+                      "bg-yellow-100 text-yellow-700"
+                    }`}>{displayStatus}</span>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-bold text-gray-800">{displayName}</h4>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{business?.name}</p>
+                </div>
+
+                <div className="flex justify-between items-end pt-2 border-t border-gray-50">
+                  <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5">Total & Bal</p>
+                    <div className="text-sm font-black text-gray-900">₹{total.toLocaleString("en-IN")}</div>
+                    {balance > 0 && <div className="text-[9px] font-bold text-red-500">Bal: ₹{balance.toLocaleString("en-IN")}</div>}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5">Due On</p>
+                    <p className={`text-xs font-mono ${isOverdue ? "text-red-500 font-bold" : "text-gray-600"}`}>{invoice.dueDate}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => downloadPDF(invoice)} className="flex-1 py-3 bg-gray-50 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black text-gray-600 uppercase tracking-tight hover:bg-gray-100 active:scale-95 transition-all">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    PDF
+                  </button>
+                  <button onClick={() => onEdit(invoice)} className="flex-1 py-3 bg-gray-50 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black text-gray-600 uppercase tracking-tight hover:bg-gray-100 active:scale-95 transition-all">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Edit
+                  </button>
+                  <button onClick={() => recordPayment(invoice)} className="flex-1 py-3 bg-gray-900 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black text-white uppercase tracking-tight hover:bg-gray-800 active:scale-95 transition-all">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Pay
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
@@ -1115,61 +1174,73 @@ function InvoiceModal({
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     {formData.lineItems.map((item: any, index: number) => (
-                      <div key={index} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border">
-                        <div className="col-span-4">
+                      <div key={index} className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm md:grid md:grid-cols-12 md:items-center md:p-2 md:gap-2">
+                        <div className="md:col-span-4">
+                          <label className="md:hidden block text-[9px] font-black text-gray-400 uppercase mb-1">Description</label>
                           <input
                             type="text"
-                            className="border p-2 rounded-md w-full text-sm"
+                            className="border p-2 rounded-md w-full text-sm md:text-sm"
                             value={item.description}
                             onChange={(e) => handleLineItemChange(index, 'description', e.target.value)}
-                            placeholder="Description"
+                            placeholder="e.g. Headshot Session"
                             required
                           />
                         </div>
-                        <div className="col-span-2">
-                          <input
-                            type="text"
-                            className="border p-2 rounded-md w-full text-sm"
-                            value={item.sacCode || ""}
-                            onChange={(e) => handleLineItemChange(index, 'sacCode', e.target.value)}
-                            placeholder="SAC Code"
-                          />
+                        <div className="flex gap-2 md:contents">
+                          <div className="flex-1 md:col-span-2">
+                            <label className="md:hidden block text-[9px] font-black text-gray-400 uppercase mb-1">SAC</label>
+                            <input
+                              type="text"
+                              className="border p-2 rounded-md w-full text-sm"
+                              value={item.sacCode || ""}
+                              onChange={(e) => handleLineItemChange(index, 'sacCode', e.target.value)}
+                              placeholder="998311"
+                            />
+                          </div>
+                          <div className="flex-1 md:col-span-2">
+                            <label className="md:hidden block text-[9px] font-black text-gray-400 uppercase mb-1">Qty</label>
+                            <input
+                              type="number"
+                              className="border p-2 rounded-md w-full text-sm text-right"
+                              value={item.quantity}
+                              onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
+                              min="0"
+                              step="0.01"
+                              required
+                            />
+                          </div>
                         </div>
-                        <div className="col-span-2">
-                          <input
-                            type="number"
-                            className="border p-2 rounded-md w-full text-sm text-right"
-                            value={item.quantity}
-                            onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
-                            min="0"
-                            step="0.01"
-                            required
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <input
-                            type="number"
-                            className="border p-2 rounded-md w-full text-sm text-right"
-                            value={item.rate}
-                            onChange={(e) => handleLineItemChange(index, 'rate', e.target.value)}
-                            min="0"
-                            step="0.01"
-                            required
-                          />
-                        </div>
-                        <div className="col-span-1 text-right text-sm font-bold">
-                          ₹{item.amount?.toLocaleString('en-IN') || '0'}
-                        </div>
-                        <div className="col-span-1 text-center">
-                          <button
-                            type="button"
-                            onClick={() => removeLineItem(index)}
-                            className="text-red-400 hover:text-red-600"
-                          >
-                            ✕
-                          </button>
+                        <div className="flex items-end gap-2 md:contents">
+                          <div className="flex-1 md:col-span-2">
+                            <label className="md:hidden block text-[9px] font-black text-gray-400 uppercase mb-1">Rate</label>
+                            <input
+                              type="number"
+                              className="border p-2 rounded-md w-full text-sm text-right font-bold"
+                              value={item.rate}
+                              onChange={(e) => handleLineItemChange(index, 'rate', e.target.value)}
+                              min="0"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+                          <div className="flex-1 md:col-span-1 text-right md:text-center flex flex-col justify-center">
+                            <label className="md:hidden block text-[9px] font-black text-gray-400 uppercase mb-1">Total</label>
+                            <div className="text-sm font-black text-gray-900 md:font-bold">
+                              ₹{item.amount?.toLocaleString('en-IN') || '0'}
+                            </div>
+                          </div>
+                          <div className="md:col-span-1 text-center">
+                            <button
+                              type="button"
+                              onClick={() => removeLineItem(index)}
+                              className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 md:bg-transparent md:text-red-400 md:p-0 md:hover:text-red-600"
+                            >
+                              <span className="md:hidden text-[10px] font-black uppercase">Remove</span>
+                              <span className="hidden md:inline text-xl">✕</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

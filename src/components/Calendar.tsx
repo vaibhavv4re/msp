@@ -77,64 +77,155 @@ export function Calendar({
     if (onModalClose) onModalClose();
   }
 
+  const [mobileView, setMobileView] = useState<"agenda" | "grid">("agenda");
+
+  // Filter events for the current month/view
+  const upcomingEvents = calendarEvents
+    .filter(e => {
+      const eventDate = new Date(e.date);
+      return eventDate.getMonth() === month && eventDate.getFullYear() === year;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="flex justify-between items-center mb-4">
-        <button
-          onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-          className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-        >
-          &lt; Previous
-        </button>
-        <h2 className="text-xl font-bold">
-          {currentDate.toLocaleString("default", {
-            month: "long",
-            year: "numeric",
-          })}
-        </h2>
-        <button
-          onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-          className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-        >
-          Next &gt;
-        </button>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="p-4 md:p-6 bg-gray-50 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-4 w-full md:w-auto justify-between">
+          <button
+            onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+            className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 active:scale-95 transition-all shadow-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+          <h2 className="text-sm md:text-xl font-black text-gray-900 uppercase tracking-widest">
+            {currentDate.toLocaleString("default", {
+              month: "long",
+              year: "numeric",
+            })}
+          </h2>
+          <button
+            onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+            className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 active:scale-95 transition-all shadow-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+
+        {/* View Toggle for Mobile */}
+        <div className="flex md:hidden bg-gray-200 p-1 rounded-xl w-full">
+          <button
+            onClick={() => setMobileView("agenda")}
+            className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${mobileView === "agenda" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
+          >
+            Agenda
+          </button>
+          <button
+            onClick={() => setMobileView("grid")}
+            className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${mobileView === "grid" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
+          >
+            Grid
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-2">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="text-center font-bold text-sm py-2">
-            {day}
-          </div>
-        ))}
-        {Array.from({ length: startingDay }).map((_, i) => (
-          <div key={`empty-${i}`} />
-        ))}
-        {daysInMonth.map((day) => {
-          const event = getEventForDate(day);
-          const status = event ? event.status : "Available";
-          const hasDetails = event?.title && status === "Booked";
+      <div className="p-4 md:p-6">
+        {/* Desktop Grid or Mobile Grid (if toggled) */}
+        <div className={`${mobileView === "grid" ? "block" : "hidden md:block"}`}>
+          <div className="grid grid-cols-7 gap-1 md:gap-3">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div key={day} className="text-center font-black text-gray-400 text-[10px] uppercase tracking-widest py-2">
+                {day}
+              </div>
+            ))}
+            {Array.from({ length: startingDay }).map((_, i) => (
+              <div key={`empty-${i}`} className="bg-gray-50 aspect-square md:aspect-auto rounded-xl" />
+            ))}
+            {daysInMonth.map((day) => {
+              const event = getEventForDate(day);
+              const status = event ? event.status : "Available";
+              const isToday = getLocalDateString(day) === getLocalDateString(new Date());
 
-          return (
-            <div
-              key={day.toString()}
-              onClick={() => handleDateClick(day)}
-              className={`p-3 text-center cursor-pointer rounded-lg border-2 transition-all hover:shadow-md ${status === "Booked"
-                  ? "bg-red-500 text-white border-red-600"
-                  : "bg-green-100 text-green-800 border-green-300 hover:bg-green-200"
-                }`}
-            >
-              <div className="font-semibold">{day.getDate()}</div>
-              {hasDetails && (
-                <div className="text-xs mt-1 truncate" title={event.title}>
-                  {event.title}
+              return (
+                <div
+                  key={day.toString()}
+                  onClick={() => handleDateClick(day)}
+                  className={`relative p-2 md:p-4 aspect-square md:aspect-auto flex flex-col items-center justify-center cursor-pointer rounded-xl border transition-all active:scale-95 ${status === "Booked"
+                    ? "bg-red-50 text-red-700 border-red-100"
+                    : isToday
+                      ? "bg-blue-50 text-blue-700 border-blue-100"
+                      : "bg-white text-gray-900 border-gray-100 hover:border-gray-300"
+                    }`}
+                >
+                  <div className={`text-sm md:text-lg font-black ${isToday ? "text-blue-600" : ""}`}>{day.getDate()}</div>
+                  {status === "Booked" && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-600 md:mt-1"></div>
+                  )}
+                  {event?.syncToGoogle && status === "Booked" && (
+                    <span className="absolute top-1 right-1 text-[8px] md:text-[10px]">📅</span>
+                  )}
                 </div>
-              )}
-              {event?.syncToGoogle && status === "Booked" && (
-                <div className="text-xs mt-1">📅</div>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mobile Agenda View */}
+        <div className={`${mobileView === "agenda" ? "block md:hidden" : "hidden"}`}>
+          <div className="space-y-3">
+            {upcomingEvents.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">No shoots this month</p>
+                <button
+                  onClick={() => handleDateClick(new Date())}
+                  className="px-6 py-3 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 transform grow-0"
+                >
+                  Block a Date
+                </button>
+              </div>
+            ) : (
+              upcomingEvents.map((event) => (
+                <div
+                  key={event.id}
+                  onClick={() => handleDateClick(new Date(event.date))}
+                  className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-[0.98] transition-all"
+                >
+                  <div className="flex flex-col items-center justify-center w-14 h-14 bg-gray-50 rounded-xl shrink-0">
+                    <span className="text-[10px] font-black text-gray-400 uppercase leading-none mb-1">
+                      {new Date(event.date).toLocaleString("default", { month: "short" })}
+                    </span>
+                    <span className="text-xl font-black text-gray-900 leading-none">
+                      {new Date(event.date).getDate()}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-black text-gray-900 uppercase truncate leading-tight">
+                      {event.title || "Quick Blocked"}
+                    </h4>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-2 mt-1">
+                      {event.callTime && (
+                        <span className="flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                          {event.callTime}
+                        </span>
+                      )}
+                      <span>{event.duration}</span>
+                    </p>
+                  </div>
+                  <div className="w-1.5 h-10 rounded-full bg-red-500"></div>
+                </div>
+              ))
+            )}
+
+            {upcomingEvents.length > 0 && (
+              <button
+                onClick={() => handleDateClick(new Date())}
+                className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl text-[10px] font-black text-gray-400 uppercase tracking-widest hover:border-gray-900 hover:text-gray-900 transition-all"
+              >
+                + Block Another Date
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {isModalOpen && selectedDate && (

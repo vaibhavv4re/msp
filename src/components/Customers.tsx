@@ -97,7 +97,70 @@ export function Customers({
         />
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-4">
+        {filteredClients.length === 0 ? (
+          <div className="py-12 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            <p className="text-sm font-black text-gray-400 uppercase tracking-widest">No customers found</p>
+          </div>
+        ) : (
+          filteredClients.map((client) => (
+            <div key={client.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden active:scale-[0.98] transition-all">
+              <div className="p-4 border-b border-gray-50 flex justify-between items-start">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`w-2 h-2 rounded-full ${client.customerType === "Business" ? "bg-blue-500" : "bg-green-500"}`}></span>
+                    <h3 className="font-black text-gray-900 uppercase tracking-tight truncate">
+                      {client.displayName || client.firstName || "Unnamed"}
+                    </h3>
+                  </div>
+                  {client.companyName && (
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-4">{client.companyName}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className={`inline-block px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${client.customerType === "Business" ? "bg-blue-50 text-blue-600" : "bg-green-50 text-green-600"
+                    }`}>
+                    {client.customerType || "Individual"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 grid grid-cols-2 gap-4 bg-gray-50/30">
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Contact</p>
+                  <p className="text-[11px] font-bold text-gray-700 truncate">{client.email || "No Email"}</p>
+                  {client.phone && <p className="text-[11px] font-bold text-gray-500">{client.phone}</p>}
+                </div>
+                <div className="space-y-1 text-right">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Terms</p>
+                  <p className="text-[11px] font-bold text-gray-700">
+                    {PAYMENT_TERMS.find(t => t.value === client.paymentTerms)?.label || "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-white flex gap-2 border-t border-gray-100">
+                <button
+                  onClick={() => openModal(client)}
+                  className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Edit profile
+                </button>
+                <button
+                  onClick={() => deleteClient(client)}
+                  className="px-4 py-3 bg-red-50 text-red-600 rounded-xl active:scale-95 transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full bg-white">
           <thead>
             <tr className="bg-gray-100">
@@ -127,8 +190,8 @@ export function Customers({
                   </td>
                   <td className="py-2 px-4">
                     <span className={`px-2 py-1 rounded-full text-xs ${client.customerType === "Business"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-green-100 text-green-800"
+                      ? "bg-blue-100 text-blue-800"
+                      : "bg-green-100 text-green-800"
                       }`}>
                       {client.customerType || "Individual"}
                     </span>

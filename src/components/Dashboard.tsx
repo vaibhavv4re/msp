@@ -139,26 +139,35 @@ export function Dashboard({
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-blue-600 hover:shadow-md transition-shadow">
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Billed {context === 'all_time' ? '' : 'Context'}</h2>
-          <p className="text-3xl font-black text-gray-900">
-            ₹{billed.toLocaleString("en-IN")}
-          </p>
+          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Billed</h2>
+          <div className="flex flex-col xl:flex-row xl:items-baseline xl:gap-2 overflow-hidden">
+            <span className="text-xl xl:text-2xl font-bold text-gray-500 shrink-0">₹</span>
+            <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 truncate">
+              {billed.toLocaleString("en-IN")}
+            </p>
+          </div>
           <div className="mt-2 text-[10px] font-bold text-blue-600 bg-blue-50 inline-block px-2 py-0.5 rounded uppercase">Total Invoiced</div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-green-500 hover:shadow-md transition-shadow">
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Received {context === 'all_time' ? '' : 'Context'}</h2>
-          <p className="text-3xl font-black text-gray-900">
-            ₹{received.toLocaleString("en-IN")}
-          </p>
+          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Received</h2>
+          <div className="flex flex-col xl:flex-row xl:items-baseline xl:gap-2 overflow-hidden">
+            <span className="text-xl xl:text-2xl font-bold text-gray-500 shrink-0">₹</span>
+            <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 truncate">
+              {received.toLocaleString("en-IN")}
+            </p>
+          </div>
           <div className="mt-2 text-[10px] font-bold text-green-600 bg-green-50 inline-block px-2 py-0.5 rounded uppercase">Cash in Hand</div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-yellow-500 hover:shadow-md transition-shadow">
           <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Receivable</h2>
-          <p className="text-3xl font-black text-gray-900">
-            ₹{receivable.toLocaleString("en-IN")}
-          </p>
+          <div className="flex flex-col xl:flex-row xl:items-baseline xl:gap-2 overflow-hidden">
+            <span className="text-xl xl:text-2xl font-bold text-gray-500 shrink-0">₹</span>
+            <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 truncate">
+              {receivable.toLocaleString("en-IN")}
+            </p>
+          </div>
           <div className="mt-2 text-[10px] font-bold text-yellow-700 bg-yellow-50 inline-block px-2 py-0.5 rounded uppercase">Awaiting Payment</div>
         </div>
       </div>
@@ -208,37 +217,37 @@ export function Dashboard({
       </div>
 
       {/* GST Snapshot Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-full">
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Snapshot (Paid Invoices Only)</h3>
-              <div className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded uppercase">CA Recommended</div>
+              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Snapshot</h3>
+              <div className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded uppercase">PAID ONLY</div>
             </div>
-            <div className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
-                <div>
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase mb-1">Total Balance Received</h4>
-                  <p className="text-2xl font-black text-gray-900">₹{totalReceived.toLocaleString("en-IN")}</p>
+            <div className="p-6 md:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                <div className="flex flex-row md:flex-col justify-between items-center md:items-start border-b md:border-b-0 pb-4 md:pb-0">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase">Received</h4>
+                  <p className="text-xl md:text-2xl font-black text-gray-900">₹{totalReceived.toLocaleString("en-IN")}</p>
                 </div>
-                <div>
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase mb-1">GST Collected from Clients</h4>
-                  <p className="text-2xl font-black text-red-600">₹{gstCollected.toLocaleString("en-IN")}</p>
+                <div className="flex flex-row md:flex-col justify-between items-center md:items-start border-b md:border-b-0 pb-4 md:pb-0">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase">GST Portion</h4>
+                  <p className="text-xl md:text-2xl font-black text-red-600">₹{gstCollected.toLocaleString("en-IN")}</p>
                 </div>
-                <div>
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase mb-1">Usable Income (GST Excluded)</h4>
-                  <p className="text-2xl font-black text-green-600">₹{usableIncome.toLocaleString("en-IN")}</p>
+                <div className="flex flex-row md:flex-col justify-between items-center md:items-start">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase">True Income</h4>
+                  <p className="text-xl md:text-2xl font-black text-green-600">₹{usableIncome.toLocaleString("en-IN")}</p>
                 </div>
               </div>
 
-              <div className="mt-8 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+              <div className="mt-6 md:mt-8 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-start gap-4">
+                <div className="hidden md:flex w-10 h-10 rounded-full bg-blue-100 items-center justify-center shrink-0">
                   <span className="text-xl">💡</span>
                 </div>
                 <div>
-                  <h5 className="font-black text-blue-900 uppercase text-[10px] tracking-tight mb-0.5">Human Explanation</h5>
+                  <h5 className="font-black text-blue-900 uppercase text-[10px] tracking-tight mb-1">Human Explanation</h5>
                   <p className="text-xs text-blue-800 leading-relaxed">
-                    The <span className="font-bold">₹{gstCollected.toLocaleString("en-IN")}</span> is the GST collected from clients that you likely need to pay to the government. We recommend keeping this aside. Your true earnings (after GST) are <span className="font-bold">₹{usableIncome.toLocaleString("en-IN")}</span>.
+                    GST collected is <span className="font-bold">₹{gstCollected.toLocaleString("en-IN")}</span>. Keep this aside for the government. Your true earnings are <span className="font-bold">₹{usableIncome.toLocaleString("en-IN")}</span>.
                   </p>
                 </div>
               </div>
@@ -283,52 +292,48 @@ export function Dashboard({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Quick Actions */}
-        <div className="lg:col-span-2 space-y-6">
-          <div>
-            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <span className="w-8 h-[1px] bg-gray-200"></span> Quick Actions
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button
-                onClick={() => onNavigate("invoices", "create-invoice")}
-                className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border-2 border-dashed border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3 group-hover:bg-gray-900 group-hover:text-white transition-all">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                </div>
-                <span className="text-xs font-black uppercase tracking-tighter">Create Invoice</span>
-              </button>
-
-              <button
-                onClick={() => setShowRecordPayment(true)}
-                className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border-2 border-dashed border-gray-200 hover:border-blue-600 hover:bg-blue-50 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                </div>
-                <span className="text-xs font-black uppercase tracking-tighter">Record Payment</span>
-              </button>
-
-              <button
-                onClick={() => onNavigate("calendar", "mark-availability")}
-                className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border-2 border-dashed border-gray-200 hover:border-purple-600 hover:bg-purple-50 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mb-3 group-hover:bg-purple-600 group-hover:text-white transition-all">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                </div>
-                <span className="text-xs font-black uppercase tracking-tighter">Mark Availability</span>
-              </button>
-
-              <button
-                onClick={() => onNavigate("customers", "create-client")}
-                className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border-2 border-dashed border-gray-200 hover:border-green-600 hover:bg-green-50 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-3 group-hover:bg-green-600 group-hover:text-white transition-all">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                </div>
-                <span className="text-xs font-black uppercase tracking-tighter">Add Client</span>
-              </button>
-            </div>
+        <div className="lg:col-span-2">
+          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <span className="w-8 h-[1px] bg-gray-200"></span> Quick Actions
+          </h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <button
+              onClick={() => onNavigate("invoices", "create-invoice")}
+              className="flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-2xl border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-all min-h-[100px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-tighter">New Invoice</span>
+            </button>
+            <button
+              onClick={() => setShowRecordPayment(true)}
+              className="flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-2xl border border-gray-200 hover:border-blue-600 hover:bg-blue-50 transition-all min-h-[100px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-tighter">Paid Payment</span>
+            </button>
+            {/* Hidden on small mobile to reduce clutter, but shown on md+ */}
+            <button
+              onClick={() => onNavigate("calendar", "mark-availability")}
+              className="hidden md:flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 hover:border-purple-600 hover:bg-purple-50 transition-all"
+            >
+              <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mb-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-tighter">Mark Busy</span>
+            </button>
+            <button
+              onClick={() => onNavigate("customers", "create-client")}
+              className="flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-2xl border border-gray-200 hover:border-green-600 hover:bg-green-50 transition-all min-h-[100px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-tighter">New Client</span>
+            </button>
           </div>
         </div>
 
