@@ -3,6 +3,7 @@ import React from "react";
 import { db } from "@/lib/db";
 import { id, InstaQLEntity } from "@instantdb/react";
 import { AppSchema } from "@/instant.schema";
+import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary";
 import { Business } from "@/app/page";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -220,13 +221,22 @@ function InvoiceTable({
   userId: string;
   onSort: (key: string) => void;
 }) {
-  function deleteInvoice(invoice: Invoice) {
+  async function deleteInvoice(invoice: Invoice) {
     if (confirm("Are you sure you want to delete this invoice?")) {
-      const txs = [
-        ...invoice.lineItems.map((li) => db.tx.lineItems[li.id].delete()),
-        db.tx.invoices[invoice.id].delete(),
-      ];
-      db.transact(txs);
+      try {
+        if ((invoice as any).attachment?.publicId) {
+          await deleteFromCloudinary((invoice as any).attachment.publicId);
+        }
+
+        const txs = [
+          ...invoice.lineItems.map((li) => db.tx.lineItems[li.id].delete()),
+          db.tx.invoices[invoice.id].delete(),
+        ];
+        db.transact(txs);
+      } catch (error) {
+        console.error("Failed to delete invoice or attachment:", error);
+        alert("Failed to delete complete invoice records. Check console for details.");
+      }
     }
   }
 
@@ -621,8 +631,20 @@ function InvoiceTable({
                       <span className={`text-xs font-mono ${isOverdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{invoice.dueDate}</span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <div className="text-sm font-black text-gray-900">₹{total.toLocaleString("en-IN")}</div>
-                      {balance > 0 && <div className="text-[9px] font-bold text-red-500 uppercase">Bal: ₹{balance.toLocaleString("en-IN")}</div>}
+                      <div className="flex flex-col items-end">
+                        <div className="text-sm font-black text-gray-900">₹{total.toLocaleString("en-IN")}</div>
+                        {balance > 0 && <div className="text-[9px] font-bold text-red-500 uppercase">Bal: ₹{balance.toLocaleString("en-IN")}</div>}
+                        {(invoice as any).attachment && (
+                          <a
+                            href={(invoice as any).attachment.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[9px] font-black uppercase text-blue-600 hover:underline mt-1"
+                          >
+                            View Attachment
+                          </a>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-center">
                       <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tight ${displayStatus === "Paid" ? "bg-green-100 text-green-700" :
@@ -775,6 +797,9 @@ function InvoiceModal({
     };
   });
 
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const [modalTab, setModalTab] = useState<"general" | "usage">("general");
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
@@ -898,7 +923,7 @@ function InvoiceModal({
     setFormData((prev: any) => ({ ...prev, lineItems }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     if (!formData.client?.id) {
@@ -916,57 +941,85 @@ function InvoiceModal({
       return;
     }
 
-    const { lineItems, ...invoiceData } = formData;
-    const invoiceId = invoice ? invoice.id : id();
-    const lineItemIds = (lineItems as any[]).map((li: any) => li.id || id());
+    setIsUploading(true);
+    try {
+      const { lineItems, ...invoiceData } = formData;
+      const invoiceId = invoice ? invoice.id : id();
+      const lineItemIds = (lineItems as any[]).map((li: any) => li.id || id());
 
-    const isNew = !invoice;
-    const txs = [
-      db.tx.invoices[invoiceId].update({
-        invoiceNumber: invoiceData.invoiceNumber,
-        invoiceDate: invoiceData.invoiceDate,
-        orderNumber: invoiceData.orderNumber || undefined,
-        paymentTerms: invoiceData.paymentTerms || undefined,
-        dueDate: invoiceData.dueDate,
-        subject: invoiceData.subject || undefined,
-        status: invoiceData.status,
-        subtotal: Number(invoiceData.subtotal),
-        cgst: taxType === "intrastate" ? Number(invoiceData.cgst) : undefined,
-        sgst: taxType === "intrastate" ? Number(invoiceData.sgst) : undefined,
-        igst: taxType === "interstate" ? Number(invoiceData.igst) : undefined,
-        total: Number(invoiceData.total),
-        notes: invoiceData.notes || undefined,
-        termsAndConditions: invoiceData.termsAndConditions || undefined,
-        usageType: invoiceData.usageType || undefined,
-        usageOther: invoiceData.usageOther || undefined,
-        usageDuration: invoiceData.usageDuration || undefined,
-        usageGeography: invoiceData.usageGeography || undefined,
-        usageExclusivity: invoiceData.usageExclusivity || undefined,
-        advanceAmount: Number(invoiceData.advanceAmount),
-        isAdvanceReceived: !!invoiceData.isAdvanceReceived,
-      }),
-      db.tx.invoices[invoiceId].link({ client: formData.client.id }),
-      db.tx.invoices[invoiceId].link({ business: formData.business.id }),
-      ...(lineItems as any[]).map((li: any, i: number) =>
-        db.tx.lineItems[lineItemIds[i]].update({
-          itemType: li.itemType || undefined,
-          description: li.description,
-          sacCode: li.sacCode || undefined,
-          quantity: Number(li.quantity),
-          rate: Number(li.rate),
-          amount: Number(li.amount),
-        })
-      ),
-      db.tx.invoices[invoiceId].link({ lineItems: lineItemIds }),
-    ];
+      let attachmentId = null;
+      if (file) {
+        const folder = `invoices/${new Date().getFullYear()}/${invoiceData.invoiceNumber.toLowerCase().replace(/\s+/g, "_")}`;
+        const uploadResult = await uploadToCloudinary(file, folder);
 
-    // Link owner for new invoices
-    if (isNew) {
-      txs.push(db.tx.invoices[invoiceId].link({ owner: userId }));
+        attachmentId = id();
+        db.transact([
+          db.tx.attachments[attachmentId].update({
+            publicId: uploadResult.public_id,
+            url: uploadResult.secure_url,
+            type: "invoice_pdf",
+            createdAt: new Date().toISOString(),
+          })
+        ]);
+      }
+
+      const isNew = !invoice;
+      const txs = [
+        db.tx.invoices[invoiceId].update({
+          invoiceNumber: invoiceData.invoiceNumber,
+          invoiceDate: invoiceData.invoiceDate,
+          orderNumber: invoiceData.orderNumber || undefined,
+          paymentTerms: invoiceData.paymentTerms || undefined,
+          dueDate: invoiceData.dueDate,
+          subject: invoiceData.subject || undefined,
+          status: invoiceData.status,
+          subtotal: Number(invoiceData.subtotal),
+          cgst: taxType === "intrastate" ? Number(invoiceData.cgst) : undefined,
+          sgst: taxType === "intrastate" ? Number(invoiceData.sgst) : undefined,
+          igst: taxType === "interstate" ? Number(invoiceData.igst) : undefined,
+          total: Number(invoiceData.total),
+          notes: invoiceData.notes || undefined,
+          termsAndConditions: invoiceData.termsAndConditions || undefined,
+          usageType: invoiceData.usageType || undefined,
+          usageOther: invoiceData.usageOther || undefined,
+          usageDuration: invoiceData.usageDuration || undefined,
+          usageGeography: invoiceData.usageGeography || undefined,
+          usageExclusivity: invoiceData.usageExclusivity || undefined,
+          advanceAmount: Number(invoiceData.advanceAmount),
+          isAdvanceReceived: !!invoiceData.isAdvanceReceived,
+        }),
+        db.tx.invoices[invoiceId].link({ client: formData.client.id }),
+        db.tx.invoices[invoiceId].link({ business: formData.business.id }),
+        ...(lineItems as any[]).map((li: any, i: number) =>
+          db.tx.lineItems[lineItemIds[i]].update({
+            itemType: li.itemType || undefined,
+            description: li.description,
+            sacCode: li.sacCode || undefined,
+            quantity: Number(li.quantity),
+            rate: Number(li.rate),
+            amount: Number(li.amount),
+          })
+        ),
+        db.tx.invoices[invoiceId].link({ lineItems: lineItemIds }),
+      ];
+
+      if (attachmentId) {
+        txs.push(db.tx.invoices[invoiceId].link({ attachment: attachmentId }));
+      }
+
+      // Link owner for new invoices
+      if (isNew) {
+        txs.push(db.tx.invoices[invoiceId].link({ owner: userId }));
+      }
+
+      db.transact(txs);
+      onClose();
+    } catch (error) {
+      console.error("Failed to save invoice:", error);
+      alert("Failed to save invoice. Please check your connection and Cloudinary settings.");
+    } finally {
+      setIsUploading(false);
     }
-
-    db.transact(txs);
-    onClose();
   }
 
   return (
@@ -1384,48 +1437,67 @@ function InvoiceModal({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Attachment (Public Proof/Signed PDF)</label>
+                    <div className="relative group">
+                      <input
+                        type="file"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        accept="image/*,application/pdf"
+                        disabled={isUploading}
+                      />
+                      <div className={`p-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-3 transition-all ${file ? 'border-green-500 bg-green-50' : 'border-gray-200 group-hover:border-gray-900'}`}>
+                        <span className="text-xl">{file ? '📄' : '📤'}</span>
+                        <p className="text-[10px] font-black uppercase text-gray-500">
+                          {file ? file.name : "Upload signed invoice or proof"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Internal Notes</label>
                     <textarea
                       name="notes"
-                      className="border p-2 rounded-md w-full bg-white"
+                      className="border p-2 rounded-md w-full bg-white text-sm"
                       value={formData.notes}
                       onChange={handleChange}
                       placeholder="Visible only to you"
-                      rows={4}
+                      rows={2}
                     />
                   </div>
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium uppercase text-gray-500 text-[11px] font-bold">Terms & Conditions</label>
-                      {termsTemplates.length > 0 && (
-                        <select
-                          className="text-[10px] border p-1 rounded font-bold uppercase"
-                          onChange={(e) => {
-                            const template = termsTemplates.find(t => t.id === e.target.value);
-                            if (template) {
-                              setFormData((prev: any) => ({ ...prev, termsAndConditions: template.content }));
-                            }
-                          }}
-                        >
-                          <option value="">Load Template</option>
-                          {termsTemplates.map((template) => (
-                            <option key={template.id} value={template.id}>
-                              {template.title}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                    <textarea
-                      name="termsAndConditions"
-                      className="border p-2 rounded-md w-full font-mono text-[11px] leading-relaxed"
-                      value={formData.termsAndConditions}
-                      onChange={handleChange}
-                      placeholder="Visible to customer"
-                      rows={4}
-                    />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium uppercase text-gray-500 text-[11px] font-bold">Terms & Conditions</label>
+                    {termsTemplates.length > 0 && (
+                      <select
+                        className="text-[10px] border p-1 rounded font-bold uppercase"
+                        onChange={(e) => {
+                          const template = termsTemplates.find(t => t.id === e.target.value);
+                          if (template) {
+                            setFormData((prev: any) => ({ ...prev, termsAndConditions: template.content }));
+                          }
+                        }}
+                      >
+                        <option value="">Load Template</option>
+                        {termsTemplates.map((template) => (
+                          <option key={template.id} value={template.id}>
+                            {template.title}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
+                  <textarea
+                    name="termsAndConditions"
+                    className="border p-2 rounded-md w-full font-mono text-[11px] leading-relaxed"
+                    value={formData.termsAndConditions}
+                    onChange={handleChange}
+                    placeholder="Visible to customer"
+                    rows={4}
+                  />
                 </div>
               </>
             ) : (
@@ -1537,15 +1609,17 @@ function InvoiceModal({
               type="button"
               onClick={onClose}
               className="px-8 py-2 border-2 border-gray-300 font-bold uppercase text-xs rounded-md hover:bg-gray-200"
+              disabled={isUploading}
             >
               Cancel
             </button>
             <button
               type="submit"
               form="invoice-form"
-              className="px-10 py-2 bg-gray-900 text-white font-bold uppercase text-xs rounded-md hover:bg-black transition-all shadow-lg"
+              className="px-10 py-2 bg-gray-900 text-white font-bold uppercase text-xs rounded-md hover:bg-black transition-all shadow-lg disabled:opacity-50"
+              disabled={isUploading}
             >
-              {invoice ? "Update" : "Create"} Invoice
+              {isUploading ? "Uploading..." : (invoice ? "Update" : "Create")} Invoice
             </button>
           </div>
         </div>

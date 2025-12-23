@@ -1,9 +1,13 @@
 
 import { useState, useMemo } from "react";
+import { Plus, Download } from "lucide-react";
 import { Invoice, Client } from "@/app/page";
 import { db } from "@/lib/db";
 import { id, InstaQLEntity } from "@instantdb/react";
 import { AppSchema } from "@/instant.schema";
+import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary";
+
+import { generateAuditPack } from "@/lib/auditPack";
 
 type Expense = InstaQLEntity<AppSchema, "expenses">;
 type TDSEntry = InstaQLEntity<AppSchema, "tdsEntries">;
@@ -96,22 +100,58 @@ export function TaxZone({
             .reduce((sum, t) => sum + t.amount, 0);
     }, [tdsEntries, selectedFY]);
 
-    const downloadCSV = () => {
-        const data = [
-            ["Type", "Date", "Description", "Amount", "GST Portion"],
-            ...invoices.filter(i => i.status === "Paid").map(i => ["Invoice", i.invoiceDate, i.invoiceNumber, i.total, (i.cgst || 0) + (i.sgst || 0) + (i.igst || 0)]),
-            ...expenses.map(e => ["Expense", e.date, e.description || e.category, e.amount, 0]),
-            ...tdsEntries.map(t => ["TDS", "-", t.notes || "TDS Entry", t.amount, 0])
-        ];
+    const [isExporting, setIsExporting] = useState(false);
 
-        const csvContent = "data:text/csv;charset=utf-8," + data.map(e => e.join(",")).join("\n");
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `CA_Summary_${selectedFY}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownloadAuditPack = async () => {
+        setIsExporting(true);
+        try {
+            const [startYearStr, endYearStr] = selectedFY.split("-");
+            const startYear = parseInt(startYearStr);
+            const endYear = parseInt(endYearStr);
+
+            const fyFilteredInvoices = invoices.filter(inv => {
+                const d = new Date(inv.invoiceDate);
+                const m = d.getMonth();
+                const y = d.getFullYear();
+                const isAfterAprilStart = (y === startYear && m >= 3) || y > startYear;
+                const isBeforeMarchEnd = (y === endYear && m <= 2) || y < endYear;
+                return isAfterAprilStart && isBeforeMarchEnd && inv.status === "Paid";
+            });
+
+            const fyFilteredExpenses = expenses.filter(exp => {
+                const d = new Date(exp.date);
+                const m = d.getMonth();
+                const y = d.getFullYear();
+                const isAfterAprilStart = (y === startYear && m >= 3) || y > startYear;
+                const isBeforeMarchEnd = (y === endYear && m <= 2) || y < endYear;
+                return isAfterAprilStart && isBeforeMarchEnd;
+            });
+
+            await generateAuditPack({
+                fy: selectedFY,
+                expenses: fyFilteredExpenses,
+                invoices: fyFilteredInvoices
+            });
+        } catch (error) {
+            console.error("Audit Pack Generation failed:", error);
+            alert("Failed to generate audit pack. Please try again.");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const deleteExpense = async (exp: Expense) => {
+        if (confirm("Are you sure you want to delete this expense?")) {
+            try {
+                if ((exp as any).attachment?.publicId) {
+                    await deleteFromCloudinary((exp as any).attachment.publicId);
+                }
+                db.transact(db.tx.expenses[exp.id].delete());
+            } catch (error) {
+                console.error("Failed to delete expense or attachment:", error);
+                alert("Failed to delete complete expense records. Check console for details.");
+            }
+        }
     };
 
     return (
@@ -237,12 +277,25 @@ export function TaxZone({
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="flex justify-between items-center">
                             <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Outgoings & Overheads</h3>
-                            <button
-                                onClick={() => setShowExpenseModal(true)}
-                                className="px-6 py-2 bg-gray-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
-                            >
-                                Add Expense
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleDownloadAuditPack}
+                                    disabled={isExporting}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+                                >
+                                    <Download className={`w-4 h-4 ${isExporting ? 'animate-bounce' : ''}`} />
+                                    <span className="text-[11px] font-black uppercase tracking-wider">
+                                        {isExporting ? "Generating Pack..." : "Download CA Audit Pack"}
+                                    </span>
+                                </button>
+                                <button
+                                    onClick={() => setShowExpenseModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition-all font-bold text-sm shadow-sm"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Add Expense
+                                </button>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -272,10 +325,40 @@ export function TaxZone({
                                             <tr key={exp.id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 text-sm font-bold text-gray-900 whitespace-nowrap">{new Date(exp.date).toLocaleDateString("en-IN", { day: '2-digit', month: 'short' })}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className="text-[10px] font-black uppercase tracking-tight text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{exp.category}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-black text-gray-900 uppercase tracking-widest leading-none mb-1">
+                                                            {exp.category}
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-gray-400 font-mono">
+                                                            {(exp as any).displayId || "—"}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-600 font-medium">{exp.description || "—"}</td>
-                                                <td className="px-6 py-4 text-sm font-black text-gray-900 text-right">₹{exp.amount.toLocaleString()}</td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="text-sm font-black text-gray-900">₹{exp.amount.toLocaleString()}</span>
+                                                            {(exp as any).attachment && (
+                                                                <a
+                                                                    href={(exp as any).attachment.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-[9px] font-black uppercase text-blue-600 hover:underline mt-1"
+                                                                >
+                                                                    View Bill
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => deleteExpense(exp)}
+                                                            className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                                            title="Delete Expense"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -346,12 +429,15 @@ export function TaxZone({
                             </p>
                         </div>
                         <button
-                            onClick={downloadCSV}
-                            className="px-12 py-5 bg-gray-900 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-gray-200"
+                            onClick={handleDownloadAuditPack}
+                            disabled={isExporting}
+                            className="px-12 py-5 bg-gray-900 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-gray-200 disabled:opacity-50"
                         >
-                            Download Summary (.CSV)
+                            {isExporting ? "Generating CA Pack..." : "Download CA Audit Pack"}
                         </button>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Excel / Tally / Accounting Ready</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic animate-pulse">
+                            {isExporting ? "Renaming files & creating ZIP..." : "Excel / Tally / Accounting Ready"}
+                        </p>
                     </div>
                 )}
             </main>
@@ -361,6 +447,7 @@ export function TaxZone({
                 <ExpenseModal
                     onClose={() => setShowExpenseModal(false)}
                     userId={userId}
+                    expenses={expenses}
                 />
             )}
 
@@ -377,35 +464,85 @@ export function TaxZone({
     );
 }
 
-function ExpenseModal({ onClose, userId }: { onClose: () => void, userId: string }) {
+function ExpenseModal({ onClose, userId, expenses }: { onClose: () => void, userId: string, expenses: Expense[] }) {
     const [formData, setFormData] = useState({
         amount: "",
         date: new Date().toISOString().slice(0, 10),
         category: EXPENSE_CATEGORIES[0],
         description: "",
+        vendorName: "",
+        gstCharged: false,
+        gstAmount: "",
+        vendorGSTIN: "",
+        itcReview: "unsure",
     });
+    const [file, setFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.amount) return;
 
-        const expenseId = id();
-        db.transact([
-            db.tx.expenses[expenseId].update({
-                amount: parseFloat(formData.amount),
-                date: formData.date,
-                category: formData.category,
-                description: formData.description,
-            }),
-            db.tx.expenses[expenseId].link({ owner: userId })
-        ]);
-        onClose();
+        setIsUploading(true);
+        try {
+            const expenseId = id();
+            let attachmentId = null;
+
+            // Calculate next display number
+            const maxNum = expenses.reduce((max, e) => Math.max(max, (e as any).displayNumber || 0), 0);
+            const nextNum = maxNum + 1;
+            const displayId = `EXP-${nextNum.toString().padStart(4, '0')}`;
+
+            if (file) {
+                const folder = `expenses/${new Date().getFullYear()}/${formData.category.toLowerCase().replace(/\s+/g, "_")}`;
+                const uploadResult = await uploadToCloudinary(file, folder);
+
+                attachmentId = id();
+                db.transact([
+                    db.tx.attachments[attachmentId].update({
+                        publicId: uploadResult.public_id,
+                        url: uploadResult.secure_url,
+                        type: "expense_bill",
+                        createdAt: new Date().toISOString(),
+                    })
+                ]);
+            }
+
+            const trans = [
+                db.tx.expenses[expenseId].update({
+                    amount: parseFloat(formData.amount),
+                    date: formData.date,
+                    category: formData.category,
+                    description: formData.description,
+                    vendorName: formData.vendorName,
+                    gstCharged: formData.gstCharged,
+                    gstAmount: formData.gstAmount ? parseFloat(formData.gstAmount) : undefined,
+                    vendorGSTIN: formData.vendorGSTIN,
+                    itcReview: formData.itcReview,
+                    displayId,
+                    displayNumber: nextNum,
+                }),
+                db.tx.expenses[expenseId].link({ owner: userId })
+            ];
+
+            if (attachmentId) {
+                trans.push(db.tx.expenses[expenseId].link({ attachment: attachmentId }));
+            }
+
+            db.transact(trans);
+            onClose();
+        } catch (error) {
+            console.error("Failed to save expense:", error);
+            alert("Failed to save expense. Please check your connection and Cloudinary settings.");
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
-                <div className="p-10 pb-0 flex justify-between items-start">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-8 pb-0 flex justify-between items-start">
                     <div>
                         <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Add Expense</h3>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Register business outgoing</p>
@@ -413,23 +550,24 @@ function ExpenseModal({ onClose, userId }: { onClose: () => void, userId: string
                     <button onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">✕</button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-10 space-y-8">
-                    <div className="grid grid-cols-2 gap-8">
+                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount (₹)</label>
                             <input
                                 type="number"
                                 placeholder="0"
-                                className="w-full text-3xl font-black text-gray-900 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-2 focus:outline-none transition-all"
+                                className="w-full text-3xl font-black text-gray-900 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-1 focus:outline-none transition-all"
                                 value={formData.amount}
                                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                 autoFocus
+                                required
                             />
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</label>
                             <select
-                                className="w-full h-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-2 focus:outline-none cursor-pointer"
+                                className="w-full h-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-1 focus:outline-none cursor-pointer"
                                 value={formData.category}
                                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                             >
@@ -438,40 +576,126 @@ function ExpenseModal({ onClose, userId }: { onClose: () => void, userId: string
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</label>
-                        <input
-                            type="date"
-                            className="w-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-2 focus:outline-none"
-                            value={formData.date}
-                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Vendor Name</label>
+                            <input
+                                type="text"
+                                className="w-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-1 focus:outline-none"
+                                value={formData.vendorName}
+                                onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })}
+                                placeholder="e.g. Amazon, Local Studio"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</label>
+                            <input
+                                type="date"
+                                className="w-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-1 focus:outline-none"
+                                value={formData.date}
+                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">GST Details</label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.gstCharged}
+                                    onChange={(e) => setFormData({ ...formData, gstCharged: e.target.checked })}
+                                    className="w-4 h-4 rounded border-gray-300"
+                                />
+                                <span className="text-[10px] font-black uppercase text-gray-600">GST Charged</span>
+                            </label>
+                        </div>
+
+                        {formData.gstCharged && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold text-gray-400 uppercase">GST Amount</label>
+                                    <input
+                                        type="number"
+                                        className="w-full text-sm font-bold border-b border-gray-200 bg-transparent focus:border-gray-900 py-1 focus:outline-none"
+                                        value={formData.gstAmount}
+                                        onChange={(e) => setFormData({ ...formData, gstAmount: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold text-gray-400 uppercase">Vendor GSTIN</label>
+                                    <input
+                                        type="text"
+                                        className="w-full text-sm font-bold border-b border-gray-200 bg-transparent focus:border-gray-900 py-1 focus:outline-none"
+                                        value={formData.vendorGSTIN}
+                                        onChange={(e) => setFormData({ ...formData, vendorGSTIN: e.target.value })}
+                                    />
+                                </div>
+                                <div className="md:col-span-2 space-y-1">
+                                    <label className="text-[9px] font-bold text-gray-400 uppercase">ITC Eligibility</label>
+                                    <div className="flex gap-2">
+                                        {["yes", "no", "unsure"].map(val => (
+                                            <button
+                                                key={val}
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, itcReview: val })}
+                                                className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${formData.itcReview === val ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-400'}`}
+                                            >
+                                                {val}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</label>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Bill Attachment (Public Proof)</label>
+                        <div className="relative group">
+                            <input
+                                type="file"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                accept="image/*,application/pdf"
+                            />
+                            <div className={`p-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all ${file ? 'border-green-500 bg-green-50' : 'border-gray-200 group-hover:border-gray-900'}`}>
+                                <span className="text-xl">{file ? '📄' : '📤'}</span>
+                                <p className="text-[10px] font-black uppercase text-gray-500">
+                                    {file ? file.name : "Tap to upload bill (JPG, PNG, PDF)"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Notes</label>
                         <input
                             type="text"
-                            placeholder="Notes for records..."
-                            className="w-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-2 focus:outline-none"
+                            placeholder="Optional notes..."
+                            className="w-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-1 focus:outline-none"
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         />
                     </div>
 
-                    <div className="flex justify-end gap-4 pt-4">
+                    <div className="flex justify-end gap-3 pt-4">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-6 py-2 text-xs font-black uppercase text-gray-400 hover:text-gray-600 transition-all font-sans"
+                            className="px-6 py-2 text-xs font-black uppercase text-gray-400 hover:text-gray-600 transition-all"
+                            disabled={isUploading}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="px-10 py-4 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-gray-800 transition-all active:scale-95"
+                            className="px-10 py-3 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50"
+                            disabled={isUploading}
                         >
-                            Confirm Expense
+                            {isUploading ? "Uploading..." : "Confirm Expense"}
                         </button>
                     </div>
                 </form>

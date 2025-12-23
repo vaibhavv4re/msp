@@ -117,12 +117,25 @@ const _schema = i.schema({
       date: i.string(), // ISO string
       category: i.string(), // Travel, Assistants, Studio/Rent, Equipment/Rentals, Miscellaneous
       notes: i.string().optional(),
+      vendorName: i.string().optional(),
+      gstCharged: i.boolean().optional(),
+      gstAmount: i.number().optional(),
+      vendorGSTIN: i.string().optional(),
+      itcReview: i.string().optional(), // "yes" | "no" | "unsure"
+      displayId: i.string().optional(), // e.g. EXP-0001
+      displayNumber: i.number().optional(), // Sequential number
     }),
     tdsEntries: i.entity({
       amount: i.number(),
       fy: i.string(), // Financial Year
       hasCertificate: i.boolean(),
       notes: i.string().optional(),
+    }),
+    attachments: i.entity({
+      publicId: i.string().unique().indexed(),
+      url: i.string(),
+      type: i.string(), // "expense_bill" | "invoice_pdf" | "ca_export"
+      createdAt: i.string(), // ISO string
     }),
   },
   links: {
@@ -306,6 +319,30 @@ const _schema = i.schema({
         on: "clients",
         has: "many",
         label: "tdsEntries",
+      },
+    },
+    expenseAttachment: {
+      forward: {
+        on: "expenses",
+        has: "one",
+        label: "attachment",
+      },
+      reverse: {
+        on: "attachments",
+        has: "one",
+        label: "expense",
+      },
+    },
+    invoiceAttachment: {
+      forward: {
+        on: "invoices",
+        has: "one",
+        label: "attachment",
+      },
+      reverse: {
+        on: "attachments",
+        has: "one",
+        label: "invoice",
       },
     },
   },

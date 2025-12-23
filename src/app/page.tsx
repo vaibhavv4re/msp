@@ -145,14 +145,14 @@ function App() {
   const { isLoading: dataLoading, error, data } = db.useQuery(user ? {
     $users: {
       $: { where: { id: user.id } },
-      clients: { invoices: {} },
-      invoices: { lineItems: {}, client: {}, business: {} },
+      clients: { invoices: { attachment: {} } },
+      invoices: { lineItems: {}, client: {}, business: {}, attachment: {} },
       calendarEvents: {},
       services: {},
       taxes: {},
       termsTemplates: {},
       businesses: {},
-      expenses: {},
+      expenses: { attachment: {} },
       tdsEntries: {
         client: {}
       }
