@@ -2,20 +2,19 @@ import { useState } from "react";
 import React from "react";
 import { db } from "@/lib/db";
 import { id, InstaQLEntity } from "@instantdb/react";
-import { AppSchema } from "@/instant.schema";
-import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary";
+import schema from "@/instant.schema";
 import { Business } from "@/app/page";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { CustomerModal } from "./Customers";
 
-export type Client = InstaQLEntity<AppSchema, "clients"> & { invoices?: Invoice[] };
-export type Invoice = InstaQLEntity<AppSchema, "invoices"> & {
+export type Client = InstaQLEntity<typeof schema, "clients"> & { invoices?: Invoice[] };
+export type Invoice = InstaQLEntity<typeof schema, "invoices"> & {
   client?: Client;
   lineItems: LineItem[];
   business?: Business;
 };
-export type LineItem = InstaQLEntity<AppSchema, "lineItems">;
+export type LineItem = InstaQLEntity<typeof schema, "lineItems">;
 
 type Service = { id: string; name: string; sacCode?: string; rate: number; isActive: boolean };
 type Tax = { id: string; name: string; rate: number; isDefault: boolean };
@@ -224,10 +223,6 @@ function InvoiceTable({
   async function deleteInvoice(invoice: Invoice) {
     if (confirm("Are you sure you want to delete this invoice?")) {
       try {
-        if ((invoice as any).attachment?.publicId) {
-          await deleteFromCloudinary((invoice as any).attachment.publicId);
-        }
-
         const txs = [
           ...invoice.lineItems.map((li) => db.tx.lineItems[li.id].delete()),
           db.tx.invoices[invoice.id].delete(),
@@ -634,16 +629,6 @@ function InvoiceTable({
                       <div className="flex flex-col items-end">
                         <div className="text-sm font-black text-gray-900">₹{total.toLocaleString("en-IN")}</div>
                         {balance > 0 && <div className="text-[9px] font-bold text-red-500 uppercase">Bal: ₹{balance.toLocaleString("en-IN")}</div>}
-                        {(invoice as any).attachment && (
-                          <a
-                            href={(invoice as any).attachment.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[9px] font-black uppercase text-blue-600 hover:underline mt-1"
-                          >
-                            View Attachment
-                          </a>
-                        )}
                       </div>
                     </td>
                     <td className="py-4 px-6 text-center">
@@ -797,7 +782,6 @@ function InvoiceModal({
     };
   });
 
-  const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const [modalTab, setModalTab] = useState<"general" | "usage">("general");
@@ -947,22 +931,6 @@ function InvoiceModal({
       const invoiceId = invoice ? invoice.id : id();
       const lineItemIds = (lineItems as any[]).map((li: any) => li.id || id());
 
-      let attachmentId = null;
-      if (file) {
-        const folder = `invoices/${new Date().getFullYear()}/${invoiceData.invoiceNumber.toLowerCase().replace(/\s+/g, "_")}`;
-        const uploadResult = await uploadToCloudinary(file, folder);
-
-        attachmentId = id();
-        db.transact([
-          db.tx.attachments[attachmentId].update({
-            publicId: uploadResult.public_id,
-            url: uploadResult.secure_url,
-            type: "invoice_pdf",
-            createdAt: new Date().toISOString(),
-          })
-        ]);
-      }
-
       const isNew = !invoice;
       const txs = [
         db.tx.invoices[invoiceId].update({
@@ -1003,10 +971,6 @@ function InvoiceModal({
         db.tx.invoices[invoiceId].link({ lineItems: lineItemIds }),
       ];
 
-      if (attachmentId) {
-        txs.push(db.tx.invoices[invoiceId].link({ attachment: attachmentId }));
-      }
-
       // Link owner for new invoices
       if (isNew) {
         txs.push(db.tx.invoices[invoiceId].link({ owner: userId }));
@@ -1016,7 +980,7 @@ function InvoiceModal({
       onClose();
     } catch (error) {
       console.error("Failed to save invoice:", error);
-      alert("Failed to save invoice. Please check your connection and Cloudinary settings.");
+      alert("Failed to save invoice. Please check your connection.");
     } finally {
       setIsUploading(false);
     }
@@ -1436,36 +1400,16 @@ function InvoiceModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Attachment (Public Proof/Signed PDF)</label>
-                    <div className="relative group">
-                      <input
-                        type="file"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        onChange={(e) => setFile(e.target.files?.[0] || null)}
-                        accept="image/*,application/pdf"
-                        disabled={isUploading}
-                      />
-                      <div className={`p-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-3 transition-all ${file ? 'border-green-500 bg-green-50' : 'border-gray-200 group-hover:border-gray-900'}`}>
-                        <span className="text-xl">{file ? '📄' : '📤'}</span>
-                        <p className="text-[10px] font-black uppercase text-gray-500">
-                          {file ? file.name : "Upload signed invoice or proof"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Internal Notes</label>
-                    <textarea
-                      name="notes"
-                      className="border p-2 rounded-md w-full bg-white text-sm"
-                      value={formData.notes}
-                      onChange={handleChange}
-                      placeholder="Visible only to you"
-                      rows={2}
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 uppercase text-gray-500 text-[11px] font-bold">Internal Notes</label>
+                  <textarea
+                    name="notes"
+                    className="border p-2 rounded-md w-full bg-white text-sm"
+                    value={formData.notes}
+                    onChange={handleChange}
+                    placeholder="Visible only to you"
+                    rows={2}
+                  />
                 </div>
 
                 <div>

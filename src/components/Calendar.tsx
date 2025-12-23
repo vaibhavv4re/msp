@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { db } from "@/lib/db";
 import { id } from "@instantdb/react";
 import { CalendarEvent } from "@/app/page";
@@ -22,7 +22,7 @@ export function Calendar({
 }: {
   calendarEvents: CalendarEvent[];
   userId: string;
-  initiallyOpenModal?: boolean;
+  initiallyOpenModal?: string | null;
   onModalClose?: () => void;
   calendarSecret?: string;
 }) {
@@ -31,6 +31,27 @@ export function Calendar({
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [view, setView] = useState<"agenda" | "grid">("agenda");
+
+  // Handle initial modal opening
+  useEffect(() => {
+    if (!initiallyOpenModal) return;
+
+    if (initiallyOpenModal === "mark-availability") {
+      setSelectedDate(new Date());
+      setEditingEvent(null);
+      setIsModalOpen(true);
+      onModalClose?.();
+    } else if (initiallyOpenModal.startsWith("edit-event-")) {
+      const eventId = initiallyOpenModal.replace("edit-event-", "");
+      const event = calendarEvents.find(e => e.id === eventId);
+      if (event && event.start) {
+        setSelectedDate(new Date(event.start));
+        setEditingEvent(event);
+        setIsModalOpen(true);
+        onModalClose?.();
+      }
+    }
+  }, [initiallyOpenModal, calendarEvents, onModalClose]);
 
   // Filter events: only show confirmed/tentative, and handle the new 'start' field
   const events = useMemo(() => {

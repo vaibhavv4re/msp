@@ -10,14 +10,18 @@ export interface CloudinaryUploadResult {
 
 export async function uploadToCloudinary(
     file: File,
-    folder: string
-): Promise<CloudinaryUploadResult> {
+    folder: string,
+    options: { ocr?: boolean } = {}
+): Promise<CloudinaryUploadResult & { info?: any }> {
     // 1. Get signature from our API
     const timestamp = Math.round(new Date().getTime() / 1000);
-    const paramsToSign = {
+    const paramsToSign: any = {
         timestamp,
         folder,
     };
+    if (options.ocr) {
+        paramsToSign.ocr = "adv_ocr";
+    }
 
     const signResponse = await fetch("/api/cloudinary/sign", {
         method: "POST",
@@ -41,9 +45,12 @@ export async function uploadToCloudinary(
     formData.append("timestamp", timestamp.toString());
     formData.append("signature", signature);
     formData.append("folder", folder);
+    if (options.ocr) {
+        formData.append("ocr", "adv_ocr");
+    }
 
     const uploadResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         {
             method: "POST",
             body: formData,

@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { Invoice, Client, CalendarEvent } from "@/app/page";
 import { db } from "@/lib/db";
+import { Edit2, Trash2 } from "lucide-react";
+import { syncToCalendars } from "@/lib/calendarSync";
 
 type TimeContext = "this_month" | "last_month" | "all_time";
 
@@ -44,8 +46,24 @@ function calculateTotals(invoices: Invoice[], context: TimeContext) {
   return { receivable, received, billed, count: filtered.length };
 }
 
-function calculateGSTMetrics(invoices: Invoice[]) {
-  const paidInvoices = invoices.filter(inv => inv.status === "Paid");
+function isDateInFY(dateStr: string, fy: string) {
+  const [startYearStr, endYearStr] = fy.split("-");
+  const startYear = parseInt(startYearStr);
+  const endYear = parseInt(endYearStr);
+  const d = new Date(dateStr);
+  const m = d.getMonth();
+  const y = d.getFullYear();
+
+  const isAfterAprilStart = (y === startYear && m >= 3) || y > startYear;
+  const isBeforeMarchEnd = (y === endYear && m <= 2) || y < endYear;
+
+  return isAfterAprilStart && isBeforeMarchEnd;
+}
+
+function calculateGSTMetrics(invoices: Invoice[], selectedFY: string) {
+  const paidInvoices = invoices.filter(inv =>
+    inv.status === "Paid" && isDateInFY(inv.invoiceDate, selectedFY)
+  );
 
   const totalReceived = paidInvoices.reduce((acc, inv) => acc + (inv.total || 0), 0);
   const gstCollected = paidInvoices.reduce((acc, inv) => acc + (inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0), 0);
@@ -84,9 +102,14 @@ export function Dashboard({
   const [context, setContext] = useState<TimeContext>("this_month");
   const [showRecordPayment, setShowRecordPayment] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState("");
+  const [selectedGSTFY, setSelectedGSTFY] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    return now.getMonth() >= 3 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+  });
 
   const { receivable, received, billed } = calculateTotals(invoices, context);
-  const { totalReceived, gstCollected, usableIncome, timeline } = calculateGSTMetrics(invoices);
+  const { totalReceived, gstCollected, usableIncome, timeline } = calculateGSTMetrics(invoices, selectedGSTFY);
 
   const upcomingEvents = calendarEvents
     .filter(event => {
@@ -113,6 +136,19 @@ export function Dashboard({
     .sort((a, b) => new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime())[0];
 
   const oldestUnpaidClient = oldestUnpaid ? clients.find(c => c.id === (oldestUnpaid as any).client?.id) : null;
+
+  const handleDeleteEvent = async (event: CalendarEvent) => {
+    if (confirm(`Are you sure you want to delete "${event.title}"?`)) {
+      try {
+        await syncToCalendars(event as any, 'delete');
+        db.transact(db.tx.calendarEvents[event.id].delete());
+      } catch (error) {
+        console.error("Failed to delete event:", error);
+        alert("Failed to delete event. It will be removed from the local database.");
+        db.transact(db.tx.calendarEvents[event.id].delete());
+      }
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -241,6 +277,15 @@ export function Dashboard({
               </div>
               <span className="text-[10px] font-black uppercase tracking-tighter">Paid Payment</span>
             </button>
+            <button
+              onClick={() => onNavigate("taxzone", "capture-expense")}
+              className="flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-2xl border border-gray-200 hover:border-red-600 hover:bg-red-50 transition-all min-h-[100px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-tighter">Capture Expense</span>
+            </button>
             {/* Hidden on small mobile to reduce clutter, but shown on md+ */}
             <button
               onClick={() => onNavigate("calendar", "mark-availability")}
@@ -296,15 +341,33 @@ export function Dashboard({
                   }
 
                   return (
-                    <div key={event.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div key={event.id} className="p-4 hover:bg-gray-50 transition-colors group">
                       <div className="flex justify-between items-start">
-                        <div>
+                        <div className="flex-1">
                           <h4 className="text-sm font-black text-gray-900 leading-tight">{event.title}</h4>
-                          <p className="text-[10px] font-bold text-blue-600 uppercase mt-1">{dateLabel}</p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <p className="text-[10px] font-bold text-blue-600 uppercase">{dateLabel}</p>
+                            <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-bold text-gray-500">
+                              {new Date(event.start || "").toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-bold">
-                          {new Date(event.start || "").toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => onNavigate("calendar", `edit-event-${event.id}`)}
+                            className="p-1.5 hover:bg-white rounded-lg text-gray-400 hover:text-gray-900 transition-colors shadow-sm border border-transparent hover:border-gray-100"
+                            title="Edit Event"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteEvent(event)}
+                            className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors shadow-sm border border-transparent hover:border-red-100"
+                            title="Delete Event"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -320,7 +383,18 @@ export function Dashboard({
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-full">
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Snapshot</h3>
+              <div className="flex items-center gap-4">
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Snapshot</h3>
+                <select
+                  className="bg-transparent text-[10px] font-black text-blue-600 uppercase border-none focus:outline-none cursor-pointer"
+                  value={selectedGSTFY}
+                  onChange={(e) => setSelectedGSTFY(e.target.value)}
+                >
+                  <option value="2023-2024">FY 23-24</option>
+                  <option value="2024-2025">FY 24-25</option>
+                  <option value="2025-2026">FY 25-26</option>
+                </select>
+              </div>
               <div className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded uppercase">PAID ONLY</div>
             </div>
             <div className="p-6 md:p-8">
@@ -344,7 +418,7 @@ export function Dashboard({
                   <span className="text-xl">💡</span>
                 </div>
                 <div>
-                  <h5 className="font-black text-blue-900 uppercase text-[10px] tracking-tight mb-1">Human Explanation</h5>
+                  <h5 className="font-black text-blue-900 uppercase text-[10px] tracking-tight mb-1">Insight</h5>
                   <p className="text-xs text-blue-800 leading-relaxed">
                     GST collected is <span className="font-bold">₹{gstCollected.toLocaleString("en-IN")}</span>. Keep this aside for the government. Your true earnings are <span className="font-bold">₹{usableIncome.toLocaleString("en-IN")}</span>.
                   </p>

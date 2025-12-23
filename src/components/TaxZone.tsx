@@ -1,16 +1,16 @@
 
-import { useState, useMemo } from "react";
-import { Plus, Download } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Plus, Download, Edit2, ChevronRight, Calendar } from "lucide-react";
 import { Invoice, Client } from "@/app/page";
 import { db } from "@/lib/db";
 import { id, InstaQLEntity } from "@instantdb/react";
-import { AppSchema } from "@/instant.schema";
+import schema from "@/instant.schema";
 import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary";
 
 import { generateAuditPack } from "@/lib/auditPack";
 
-type Expense = InstaQLEntity<AppSchema, "expenses">;
-type TDSEntry = InstaQLEntity<AppSchema, "tdsEntries">;
+type Expense = InstaQLEntity<typeof schema, "expenses">;
+type TDSEntry = InstaQLEntity<typeof schema, "tdsEntries">;
 
 const EXPENSE_CATEGORIES = [
     "Travel",
@@ -20,18 +20,63 @@ const EXPENSE_CATEGORIES = [
     "Miscellaneous"
 ];
 
+function parseOCRText(text: string) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const amountRegex = /(\d{1,3}(,\d{3})*(\.\d{2})?)/g;
+    let maxAmount = 0;
+    lines.forEach(line => {
+        if (line.includes('%')) return;
+        const matches = line.match(amountRegex);
+        if (matches) {
+            matches.forEach(m => {
+                const val = parseFloat(m.replace(/,/g, ''));
+                if (!isNaN(val) && val > maxAmount) maxAmount = val;
+            });
+        }
+    });
+    const dateRegex = /(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})|(\d{1,2} [A-Za-z]{3,9} \d{2,4})/g;
+    let detectedDate = "";
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].toLowerCase();
+        if (line.includes('date')) {
+            const matches = lines[i].match(dateRegex);
+            if (matches) { detectedDate = matches[0]; break; }
+            if (i + 1 < lines.length) {
+                const nextMatches = lines[i + 1].match(dateRegex);
+                if (nextMatches) { detectedDate = nextMatches[0]; break; }
+            }
+        }
+    }
+    if (!detectedDate) {
+        for (const line of lines) {
+            const matches = line.match(dateRegex);
+            if (matches) { detectedDate = matches[0]; break; }
+        }
+    }
+    return {
+        amount: maxAmount || undefined,
+        date: detectedDate || undefined,
+        vendorName: lines.length > 0 ? lines[0].substring(0, 50) : undefined,
+        gstCharged: text.toLowerCase().includes("gst") || text.toLowerCase().includes("tax")
+    };
+}
+
 export function TaxZone({
     invoices,
     clients,
     expenses,
     tdsEntries,
-    userId
+    userId,
+    initiallyOpenModal,
+    onModalClose
 }: {
     invoices: Invoice[];
     clients: Client[];
     expenses: Expense[];
     tdsEntries: TDSEntry[];
     userId: string;
+    initiallyOpenModal?: string;
+    onModalClose?: () => void;
 }) {
     const [activeTab, setActiveTab] = useState<"gst" | "income" | "expenses" | "tds" | "export">("gst");
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
@@ -41,8 +86,27 @@ export function TaxZone({
         return now.getMonth() >= 3 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
     });
 
+    // Export States
+    const [exportScope, setExportScope] = useState<"fy" | "period" | "custom">("fy");
+    const [exportFY, setExportFY] = useState(selectedFY);
+    const [exportMonth, setExportMonth] = useState(new Date().toISOString().slice(0, 7));
+    const [exportQuarter, setExportQuarter] = useState("Q1");
+    const [exportCustomStart, setExportCustomStart] = useState("");
+    const [exportCustomEnd, setExportCustomEnd] = useState("");
+    const [isCustomExpanded, setIsCustomExpanded] = useState(false);
+
     const [showExpenseModal, setShowExpenseModal] = useState(false);
+    const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
     const [showTDSModal, setShowTDSModal] = useState(false);
+
+    // External Trigger Handling
+    useEffect(() => {
+        if (initiallyOpenModal === "capture-expense") {
+            setShowExpenseModal(true);
+            setActiveTab("expenses");
+            onModalClose?.();
+        }
+    }, [initiallyOpenModal, onModalClose]);
 
     // GST Calculations (Monthly)
     const gstMetrics = useMemo(() => {
@@ -88,7 +152,7 @@ export function TaxZone({
     const categoryTotals = useMemo(() => {
         return EXPENSE_CATEGORIES.reduce((acc, cat) => {
             acc[cat] = expenses
-                .filter(e => e.category === cat)
+                .filter(e => e.category === cat && (e as any).status === "confirmed")
                 .reduce((sum, e) => sum + e.amount, 0);
             return acc;
         }, {} as Record<string, number>);
@@ -105,36 +169,53 @@ export function TaxZone({
     const handleDownloadAuditPack = async () => {
         setIsExporting(true);
         try {
-            const [startYearStr, endYearStr] = selectedFY.split("-");
-            const startYear = parseInt(startYearStr);
-            const endYear = parseInt(endYearStr);
+            let startDate: Date;
+            let endDate: Date;
+            let label: string;
 
-            const fyFilteredInvoices = invoices.filter(inv => {
-                const d = new Date(inv.invoiceDate);
-                const m = d.getMonth();
-                const y = d.getFullYear();
-                const isAfterAprilStart = (y === startYear && m >= 3) || y > startYear;
-                const isBeforeMarchEnd = (y === endYear && m <= 2) || y < endYear;
-                return isAfterAprilStart && isBeforeMarchEnd && inv.status === "Paid";
-            });
+            if (exportScope === "fy") {
+                const [startYearStr, endYearStr] = exportFY.split("-");
+                const startYear = parseInt(startYearStr);
+                const endYear = parseInt(endYearStr);
+                startDate = new Date(startYear, 3, 1); // April 1st
+                endDate = new Date(endYear, 2, 31, 23, 59, 59); // March 31st
+                label = `FY-${exportFY}`;
+            } else if (exportScope === "period") {
+                // Determine if it's month or quarter based on UI state (implied)
+                // for simplicity we'll handle both in logic
+                const [year, month] = exportMonth.split("-").map(Number);
+                startDate = new Date(year, month - 1, 1);
+                endDate = new Date(year, month, 0, 23, 59, 59);
+                label = startDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }).replace(' ', '-');
+            } else {
+                startDate = new Date(exportCustomStart);
+                endDate = new Date(exportCustomEnd);
+                endDate.setHours(23, 59, 59);
+                label = `${exportCustomStart}_to_${exportCustomEnd}`;
+            }
 
-            const fyFilteredExpenses = expenses.filter(exp => {
-                const d = new Date(exp.date);
-                const m = d.getMonth();
-                const y = d.getFullYear();
-                const isAfterAprilStart = (y === startYear && m >= 3) || y > startYear;
-                const isBeforeMarchEnd = (y === endYear && m <= 2) || y < endYear;
-                return isAfterAprilStart && isBeforeMarchEnd;
-            });
+            const filterByRange = (dateStr: string) => {
+                const d = new Date(dateStr);
+                return d >= startDate && d <= endDate;
+            };
+
+            const filteredInvoices = invoices.filter(inv =>
+                filterByRange(inv.invoiceDate) && inv.status === "Paid"
+            );
+
+            const filteredExpenses = expenses.filter(exp =>
+                filterByRange(exp.date) && (exp as any).status === "confirmed"
+            );
 
             await generateAuditPack({
-                fy: selectedFY,
-                expenses: fyFilteredExpenses,
-                invoices: fyFilteredInvoices
+                fy: exportFY,
+                expenses: filteredExpenses,
+                invoices: filteredInvoices,
+                label
             });
         } catch (error) {
             console.error("Audit Pack Generation failed:", error);
-            alert("Failed to generate audit pack. Please try again.");
+            alert("Failed to generate audit pack. Please check your dates.");
         } finally {
             setIsExporting(false);
         }
@@ -289,7 +370,10 @@ export function TaxZone({
                                     </span>
                                 </button>
                                 <button
-                                    onClick={() => setShowExpenseModal(true)}
+                                    onClick={() => {
+                                        setSelectedExpense(null);
+                                        setShowExpenseModal(true);
+                                    }}
                                     className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition-all font-bold text-sm shadow-sm"
                                 >
                                     <Plus className="w-4 h-4" />
@@ -326,8 +410,11 @@ export function TaxZone({
                                                 <td className="px-6 py-4 text-sm font-bold text-gray-900 whitespace-nowrap">{new Date(exp.date).toLocaleDateString("en-IN", { day: '2-digit', month: 'short' })}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col">
-                                                        <span className="text-xs font-black text-gray-900 uppercase tracking-widest leading-none mb-1">
+                                                        <span className="text-xs font-black text-gray-900 uppercase tracking-widest leading-none mb-1 flex items-center gap-2">
                                                             {exp.category}
+                                                            {(exp as any).status === "draft" && (
+                                                                <span className="bg-orange-100 text-orange-700 text-[8px] px-2 py-0.5 rounded-full font-black tracking-tighter shadow-sm animate-pulse border border-orange-200">DRAFT</span>
+                                                            )}
                                                         </span>
                                                         <span className="text-[10px] font-bold text-gray-400 font-mono">
                                                             {(exp as any).displayId || "—"}
@@ -350,6 +437,16 @@ export function TaxZone({
                                                                 </a>
                                                             )}
                                                         </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedExpense(exp);
+                                                                setShowExpenseModal(true);
+                                                            }}
+                                                            className="text-gray-300 hover:text-blue-600 transition-colors p-1"
+                                                            title="Edit Expense"
+                                                        >
+                                                            <Edit2 className="w-3.5 h-3.5" />
+                                                        </button>
                                                         <button
                                                             onClick={() => deleteExpense(exp)}
                                                             className="text-gray-300 hover:text-red-500 transition-colors p-1"
@@ -418,82 +515,308 @@ export function TaxZone({
                 )}
 
                 {activeTab === "export" && (
-                    <div className="h-[50vh] flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
-                        <div className="w-20 h-20 rounded-full bg-gray-900 flex items-center justify-center shadow-2xl">
-                            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        </div>
-                        <div className="text-center space-y-2">
-                            <h3 className="text-3xl font-black text-gray-900 uppercase tracking-tight">The Magic Button</h3>
+                    <div className="max-w-2xl mx-auto py-12 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Header */}
+                        <div className="text-center space-y-4">
+                            <div className="w-20 h-20 rounded-full bg-gray-900 mx-auto flex items-center justify-center shadow-2xl mb-6">
+                                <Download className="w-10 h-10 text-white" />
+                            </div>
+                            <h3 className="text-4xl font-black text-gray-900 uppercase tracking-tight">Download CA Pack</h3>
                             <p className="text-gray-500 text-sm font-medium max-w-sm mx-auto leading-relaxed">
-                                Download all reports organized for your accountant in one consolidated sheet.
+                                Select the period for your export. We'll organize all invoices, bills, and summaries for your accountant.
                             </p>
                         </div>
-                        <button
-                            onClick={handleDownloadAuditPack}
-                            disabled={isExporting}
-                            className="px-12 py-5 bg-gray-900 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-gray-200 disabled:opacity-50"
-                        >
-                            {isExporting ? "Generating CA Pack..." : "Download CA Audit Pack"}
-                        </button>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic animate-pulse">
-                            {isExporting ? "Renaming files & creating ZIP..." : "Excel / Tally / Accounting Ready"}
-                        </p>
+
+                        {/* Export Selector */}
+                        <div className="grid grid-cols-1 gap-4">
+                            {/* Financial Year - The Main One */}
+                            <button
+                                onClick={() => setExportScope("fy")}
+                                className={`p-6 rounded-3xl border-2 transition-all text-left flex items-center justify-between group ${exportScope === "fy" ? "border-gray-900 bg-gray-50" : "border-gray-100 hover:border-gray-200"
+                                    }`}
+                            >
+                                <div className="space-y-1">
+                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Financial Year</h4>
+                                    <div className="flex items-center gap-3">
+                                        <select
+                                            value={exportFY}
+                                            onChange={(e) => {
+                                                e.stopPropagation();
+                                                setExportFY(e.target.value);
+                                                setExportScope("fy");
+                                            }}
+                                            className="bg-transparent text-xl font-black text-gray-900 focus:outline-none cursor-pointer"
+                                        >
+                                            <option value="2024-2025">FY 2024-25</option>
+                                            <option value="2023-2024">FY 2023-24</option>
+                                        </select>
+                                        {exportFY === "2024-2025" && (
+                                            <span className="bg-blue-100 text-blue-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">Current</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${exportScope === "fy" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200"
+                                    }`}>
+                                    {exportScope === "fy" && <div className="w-2 h-2 rounded-full bg-white transition-all scale-110" />}
+                                </div>
+                            </button>
+
+                            {/* GST Period - Month */}
+                            <button
+                                onClick={() => setExportScope("period")}
+                                className={`p-6 rounded-3xl border-2 transition-all text-left flex items-center justify-between group ${exportScope === "period" ? "border-gray-900 bg-gray-50" : "border-gray-100 hover:border-gray-200"
+                                    }`}
+                            >
+                                <div className="space-y-1">
+                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">GST Period (Month)</h4>
+                                    <div className="flex items-center gap-4">
+                                        <input
+                                            type="month"
+                                            value={exportMonth}
+                                            onChange={(e) => {
+                                                e.stopPropagation();
+                                                setExportMonth(e.target.value);
+                                                setExportScope("period");
+                                            }}
+                                            className="bg-transparent text-lg font-black text-gray-900 focus:outline-none cursor-pointer"
+                                        />
+                                    </div>
+                                </div>
+                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${exportScope === "period" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200"
+                                    }`}>
+                                    {exportScope === "period" && <div className="w-2 h-2 rounded-full bg-white transition-all scale-110" />}
+                                </div>
+                            </button>
+
+                            {/* Custom Date Range - Collapsible */}
+                            <div className={`rounded-3xl border-2 transition-all overflow-hidden ${exportScope === "custom" ? "border-gray-900 shadow-sm" : "border-gray-100"
+                                }`}>
+                                <button
+                                    onClick={() => {
+                                        setExportScope("custom");
+                                        setIsCustomExpanded(!isCustomExpanded);
+                                    }}
+                                    className="w-full p-6 flex items-center justify-between group text-left"
+                                >
+                                    <div className="space-y-1">
+                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Custom Range</h4>
+                                        <p className="text-lg font-black text-gray-900">
+                                            {exportCustomStart && exportCustomEnd ? `${exportCustomStart} to ${exportCustomEnd}` : "Select specific dates"}
+                                        </p>
+                                    </div>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${exportScope === "custom" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200"
+                                        }`}>
+                                        {exportScope === "custom" && <div className="w-2 h-2 rounded-full bg-white transition-all scale-110" />}
+                                    </div>
+                                </button>
+
+                                {(isCustomExpanded || exportScope === 'custom') && (
+                                    <div className="px-6 pb-6 pt-2 grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">From</label>
+                                            <input
+                                                type="date"
+                                                value={exportCustomStart}
+                                                onChange={(e) => setExportCustomStart(e.target.value)}
+                                                className="w-full bg-white border-b-2 border-gray-100 p-2 text-sm font-bold focus:border-gray-900 outline-none"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">To</label>
+                                            <input
+                                                type="date"
+                                                value={exportCustomEnd}
+                                                onChange={(e) => setExportCustomEnd(e.target.value)}
+                                                className="w-full bg-white border-b-2 border-gray-100 p-2 text-sm font-bold focus:border-gray-900 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Final Action */}
+                        <div className="pt-8">
+                            <button
+                                onClick={handleDownloadAuditPack}
+                                disabled={isExporting || (exportScope === 'custom' && (!exportCustomStart || !exportCustomEnd))}
+                                className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed group flex items-center justify-center gap-4 text-sm"
+                            >
+                                {isExporting ? (
+                                    <>
+                                        <div className="w-5 h-5 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                                        Generating Pack...
+                                    </>
+                                ) : (
+                                    <>
+                                        Download CA Pack
+                                        <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
+                            </button>
+                            <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6"> organizing summaries & attached bills automatically </p>
+                        </div>
                     </div>
                 )}
             </main>
 
             {/* Expense Modal */}
-            {showExpenseModal && (
-                <ExpenseModal
-                    onClose={() => setShowExpenseModal(false)}
-                    userId={userId}
-                    expenses={expenses}
-                />
-            )}
+            {
+                showExpenseModal && (
+                    <ExpenseModal
+                        onClose={() => {
+                            setShowExpenseModal(false);
+                            setSelectedExpense(null);
+                        }}
+                        userId={userId}
+                        expenses={expenses}
+                        initialExpense={selectedExpense}
+                    />
+                )
+            }
 
             {/* TDS Modal */}
-            {showTDSModal && (
-                <TDSModal
-                    onClose={() => setShowTDSModal(false)}
-                    userId={userId}
-                    clients={clients}
-                    currentFY={selectedFY}
-                />
-            )}
-        </div>
+            {
+                showTDSModal && (
+                    <TDSModal
+                        onClose={() => setShowTDSModal(false)}
+                        userId={userId}
+                        clients={clients}
+                        currentFY={selectedFY}
+                    />
+                )
+            }
+        </div >
     );
 }
 
-function ExpenseModal({ onClose, userId, expenses }: { onClose: () => void, userId: string, expenses: Expense[] }) {
+function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: () => void, userId: string, expenses: Expense[], initialExpense?: Expense | null }) {
     const [formData, setFormData] = useState({
-        amount: "",
-        date: new Date().toISOString().slice(0, 10),
-        category: EXPENSE_CATEGORIES[0],
-        description: "",
-        vendorName: "",
-        gstCharged: false,
-        gstAmount: "",
-        vendorGSTIN: "",
-        itcReview: "unsure",
+        amount: initialExpense?.amount.toString() || "",
+        date: initialExpense?.date || new Date().toISOString().slice(0, 10),
+        category: initialExpense?.category || EXPENSE_CATEGORIES[0],
+        description: initialExpense?.description || "",
+        vendorName: initialExpense?.vendorName || "",
+        gstCharged: initialExpense?.gstCharged || false,
+        gstAmount: initialExpense?.gstAmount?.toString() || "",
+        vendorGSTIN: initialExpense?.vendorGSTIN || "",
+        itcReview: initialExpense?.itcReview || "unsure",
     });
     const [file, setFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [ocrProcessing, setOcrProcessing] = useState(false);
+    const [localOcrStatus, setLocalOcrStatus] = useState<'idle' | 'processing' | 'done' | 'failed'>('idle');
+    const [tempAttachment, setTempAttachment] = useState<{ id: string, publicId: string, url: string } | null>(null);
+    const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
+    const [currentExpenseId] = useState(initialExpense?.id || id());
+    const [isDraftCreated, setIsDraftCreated] = useState(!!initialExpense);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
+        if (!selectedFile) return;
+
+        setFile(selectedFile);
+        setOcrProcessing(true);
+        setLocalOcrStatus('processing');
+
+        try {
+            // 1. Upload immediately with OCR requested
+            const folder = `expenses/${new Date().getFullYear()}/${formData.category.toLowerCase().replace(/\s+/g, "_")}`;
+            const uploadResult = await uploadToCloudinary(selectedFile, folder, { ocr: true });
+
+            const attachmentId = id();
+            setTempAttachment({
+                id: attachmentId,
+                publicId: uploadResult.public_id,
+                url: uploadResult.secure_url
+            });
+
+            // Extract OCR text from response if available
+            // info.ocr.adv_ocr.data carries the block info
+            const ocrInfo = (uploadResult as any).info?.ocr?.adv_ocr?.data;
+            let suggestions: any = null;
+            if (ocrInfo && ocrInfo.length > 0) {
+                const fullText = ocrInfo[0].textAnnotations ? ocrInfo.map((block: any) => block.textAnnotations[0]?.description).join('\n') : JSON.stringify(ocrInfo);
+                suggestions = parseOCRText(fullText);
+            }
+
+            // Step 1: Immediately save as Draft
+            const trans = [
+                db.tx.attachments[attachmentId].update({
+                    publicId: uploadResult.public_id,
+                    url: uploadResult.secure_url,
+                    type: "expense_bill",
+                    createdAt: new Date().toISOString(),
+                }),
+                db.tx.expenses[currentExpenseId].update({
+                    amount: suggestions?.amount || (formData.amount ? parseFloat(formData.amount) : 0),
+                    date: suggestions?.date || formData.date,
+                    category: formData.category,
+                    vendorName: suggestions?.vendorName || formData.vendorName,
+                    status: initialExpense ? (initialExpense as any).status || "confirmed" : "draft",
+                    ocrStatus: suggestions ? "done" : "failed",
+                    ocrSuggestions: suggestions || undefined
+                }),
+                db.tx.expenses[currentExpenseId].link({ attachment: attachmentId })
+            ];
+
+            if (!isDraftCreated) {
+                trans.push(db.tx.expenses[currentExpenseId].link({ owner: userId }));
+                setIsDraftCreated(true);
+            }
+            db.transact(trans);
+
+            // Update local form state with suggestions
+            if (suggestions) {
+                const filled = new Set<string>();
+                setFormData(prev => {
+                    const updates: any = {};
+                    if (!prev.amount && suggestions.amount) {
+                        updates.amount = suggestions.amount.toString();
+                        filled.add('amount');
+                    }
+                    if (!prev.vendorName && suggestions.vendorName) {
+                        updates.vendorName = suggestions.vendorName;
+                        filled.add('vendorName');
+                    }
+                    if (prev.date === new Date().toISOString().slice(0, 10) && suggestions.date) {
+                        updates.date = suggestions.date;
+                        filled.add('date');
+                    }
+                    return { ...prev, ...updates };
+                });
+                setAutoFilledFields(filled);
+                setLocalOcrStatus('done');
+            } else {
+                setLocalOcrStatus('failed');
+            }
+        } catch (error) {
+            console.error("Upload/OCR failed:", error);
+            setLocalOcrStatus('failed');
+        } finally {
+            setOcrProcessing(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.amount) return;
-
         setIsUploading(true);
         try {
-            const expenseId = id();
-            let attachmentId = null;
+            const expenseId = currentExpenseId;
+            let attachmentId = tempAttachment?.id || null;
 
-            // Calculate next display number
-            const maxNum = expenses.reduce((max, e) => Math.max(max, (e as any).displayNumber || 0), 0);
-            const nextNum = maxNum + 1;
-            const displayId = `EXP-${nextNum.toString().padStart(4, '0')}`;
-
-            if (file) {
+            if (tempAttachment) {
+                // Ensure attachment is recorded if not already saved via background process
+                db.transact([
+                    db.tx.attachments[tempAttachment.id].update({
+                        publicId: tempAttachment.publicId,
+                        url: tempAttachment.url,
+                        type: "expense_bill",
+                        createdAt: new Date().toISOString(),
+                    })
+                ]);
+            } else if (file) {
+                // Fallback for case where file was selected but tempAttachment failed
                 const folder = `expenses/${new Date().getFullYear()}/${formData.category.toLowerCase().replace(/\s+/g, "_")}`;
                 const uploadResult = await uploadToCloudinary(file, folder);
 
@@ -508,9 +831,19 @@ function ExpenseModal({ onClose, userId, expenses }: { onClose: () => void, user
                 ]);
             }
 
+            // Use existing display ID if editing, otherwise calculate new one
+            let nextNum = (initialExpense as any)?.displayNumber;
+            let displayId = (initialExpense as any)?.displayId;
+
+            if (!initialExpense) {
+                const maxNum = expenses.reduce((max, e) => Math.max(max, (e as any).displayNumber || 0), 0);
+                nextNum = maxNum + 1;
+                displayId = `EXP-${nextNum.toString().padStart(4, '0')}`;
+            }
+
             const trans = [
                 db.tx.expenses[expenseId].update({
-                    amount: parseFloat(formData.amount),
+                    amount: formData.amount ? parseFloat(formData.amount) : 0,
                     date: formData.date,
                     category: formData.category,
                     description: formData.description,
@@ -521,6 +854,8 @@ function ExpenseModal({ onClose, userId, expenses }: { onClose: () => void, user
                     itcReview: formData.itcReview,
                     displayId,
                     displayNumber: nextNum,
+                    status: "confirmed",
+                    ocrStatus: file ? (localOcrStatus !== 'idle' ? localOcrStatus : "processing") : (initialExpense ? (initialExpense as any).ocrStatus : undefined),
                 }),
                 db.tx.expenses[expenseId].link({ owner: userId })
             ];
@@ -533,7 +868,7 @@ function ExpenseModal({ onClose, userId, expenses }: { onClose: () => void, user
             onClose();
         } catch (error) {
             console.error("Failed to save expense:", error);
-            alert("Failed to save expense. Please check your connection and Cloudinary settings.");
+            alert("Failed to save expense.");
         } finally {
             setIsUploading(false);
         }
@@ -544,20 +879,26 @@ function ExpenseModal({ onClose, userId, expenses }: { onClose: () => void, user
             <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="p-8 pb-0 flex justify-between items-start">
                     <div>
-                        <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Add Expense</h3>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Register business outgoing</p>
+                        <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">
+                            {initialExpense ? 'Edit Expense' : 'Add Expense'}
+                        </h3>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
+                            {initialExpense ? 'Modify existing record' : 'Register business outgoing'}
+                        </p>
                     </div>
                     <button onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">✕</button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount (₹)</label>
+                        <div className="space-y-2 relative">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                Amount (₹) {autoFilledFields.has('amount') && <span className="text-orange-500 animate-bounce">✨</span>}
+                            </label>
                             <input
                                 type="number"
                                 placeholder="0"
-                                className="w-full text-3xl font-black text-gray-900 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-1 focus:outline-none transition-all"
+                                className="w-full text-3xl font-black text-gray-900 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-1 focus:outline-none transition-all placeholder:text-gray-200"
                                 value={formData.amount}
                                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                 autoFocus
@@ -578,7 +919,9 @@ function ExpenseModal({ onClose, userId, expenses }: { onClose: () => void, user
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Vendor Name</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                Vendor Name {autoFilledFields.has('vendorName') && <span className="text-orange-500 animate-bounce">✨</span>}
+                            </label>
                             <input
                                 type="text"
                                 className="w-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-1 focus:outline-none"
@@ -588,7 +931,9 @@ function ExpenseModal({ onClose, userId, expenses }: { onClose: () => void, user
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                Date {autoFilledFields.has('date') && <span className="text-orange-500 animate-bounce">✨</span>}
+                            </label>
                             <input
                                 type="date"
                                 className="w-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-1 focus:outline-none"
@@ -654,20 +999,63 @@ function ExpenseModal({ onClose, userId, expenses }: { onClose: () => void, user
 
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Bill Attachment (Public Proof)</label>
+
+                        {(initialExpense as any)?.attachment && !file && (
+                            <div className="mb-3 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl">📄</span>
+                                    <div>
+                                        <p className="text-[10px] font-black text-blue-900 uppercase">Current Attachment</p>
+                                        <a
+                                            href={(initialExpense as any).attachment.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[9px] font-bold text-blue-600 hover:underline"
+                                        >
+                                            View existing file
+                                        </a>
+                                    </div>
+                                </div>
+                                <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest bg-white px-2 py-1 rounded-full border border-blue-100">Saved</span>
+                            </div>
+                        )}
+
                         <div className="relative group">
                             <input
                                 type="file"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                onChange={handleFileChange}
                                 accept="image/*,application/pdf"
                             />
                             <div className={`p-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all ${file ? 'border-green-500 bg-green-50' : 'border-gray-200 group-hover:border-gray-900'}`}>
                                 <span className="text-xl">{file ? '📄' : '📤'}</span>
                                 <p className="text-[10px] font-black uppercase text-gray-500">
-                                    {file ? file.name : "Tap to upload bill (JPG, PNG, PDF)"}
+                                    {file ? file.name : (initialExpense as any)?.attachment ? "Tap to replace bill" : "Tap to upload bill (JPG, PNG, PDF)"}
                                 </p>
                             </div>
                         </div>
+
+                        {(localOcrStatus === 'processing' || (initialExpense as any)?.ocrStatus === "processing") && (
+                            <div className="mt-3 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-center gap-3 animate-pulse">
+                                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-sm">✨</div>
+                                <div>
+                                    <p className="text-[10px] font-black text-orange-900 uppercase tracking-tight">AI OCR Reading Bill...</p>
+                                    <p className="text-[9px] font-bold text-orange-600 uppercase tracking-widest mt-0.5">Detecting amounts & dates</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {(localOcrStatus === 'done' || (initialExpense as any)?.ocrStatus === "done") && (
+                            <div className="mt-3 p-4 bg-green-50 border border-green-100 rounded-2xl flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs">✔</div>
+                                <div>
+                                    <p className="text-[10px] font-black text-green-900 uppercase tracking-tight">✨ We found details from the bill</p>
+                                    <p className="text-[9px] font-bold text-green-600 uppercase tracking-widest mt-0.5">Please review and confirm below</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Removed OCR failure message as per user request */}
                     </div>
 
                     <div className="space-y-2">
@@ -693,9 +1081,9 @@ function ExpenseModal({ onClose, userId, expenses }: { onClose: () => void, user
                         <button
                             type="submit"
                             className="px-10 py-3 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50"
-                            disabled={isUploading}
+                            disabled={isUploading || ocrProcessing}
                         >
-                            {isUploading ? "Uploading..." : "Confirm Expense"}
+                            {isUploading ? "Saving..." : "Confirm & Save"}
                         </button>
                     </div>
                 </form>

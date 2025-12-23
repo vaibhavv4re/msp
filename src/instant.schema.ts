@@ -124,6 +124,9 @@ const _schema = i.schema({
       itcReview: i.string().optional(), // "yes" | "no" | "unsure"
       displayId: i.string().optional(), // e.g. EXP-0001
       displayNumber: i.number().optional(), // Sequential number
+      ocrStatus: i.string().optional(), // "pending" | "processing" | "done" | "failed"
+      ocrSuggestions: i.any().optional(), // Stores suggested amount, date, vendor, etc.
+      status: i.string().optional(), // "draft" | "confirmed"
     }),
     tdsEntries: i.entity({
       amount: i.number(),

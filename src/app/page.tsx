@@ -439,7 +439,7 @@ function App() {
             calendarEvents={calendarEvents as any}
             userId={user.id}
             calendarSecret={currentUser?.calendarSecret}
-            initiallyOpenModal={modalToOpen === "mark-availability"}
+            initiallyOpenModal={modalToOpen}
             onModalClose={() => setModalToOpen(null)}
           />
         )}
@@ -461,6 +461,8 @@ function App() {
             expenses={expenses as any}
             tdsEntries={tdsEntries as any}
             userId={user.id}
+            initiallyOpenModal={modalToOpen === "capture-expense" ? "capture-expense" : undefined}
+            onModalClose={() => setModalToOpen(null)}
           />
         )}
       </main>

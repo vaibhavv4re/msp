@@ -6,11 +6,13 @@ export interface AuditData {
     fy: string;
     expenses: any[];
     invoices: any[];
+    label?: string; // e.g. "FY-2024-25", "Apr-2025", "Q1-2024"
 }
 
 export async function generateAuditPack(data: AuditData) {
     const zip = new JSZip();
-    const rootFolder = zip.folder(`CA-Pack-FY-${data.fy}`);
+    const packLabel = data.label || `FY-${data.fy}`;
+    const rootFolder = zip.folder(`CA-Pack_${packLabel}`);
     if (!rootFolder) return;
 
     // 1. README.txt
@@ -179,5 +181,5 @@ Generated on: ${new Date().toLocaleString()}
 
     // Generate and Download
     const content = await zip.generateAsync({ type: "blob" });
-    saveAs(content, `CA-Audit-Pack-${data.fy}-${new Date().toISOString().slice(0, 10)}.zip`);
+    saveAs(content, `CA-Pack_${packLabel}.zip`);
 }
