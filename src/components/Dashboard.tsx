@@ -156,7 +156,7 @@ export function Dashboard({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Overview</h2>
-          <p className="text-sm text-gray-500 font-medium">Welcome back! Here's what's happening.</p>
+          <p className="text-sm text-gray-600 font-medium">Welcome back! Here's what's happening.</p>
         </div>
         <div className="inline-flex bg-white p-1 rounded-lg shadow-sm border border-gray-200">
           {(["this_month", "last_month", "all_time"] as const).map((t) => (
@@ -165,7 +165,7 @@ export function Dashboard({
               onClick={() => setContext(t)}
               className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase transition-all ${context === t
                 ? "bg-gray-900 text-white shadow-md"
-                : "text-gray-500 hover:text-gray-900"
+                : "text-gray-600 hover:text-gray-900"
                 }`}
             >
               {t.replace("_", " ")}
@@ -177,9 +177,9 @@ export function Dashboard({
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-blue-600 hover:shadow-md transition-shadow">
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Billed</h2>
+          <h2 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-1">Billed</h2>
           <div className="flex flex-col xl:flex-row xl:items-baseline xl:gap-2 overflow-hidden">
-            <span className="text-xl xl:text-2xl font-bold text-gray-500 shrink-0">₹</span>
+            <span className="text-xl xl:text-2xl font-bold text-gray-600 shrink-0">₹</span>
             <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 truncate">
               {billed.toLocaleString("en-IN")}
             </p>
@@ -187,9 +187,9 @@ export function Dashboard({
           <div className="mt-2 text-[10px] font-bold text-blue-600 bg-blue-50 inline-block px-2 py-0.5 rounded uppercase">Total Invoiced</div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-green-500 hover:shadow-md transition-shadow">
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Received</h2>
+          <h2 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-1">Received</h2>
           <div className="flex flex-col xl:flex-row xl:items-baseline xl:gap-2 overflow-hidden">
-            <span className="text-xl xl:text-2xl font-bold text-gray-500 shrink-0">₹</span>
+            <span className="text-xl xl:text-2xl font-bold text-gray-600 shrink-0">₹</span>
             <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 truncate">
               {received.toLocaleString("en-IN")}
             </p>
@@ -197,9 +197,9 @@ export function Dashboard({
           <div className="mt-2 text-[10px] font-bold text-green-600 bg-green-50 inline-block px-2 py-0.5 rounded uppercase">Cash in Hand</div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-yellow-500 hover:shadow-md transition-shadow">
-          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Receivable</h2>
+          <h2 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-1">Receivable</h2>
           <div className="flex flex-col xl:flex-row xl:items-baseline xl:gap-2 overflow-hidden">
-            <span className="text-xl xl:text-2xl font-bold text-gray-500 shrink-0">₹</span>
+            <span className="text-xl xl:text-2xl font-bold text-gray-600 shrink-0">₹</span>
             <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 truncate">
               {receivable.toLocaleString("en-IN")}
             </p>
@@ -211,7 +211,7 @@ export function Dashboard({
       {/* What needs attention */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">What needs attention</h3>
+          <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">What needs attention</h3>
           {!oldestUnpaid && <span className="text-[10px] font-black text-green-600 uppercase">You're all set!</span>}
         </div>
         <div className="p-6">
@@ -223,7 +223,7 @@ export function Dashboard({
                 </div>
                 <div>
                   <h4 className="font-black text-gray-900 uppercase text-xs tracking-tight">Oldest Pending Payment</h4>
-                  <p className="text-sm text-gray-500 font-medium">
+                  <p className="text-sm text-gray-600 font-medium">
                     Invoice <span className="font-bold text-gray-900">#{oldestUnpaid.invoiceNumber}</span> for <span className="font-bold text-gray-900">{oldestUnpaidClient?.displayName || oldestUnpaidClient?.firstName || "Unknown Client"}</span>
                   </p>
                   <p className="text-[10px] font-bold text-red-500 uppercase mt-1">Status: {oldestUnpaid.status} • Issued on {oldestUnpaid.invoiceDate}</p>
@@ -245,7 +245,7 @@ export function Dashboard({
               </div>
               <div>
                 <h4 className="font-black text-gray-900 uppercase text-xs tracking-tight">Perfectly on Track</h4>
-                <p className="text-sm text-gray-500 font-medium">No pending payments right now. You’re up to date 👍</p>
+                <p className="text-sm text-gray-600 font-medium">No pending payments right now. You’re up to date 👍</p>
               </div>
             </div>
           )}
@@ -255,7 +255,7 @@ export function Dashboard({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Quick Actions */}
         <div className="lg:col-span-2">
-          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+          <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
             <span className="w-8 h-[1px] bg-gray-200"></span> Quick Actions
           </h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -310,19 +310,19 @@ export function Dashboard({
 
         {/* Upcoming Work Block */}
         <div>
-          <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+          <h3 className="text-sm font-black text-gray-600 uppercase tracking-widest mb-4 flex items-center gap-2">
             <span className="w-8 h-[1px] bg-gray-200"></span> Upcoming Work
           </h3>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 bg-gray-50 border-b border-gray-100">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Next 7 Days</span>
+              <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Next 7 Days</span>
             </div>
             <div className="divide-y divide-gray-50">
               {upcomingEvents.length === 0 ? (
                 <div className="p-8 text-center">
                   <div className="text-3xl mb-2">🏖️</div>
                   <p className="text-sm font-bold text-gray-600">No shoots scheduled</p>
-                  <p className="text-[10px] text-gray-400 uppercase mt-1">Time to market yourself!</p>
+                  <p className="text-[10px] text-gray-600 uppercase mt-1">Time to market yourself!</p>
                 </div>
               ) : (
                 upcomingEvents.map((event) => {
@@ -347,7 +347,7 @@ export function Dashboard({
                           <h4 className="text-sm font-black text-gray-900 leading-tight">{event.title}</h4>
                           <div className="flex items-center gap-3 mt-1">
                             <p className="text-[10px] font-bold text-blue-600 uppercase">{dateLabel}</p>
-                            <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-bold text-gray-500">
+                            <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-bold text-gray-600">
                               {new Date(event.start || "").toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
@@ -355,14 +355,14 @@ export function Dashboard({
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => onNavigate("calendar", `edit-event-${event.id}`)}
-                            className="p-1.5 hover:bg-white rounded-lg text-gray-400 hover:text-gray-900 transition-colors shadow-sm border border-transparent hover:border-gray-100"
+                            className="p-1.5 hover:bg-white rounded-lg text-gray-600 hover:text-gray-900 transition-colors shadow-sm border border-transparent hover:border-gray-100"
                             title="Edit Event"
                           >
                             <Edit2 className="w-3 h-3" />
                           </button>
                           <button
                             onClick={() => handleDeleteEvent(event)}
-                            className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors shadow-sm border border-transparent hover:border-red-100"
+                            className="p-1.5 hover:bg-red-50 rounded-lg text-gray-600 hover:text-red-600 transition-colors shadow-sm border border-transparent hover:border-red-100"
                             title="Delete Event"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -384,7 +384,7 @@ export function Dashboard({
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-full">
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Snapshot</h3>
+                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">GST Snapshot</h3>
                 <select
                   className="bg-transparent text-[10px] font-black text-blue-600 uppercase border-none focus:outline-none cursor-pointer"
                   value={selectedGSTFY}
@@ -400,15 +400,15 @@ export function Dashboard({
             <div className="p-6 md:p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                 <div className="flex flex-row md:flex-col justify-between items-center md:items-start border-b md:border-b-0 pb-4 md:pb-0">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase">Received</h4>
+                  <h4 className="text-[10px] font-black text-gray-600 uppercase">Received</h4>
                   <p className="text-xl md:text-2xl font-black text-gray-900">₹{totalReceived.toLocaleString("en-IN")}</p>
                 </div>
                 <div className="flex flex-row md:flex-col justify-between items-center md:items-start border-b md:border-b-0 pb-4 md:pb-0">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase">GST Portion</h4>
+                  <h4 className="text-[10px] font-black text-gray-600 uppercase">GST Portion</h4>
                   <p className="text-xl md:text-2xl font-black text-red-600">₹{gstCollected.toLocaleString("en-IN")}</p>
                 </div>
                 <div className="flex flex-row md:flex-col justify-between items-center md:items-start">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase">True Income</h4>
+                  <h4 className="text-[10px] font-black text-gray-600 uppercase">True Income</h4>
                   <p className="text-xl md:text-2xl font-black text-green-600">₹{usableIncome.toLocaleString("en-IN")}</p>
                 </div>
               </div>
@@ -431,12 +431,12 @@ export function Dashboard({
         {/* GST Timeline */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Timeline</h3>
+            <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">GST Timeline</h3>
           </div>
           <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
             {timeline.length === 0 ? (
               <div className="p-8 text-center">
-                <p className="text-xs font-bold text-gray-400 uppercase">No GST collected yet</p>
+                <p className="text-xs font-bold text-gray-600 uppercase">No GST collected yet</p>
               </div>
             ) : (
               timeline.map((entry, idx) => {
@@ -448,11 +448,11 @@ export function Dashboard({
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="text-xs font-black text-gray-900 uppercase">{entry.monthYear}</h4>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">Status: {isCurrentMonth ? 'Ongoing' : 'Likely Payable'}</p>
+                        <p className="text-[10px] font-bold text-gray-600 uppercase mt-1">Status: {isCurrentMonth ? 'Ongoing' : 'Likely Payable'}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-black text-red-600">₹{entry.gst.toLocaleString("en-IN")}</p>
-                        <p className="text-[8px] font-black text-gray-400 uppercase mt-0.5">GST Portion</p>
+                        <p className="text-[8px] font-black text-gray-600 uppercase mt-0.5">GST Portion</p>
                       </div>
                     </div>
                   </div>
@@ -470,7 +470,7 @@ export function Dashboard({
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <div>
                 <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Record Payment</h3>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Select an invoice to update</p>
+                <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">Select an invoice to update</p>
               </div>
               <button
                 onClick={() => setShowRecordPayment(false)}
@@ -487,14 +487,14 @@ export function Dashboard({
                   value={paymentSearch}
                   onChange={(e) => setPaymentSearch(e.target.value)}
                 />
-                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <svg className="w-5 h-5 text-gray-600 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
               {paymentInvoices.length === 0 ? (
                 <div className="p-12 text-center">
-                  <p className="text-sm font-bold text-gray-400">No unpaid invoices found</p>
+                  <p className="text-sm font-bold text-gray-600">No unpaid invoices found</p>
                 </div>
               ) : (
                 paymentInvoices.map((inv) => {
@@ -509,7 +509,7 @@ export function Dashboard({
                           <span className="text-xs font-black text-gray-900">{inv.invoiceNumber}</span>
                           <span className="text-[10px] bg-yellow-100 text-yellow-700 font-black px-1.5 py-0.5 rounded uppercase">{inv.status}</span>
                         </div>
-                        <p className="text-sm font-bold text-gray-500">{client?.displayName || client?.firstName || "Unknown"}</p>
+                        <p className="text-sm font-bold text-gray-600">{client?.displayName || client?.firstName || "Unknown"}</p>
                         <p className="text-lg font-black text-gray-900 mt-1">₹{inv.total?.toLocaleString()}</p>
                         {isAdvanceRec && (
                           <p className="text-[10px] font-black text-red-500 uppercase">Pending Balance: ₹{balance.toLocaleString()}</p>

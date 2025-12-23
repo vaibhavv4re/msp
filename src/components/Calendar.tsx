@@ -111,11 +111,11 @@ export function Calendar({
             <div className="flex bg-gray-100 p-1 rounded-xl flex-1 md:flex-none">
               <button
                 onClick={() => setView("agenda")}
-                className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${view === 'agenda' ? 'bg-white shadow-sm' : 'text-gray-400'}`}
+                className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${view === 'agenda' ? 'bg-white shadow-sm' : 'text-gray-600'}`}
               >Agenda</button>
               <button
                 onClick={() => setView("grid")}
-                className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${view === 'grid' ? 'bg-white shadow-sm' : 'text-gray-400'}`}
+                className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${view === 'grid' ? 'bg-white shadow-sm' : 'text-gray-600'}`}
               >Grid</button>
             </div>
             <button
@@ -133,7 +133,7 @@ export function Calendar({
         <div className="space-y-4">
           {events.length === 0 ? (
             <div className="bg-white rounded-2xl border-2 border-dashed border-gray-100 p-12 text-center">
-              <p className="text-xs font-black text-gray-400 uppercase tracking-widest">No work scheduled</p>
+              <p className="text-xs font-black text-gray-600 uppercase tracking-widest">No work scheduled</p>
             </div>
           ) : (
             events.map(event => (
@@ -144,7 +144,7 @@ export function Calendar({
                   }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${event.status === 'confirmed' ? 'bg-gray-900 text-white' : 'bg-white border-2 border-gray-100 text-gray-400'
+                  <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${event.status === 'confirmed' ? 'bg-gray-900 text-white' : 'bg-white border-2 border-gray-100 text-gray-600'
                     }`}>
                     <span className="text-[10px] font-black uppercase leading-none mb-1">
                       {new Date(event.start!).toLocaleString('default', { month: 'short' })}
@@ -153,7 +153,7 @@ export function Calendar({
                   </div>
                   <div className="flex-1">
                     <h4 className="font-black text-gray-900 uppercase text-sm tracking-tight">{event.title}</h4>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">
+                    <p className="text-[10px] font-bold text-gray-600 uppercase mt-1">
                       {new Date(event.start!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
                       {new Date(event.end!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -330,12 +330,12 @@ function EventModal({
           <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">
             {event ? 'Edit Event' : 'New Event'}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-900">✕</button>
+          <button onClick={onClose} className="text-gray-600 hover:text-gray-900">✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Shoot Title</label>
+            <label className="block text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">Shoot Title</label>
             <input
               type="text"
               className="w-full border-b-2 border-gray-100 focus:border-gray-900 outline-none py-2 text-lg font-black uppercase transition-all"
@@ -347,7 +347,7 @@ function EventModal({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Date</label>
+            <label className="block text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">Date</label>
             <input
               type="date"
               className="w-full bg-gray-50 rounded-xl p-3 text-sm font-black outline-none"
@@ -359,7 +359,7 @@ function EventModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Start</label>
+              <label className="block text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">Start</label>
               <input
                 type="time"
                 className="w-full bg-gray-50 rounded-xl p-3 text-sm font-black outline-none"
@@ -368,7 +368,7 @@ function EventModal({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">End</label>
+              <label className="block text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">End</label>
               <input
                 type="time"
                 className="w-full bg-gray-50 rounded-xl p-3 text-sm font-black outline-none"
@@ -379,14 +379,14 @@ function EventModal({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Status</label>
+            <label className="block text-[10px] font-black text-gray-600 uppercase tracking-widest mb-2">Status</label>
             <div className="flex gap-2">
               {["confirmed", "tentative"].map(s => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setStatus(s as any)}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${status === s ? 'bg-gray-900 text-white shadow-lg' : 'bg-gray-100 text-gray-400'
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${status === s ? 'bg-gray-900 text-white shadow-lg' : 'bg-gray-100 text-gray-600'
                     }`}
                 >
                   {s}

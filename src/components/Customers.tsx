@@ -101,7 +101,7 @@ export function Customers({
       <div className="md:hidden space-y-4">
         {filteredClients.length === 0 ? (
           <div className="py-12 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-            <p className="text-sm font-black text-gray-400 uppercase tracking-widest">No customers found</p>
+            <p className="text-sm font-black text-gray-600 uppercase tracking-widest">No customers found</p>
           </div>
         ) : (
           filteredClients.map((client) => (
@@ -115,7 +115,7 @@ export function Customers({
                     </h3>
                   </div>
                   {client.companyName && (
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-4">{client.companyName}</p>
+                    <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest ml-4">{client.companyName}</p>
                   )}
                 </div>
                 <div className="text-right">
@@ -128,12 +128,12 @@ export function Customers({
 
               <div className="p-4 grid grid-cols-2 gap-4 bg-gray-50/30">
                 <div className="space-y-1">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Contact</p>
+                  <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest leading-none">Contact</p>
                   <p className="text-[11px] font-bold text-gray-700 truncate">{client.email || "No Email"}</p>
-                  {client.phone && <p className="text-[11px] font-bold text-gray-500">{client.phone}</p>}
+                  {client.phone && <p className="text-[11px] font-bold text-gray-600">{client.phone}</p>}
                 </div>
                 <div className="space-y-1 text-right">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Terms</p>
+                  <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest leading-none">Terms</p>
                   <p className="text-[11px] font-bold text-gray-700">
                     {PAYMENT_TERMS.find(t => t.value === client.paymentTerms)?.label || "—"}
                   </p>
@@ -175,7 +175,7 @@ export function Customers({
           <tbody>
             {filteredClients.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-4 text-center text-gray-500">
+                <td colSpan={6} className="py-4 text-center text-gray-600">
                   No customers found. Add your first customer to get started.
                 </td>
               </tr>
@@ -185,7 +185,7 @@ export function Customers({
                   <td className="py-2 px-4">
                     <div className="font-medium">{client.displayName || "—"}</div>
                     {client.companyName && (
-                      <div className="text-sm text-gray-500">{client.companyName}</div>
+                      <div className="text-sm text-gray-600">{client.companyName}</div>
                     )}
                   </td>
                   <td className="py-2 px-4">
@@ -425,7 +425,7 @@ export function CustomerModal({
                 placeholder={generateDisplayName() || "Display name for invoices"}
               />
               {generateDisplayName() && !displayName && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-600 mt-1">
                   Will use: {generateDisplayName()}
                 </p>
               )}

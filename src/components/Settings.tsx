@@ -55,8 +55,8 @@ export function Settings({
     <div className="bg-white p-6 rounded-lg shadow">
       <h2 className="text-xl font-bold mb-4">Settings</h2>
 
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
+      <div className="border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar">
+        <nav className="-mb-px flex space-x-8 min-w-max px-1">
           <button
             onClick={() => setActiveTab("taxes")}
             className={`${activeTab === "taxes"
@@ -839,12 +839,12 @@ function UsageTrackerTab({ invoices, clients }: { invoices: Invoice[]; clients: 
                     <td className="py-2 px-4">{clientName}</td>
                     <td className="py-2 px-4">
                       {invoice.usageType === "Other" ? invoice.usageOther : invoice.usageType || (
-                        <span className="text-gray-400 italic">Not set</span>
+                        <span className="text-gray-500 italic">Not set</span>
                       )}
                     </td>
-                    <td className="py-2 px-4">{invoice.usageDuration || <span className="text-gray-400 italic">Not set</span>}</td>
-                    <td className="py-2 px-4">{invoice.usageGeography || <span className="text-gray-400 italic">Not set</span>}</td>
-                    <td className="py-2 px-4">{invoice.usageExclusivity || <span className="text-gray-400 italic">Not set</span>}</td>
+                    <td className="py-2 px-4">{invoice.usageDuration || <span className="text-gray-500 italic">Not set</span>}</td>
+                    <td className="py-2 px-4">{invoice.usageGeography || <span className="text-gray-500 italic">Not set</span>}</td>
+                    <td className="py-2 px-4">{invoice.usageExclusivity || <span className="text-gray-500 italic">Not set</span>}</td>
                   </tr>
                 );
               })

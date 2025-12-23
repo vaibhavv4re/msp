@@ -181,8 +181,6 @@ export function TaxZone({
                 endDate = new Date(endYear, 2, 31, 23, 59, 59); // March 31st
                 label = `FY-${exportFY}`;
             } else if (exportScope === "period") {
-                // Determine if it's month or quarter based on UI state (implied)
-                // for simplicity we'll handle both in logic
                 const [year, month] = exportMonth.split("-").map(Number);
                 startDate = new Date(year, month - 1, 1);
                 endDate = new Date(year, month, 0, 23, 59, 59);
@@ -244,24 +242,26 @@ export function TaxZone({
                     <p className="text-sm text-gray-500 font-medium">Ready reports for your CA.</p>
                 </div>
 
-                <div className="inline-flex bg-white p-1 rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
-                    {[
-                        { id: "gst", label: "GST Summary" },
-                        { id: "income", label: "Income" },
-                        { id: "expenses", label: "Expenses" },
-                        { id: "tds", label: "TDS" },
-                        { id: "export", label: "Export" }
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase transition-all whitespace-nowrap ${activeTab === tab.id
-                                ? "bg-gray-900 text-white shadow-md"
-                                : "text-gray-500 hover:text-gray-900"}`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
+                <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+                    <div className="inline-flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 min-w-max">
+                        {[
+                            { id: "gst", label: "GST Summary" },
+                            { id: "income", label: "Income" },
+                            { id: "expenses", label: "Expenses" },
+                            { id: "tds", label: "TDS" },
+                            { id: "export", label: "Export" }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase transition-all whitespace-nowrap ${activeTab === tab.id
+                                    ? "bg-gray-900 text-white shadow-md"
+                                    : "text-gray-500 hover:text-gray-900"}`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -277,7 +277,7 @@ export function TaxZone({
                 {activeTab === "gst" && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block">Select Month</label>
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block">Select Month</label>
                             <input
                                 type="month"
                                 className="text-2xl font-black text-gray-900 bg-transparent focus:outline-none cursor-pointer"
@@ -288,12 +288,12 @@ export function TaxZone({
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                             <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-blue-600 hover:shadow-md transition-shadow">
-                                <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Total Invoiced (Paid)</h2>
+                                <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Total Invoiced (Paid)</h2>
                                 <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 truncate tracking-tighter">₹{gstMetrics.billed.toLocaleString("en-IN")}</p>
                                 <p className="mt-2 text-[10px] font-bold text-blue-600 bg-blue-50 inline-block px-2 py-0.5 rounded uppercase">{gstMetrics.count} manifests recognized</p>
                             </div>
                             <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-red-500 hover:shadow-md transition-shadow">
-                                <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">GST Collected</h2>
+                                <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">GST Collected</h2>
                                 <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-red-600 truncate tracking-tighter">₹{(gstMetrics.cgst + gstMetrics.sgst + gstMetrics.igst).toLocaleString("en-IN")}</p>
                                 <div className="flex flex-wrap gap-2 mt-4">
                                     <div className="bg-gray-50 px-2 py-1 rounded text-[9px] font-black text-gray-500 uppercase">CGST: ₹{gstMetrics.cgst.toLocaleString()}</div>
@@ -302,7 +302,7 @@ export function TaxZone({
                                 </div>
                             </div>
                             <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 flex flex-col justify-center">
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Internal Advisory</h4>
+                                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Internal Advisory</h4>
                                 <p className="text-sm font-medium text-gray-600 leading-relaxed italic">
                                     "This portion represents tax collected on behalf of the government. Keep this aside for filing."
                                 </p>
@@ -314,7 +314,7 @@ export function TaxZone({
                 {activeTab === "income" && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block">Financial Year</label>
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block">Financial Year</label>
                             <select
                                 className="text-2xl font-black text-gray-900 bg-transparent focus:outline-none cursor-pointer appearance-none"
                                 value={selectedFY}
@@ -329,16 +329,16 @@ export function TaxZone({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-8">
                                 <div className="space-y-1">
-                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Gross Professional Income</h4>
+                                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Gross Professional Income</h4>
                                     <p className="text-5xl md:text-6xl font-black text-gray-900 tracking-tighter">₹{annualMetrics.gross.toLocaleString("en-IN")}</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-100">
                                     <div className="space-y-1">
-                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">GST Portion</h4>
-                                        <p className="text-2xl xl:text-3xl font-black text-gray-400 truncate">₹{annualMetrics.gst.toLocaleString()}</p>
+                                        <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">GST Portion</h4>
+                                        <p className="text-2xl xl:text-3xl font-black text-gray-500 truncate">₹{annualMetrics.gst.toLocaleString()}</p>
                                     </div>
                                     <div className="space-y-1">
-                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Net Earnings</h4>
+                                        <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Net Earnings</h4>
                                         <p className="text-2xl xl:text-3xl font-black text-green-600 truncate">₹{annualMetrics.net.toLocaleString()}</p>
                                     </div>
                                 </div>
@@ -356,7 +356,7 @@ export function TaxZone({
 
                 {activeTab === "expenses" && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Outgoings & Overheads</h3>
                             <div className="flex items-center gap-3">
                                 <button
@@ -385,25 +385,25 @@ export function TaxZone({
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             {EXPENSE_CATEGORIES.map(cat => (
                                 <div key={cat} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-gray-900 transition-all">
-                                    <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.1em] mb-1 truncate">{cat}</h4>
+                                    <h4 className="text-[9px] font-black text-gray-500 uppercase tracking-[0.1em] mb-1 truncate">{cat}</h4>
                                     <p className="text-xl font-black text-gray-900">₹{(categoryTotals[cat] || 0).toLocaleString()}</p>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                            <table className="w-full text-left">
+                        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm overflow-x-auto">
+                            <table className="w-full text-left min-w-[600px]">
                                 <thead className="bg-gray-50 border-b border-gray-100">
                                     <tr>
-                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Amount</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Date</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Category</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Description</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {expenses.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-6 py-12 text-center text-xs font-bold text-gray-400 uppercase">No expenses recorded</td></tr>
+                                        <tr><td colSpan={4} className="px-6 py-12 text-center text-xs font-bold text-gray-500 uppercase">No expenses recorded</td></tr>
                                     ) : (
                                         expenses.sort((a, b) => b.date.localeCompare(a.date)).map(exp => (
                                             <tr key={exp.id} className="hover:bg-gray-50 transition-colors">
@@ -416,7 +416,7 @@ export function TaxZone({
                                                                 <span className="bg-orange-100 text-orange-700 text-[8px] px-2 py-0.5 rounded-full font-black tracking-tighter shadow-sm animate-pulse border border-orange-200">DRAFT</span>
                                                             )}
                                                         </span>
-                                                        <span className="text-[10px] font-bold text-gray-400 font-mono">
+                                                        <span className="text-[10px] font-bold text-gray-500 font-mono">
                                                             {(exp as any).displayId || "—"}
                                                         </span>
                                                     </div>
@@ -467,7 +467,7 @@ export function TaxZone({
 
                 {activeTab === "tds" && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">TDS Tracking</h3>
                             <button
                                 onClick={() => setShowTDSModal(true)}
@@ -479,15 +479,15 @@ export function TaxZone({
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-white p-12 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-center items-center text-center">
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Total Deductions (FY {selectedFY})</h4>
+                                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Total Deductions (FY {selectedFY})</h4>
                                 <p className="text-5xl font-black text-orange-600 tracking-tighter">₹{totalTDS.toLocaleString()}</p>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-4">For CA reconciliation</p>
+                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-4">For CA reconciliation</p>
                             </div>
 
                             <div className="space-y-3">
                                 {tdsEntries.length === 0 ? (
                                     <div className="h-full flex flex-col items-center justify-center p-12 border-2 border-dashed border-gray-100 rounded-3xl">
-                                        <p className="font-bold text-gray-400 uppercase text-xs">No records found</p>
+                                        <p className="font-bold text-gray-500 uppercase text-xs">No records found</p>
                                     </div>
                                 ) : (
                                     tdsEntries.filter(t => t.fy === selectedFY).map(tds => {
@@ -495,7 +495,7 @@ export function TaxZone({
                                         return (
                                             <div key={tds.id} className="p-5 bg-white border border-gray-100 rounded-2xl flex justify-between items-center shadow-sm hover:border-gray-900 transition-all">
                                                 <div>
-                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight mb-1">
+                                                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-tight mb-1">
                                                         {client?.displayName || client?.firstName || "Unknown Client"}
                                                     </p>
                                                     <div className="flex items-center gap-2">
@@ -516,7 +516,6 @@ export function TaxZone({
 
                 {activeTab === "export" && (
                     <div className="max-w-2xl mx-auto py-12 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* Header */}
                         <div className="text-center space-y-4">
                             <div className="w-20 h-20 rounded-full bg-gray-900 mx-auto flex items-center justify-center shadow-2xl mb-6">
                                 <Download className="w-10 h-10 text-white" />
@@ -527,16 +526,13 @@ export function TaxZone({
                             </p>
                         </div>
 
-                        {/* Export Selector */}
                         <div className="grid grid-cols-1 gap-4">
-                            {/* Financial Year - The Main One */}
                             <button
                                 onClick={() => setExportScope("fy")}
-                                className={`p-6 rounded-3xl border-2 transition-all text-left flex items-center justify-between group ${exportScope === "fy" ? "border-gray-900 bg-gray-50" : "border-gray-100 hover:border-gray-200"
-                                    }`}
+                                className={`p-6 rounded-3xl border-2 transition-all text-left flex items-center justify-between group ${exportScope === "fy" ? "border-gray-900 bg-gray-50" : "border-gray-100 hover:border-gray-200"}`}
                             >
                                 <div className="space-y-1">
-                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Financial Year</h4>
+                                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Financial Year</h4>
                                     <div className="flex items-center gap-3">
                                         <select
                                             value={exportFY}
@@ -555,20 +551,17 @@ export function TaxZone({
                                         )}
                                     </div>
                                 </div>
-                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${exportScope === "fy" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200"
-                                    }`}>
+                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${exportScope === "fy" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200"}`}>
                                     {exportScope === "fy" && <div className="w-2 h-2 rounded-full bg-white transition-all scale-110" />}
                                 </div>
                             </button>
 
-                            {/* GST Period - Month */}
                             <button
                                 onClick={() => setExportScope("period")}
-                                className={`p-6 rounded-3xl border-2 transition-all text-left flex items-center justify-between group ${exportScope === "period" ? "border-gray-900 bg-gray-50" : "border-gray-100 hover:border-gray-200"
-                                    }`}
+                                className={`p-6 rounded-3xl border-2 transition-all text-left flex items-center justify-between group ${exportScope === "period" ? "border-gray-900 bg-gray-50" : "border-gray-100 hover:border-gray-200"}`}
                             >
                                 <div className="space-y-1">
-                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">GST Period (Month)</h4>
+                                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">GST Period (Month)</h4>
                                     <div className="flex items-center gap-4">
                                         <input
                                             type="month"
@@ -582,15 +575,12 @@ export function TaxZone({
                                         />
                                     </div>
                                 </div>
-                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${exportScope === "period" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200"
-                                    }`}>
+                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${exportScope === "period" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200"}`}>
                                     {exportScope === "period" && <div className="w-2 h-2 rounded-full bg-white transition-all scale-110" />}
                                 </div>
                             </button>
 
-                            {/* Custom Date Range - Collapsible */}
-                            <div className={`rounded-3xl border-2 transition-all overflow-hidden ${exportScope === "custom" ? "border-gray-900 shadow-sm" : "border-gray-100"
-                                }`}>
+                            <div className={`rounded-3xl border-2 transition-all overflow-hidden ${exportScope === "custom" ? "border-gray-900 shadow-sm" : "border-gray-100"}`}>
                                 <button
                                     onClick={() => {
                                         setExportScope("custom");
@@ -599,13 +589,12 @@ export function TaxZone({
                                     className="w-full p-6 flex items-center justify-between group text-left"
                                 >
                                     <div className="space-y-1">
-                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Custom Range</h4>
+                                        <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Custom Range</h4>
                                         <p className="text-lg font-black text-gray-900">
                                             {exportCustomStart && exportCustomEnd ? `${exportCustomStart} to ${exportCustomEnd}` : "Select specific dates"}
                                         </p>
                                     </div>
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${exportScope === "custom" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200"
-                                        }`}>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${exportScope === "custom" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200"}`}>
                                         {exportScope === "custom" && <div className="w-2 h-2 rounded-full bg-white transition-all scale-110" />}
                                     </div>
                                 </button>
@@ -613,7 +602,7 @@ export function TaxZone({
                                 {(isCustomExpanded || exportScope === 'custom') && (
                                     <div className="px-6 pb-6 pt-2 grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
                                         <div className="space-y-2">
-                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">From</label>
+                                            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">From</label>
                                             <input
                                                 type="date"
                                                 value={exportCustomStart}
@@ -622,7 +611,7 @@ export function TaxZone({
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">To</label>
+                                            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">To</label>
                                             <input
                                                 type="date"
                                                 value={exportCustomEnd}
@@ -635,7 +624,6 @@ export function TaxZone({
                             </div>
                         </div>
 
-                        {/* Final Action */}
                         <div className="pt-8">
                             <button
                                 onClick={handleDownloadAuditPack}
@@ -654,39 +642,34 @@ export function TaxZone({
                                     </>
                                 )}
                             </button>
-                            <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6"> organizing summaries & attached bills automatically </p>
+                            <p className="text-center text-[10px] font-black text-gray-500 uppercase tracking-widest mt-6"> organizing summaries & attached bills automatically </p>
                         </div>
                     </div>
                 )}
             </main>
 
-            {/* Expense Modal */}
-            {
-                showExpenseModal && (
-                    <ExpenseModal
-                        onClose={() => {
-                            setShowExpenseModal(false);
-                            setSelectedExpense(null);
-                        }}
-                        userId={userId}
-                        expenses={expenses}
-                        initialExpense={selectedExpense}
-                    />
-                )
-            }
+            {/* Modals */}
+            {showExpenseModal && (
+                <ExpenseModal
+                    onClose={() => {
+                        setShowExpenseModal(false);
+                        setSelectedExpense(null);
+                    }}
+                    userId={userId}
+                    expenses={expenses}
+                    initialExpense={selectedExpense}
+                />
+            )}
 
-            {/* TDS Modal */}
-            {
-                showTDSModal && (
-                    <TDSModal
-                        onClose={() => setShowTDSModal(false)}
-                        userId={userId}
-                        clients={clients}
-                        currentFY={selectedFY}
-                    />
-                )
-            }
-        </div >
+            {showTDSModal && (
+                <TDSModal
+                    onClose={() => setShowTDSModal(false)}
+                    userId={userId}
+                    clients={clients}
+                    currentFY={selectedFY}
+                />
+            )}
+        </div>
     );
 }
 
@@ -720,7 +703,6 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
         setLocalOcrStatus('processing');
 
         try {
-            // 1. Upload immediately with OCR requested
             const folder = `expenses/${new Date().getFullYear()}/${formData.category.toLowerCase().replace(/\s+/g, "_")}`;
             const uploadResult = await uploadToCloudinary(selectedFile, folder, { ocr: true });
 
@@ -731,8 +713,6 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                 url: uploadResult.secure_url
             });
 
-            // Extract OCR text from response if available
-            // info.ocr.adv_ocr.data carries the block info
             const ocrInfo = (uploadResult as any).info?.ocr?.adv_ocr?.data;
             let suggestions: any = null;
             if (ocrInfo && ocrInfo.length > 0) {
@@ -740,7 +720,6 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                 suggestions = parseOCRText(fullText);
             }
 
-            // Step 1: Immediately save as Draft
             const trans = [
                 db.tx.attachments[attachmentId].update({
                     publicId: uploadResult.public_id,
@@ -766,7 +745,6 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
             }
             db.transact(trans);
 
-            // Update local form state with suggestions
             if (suggestions) {
                 const filled = new Set<string>();
                 setFormData(prev => {
@@ -806,7 +784,6 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
             let attachmentId = tempAttachment?.id || null;
 
             if (tempAttachment) {
-                // Ensure attachment is recorded if not already saved via background process
                 db.transact([
                     db.tx.attachments[tempAttachment.id].update({
                         publicId: tempAttachment.publicId,
@@ -816,10 +793,8 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                     })
                 ]);
             } else if (file) {
-                // Fallback for case where file was selected but tempAttachment failed
                 const folder = `expenses/${new Date().getFullYear()}/${formData.category.toLowerCase().replace(/\s+/g, "_")}`;
                 const uploadResult = await uploadToCloudinary(file, folder);
-
                 attachmentId = id();
                 db.transact([
                     db.tx.attachments[attachmentId].update({
@@ -831,7 +806,6 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                 ]);
             }
 
-            // Use existing display ID if editing, otherwise calculate new one
             let nextNum = (initialExpense as any)?.displayNumber;
             let displayId = (initialExpense as any)?.displayId;
 
@@ -882,17 +856,17 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                         <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">
                             {initialExpense ? 'Edit Expense' : 'Add Expense'}
                         </h3>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
                             {initialExpense ? 'Modify existing record' : 'Register business outgoing'}
                         </p>
                     </div>
                     <button onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">✕</button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto no-scrollbar">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2 relative">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                 Amount (₹) {autoFilledFields.has('amount') && <span className="text-orange-500 animate-bounce">✨</span>}
                             </label>
                             <input
@@ -906,7 +880,7 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</label>
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Category</label>
                             <select
                                 className="w-full h-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-1 focus:outline-none cursor-pointer"
                                 value={formData.category}
@@ -919,7 +893,7 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                 Vendor Name {autoFilledFields.has('vendorName') && <span className="text-orange-500 animate-bounce">✨</span>}
                             </label>
                             <input
@@ -931,7 +905,7 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                 Date {autoFilledFields.has('date') && <span className="text-orange-500 animate-bounce">✨</span>}
                             </label>
                             <input
@@ -946,22 +920,22 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
 
                     <div className="bg-gray-50 p-4 rounded-2xl space-y-4">
                         <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">GST Details</label>
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">GST Details</label>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
+                                    className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
                                     checked={formData.gstCharged}
                                     onChange={(e) => setFormData({ ...formData, gstCharged: e.target.checked })}
-                                    className="w-4 h-4 rounded border-gray-300"
                                 />
-                                <span className="text-[10px] font-black uppercase text-gray-600">GST Charged</span>
+                                <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Charged?</span>
                             </label>
                         </div>
 
                         {formData.gstCharged && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200">
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-bold text-gray-400 uppercase">GST Amount</label>
+                                    <label className="text-[9px] font-bold text-gray-500 uppercase">GST Amount</label>
                                     <input
                                         type="number"
                                         className="w-full text-sm font-bold border-b border-gray-200 bg-transparent focus:border-gray-900 py-1 focus:outline-none"
@@ -970,7 +944,7 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-bold text-gray-400 uppercase">Vendor GSTIN</label>
+                                    <label className="text-[9px] font-bold text-gray-500 uppercase">Vendor GSTIN</label>
                                     <input
                                         type="text"
                                         className="w-full text-sm font-bold border-b border-gray-200 bg-transparent focus:border-gray-900 py-1 focus:outline-none"
@@ -979,14 +953,14 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                                     />
                                 </div>
                                 <div className="md:col-span-2 space-y-1">
-                                    <label className="text-[9px] font-bold text-gray-400 uppercase">ITC Eligibility</label>
+                                    <label className="text-[9px] font-bold text-gray-500 uppercase">ITC Eligibility</label>
                                     <div className="flex gap-2">
                                         {["yes", "no", "unsure"].map(val => (
                                             <button
                                                 key={val}
                                                 type="button"
                                                 onClick={() => setFormData({ ...formData, itcReview: val })}
-                                                className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${formData.itcReview === val ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-400'}`}
+                                                className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${formData.itcReview === val ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-500'}`}
                                             >
                                                 {val}
                                             </button>
@@ -998,40 +972,24 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Bill Attachment (Public Proof)</label>
-
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Bill Attachment (Public Proof)</label>
                         {(initialExpense as any)?.attachment && !file && (
                             <div className="mb-3 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <span className="text-xl">📄</span>
                                     <div>
                                         <p className="text-[10px] font-black text-blue-900 uppercase">Current Attachment</p>
-                                        <a
-                                            href={(initialExpense as any).attachment.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-[9px] font-bold text-blue-600 hover:underline"
-                                        >
-                                            View existing file
-                                        </a>
+                                        <a href={(initialExpense as any).attachment.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-bold text-blue-600 hover:underline">View existing file</a>
                                     </div>
                                 </div>
                                 <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest bg-white px-2 py-1 rounded-full border border-blue-100">Saved</span>
                             </div>
                         )}
-
                         <div className="relative group">
-                            <input
-                                type="file"
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                onChange={handleFileChange}
-                                accept="image/*,application/pdf"
-                            />
+                            <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileChange} accept="image/*,application/pdf" />
                             <div className={`p-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all ${file ? 'border-green-500 bg-green-50' : 'border-gray-200 group-hover:border-gray-900'}`}>
                                 <span className="text-xl">{file ? '📄' : '📤'}</span>
-                                <p className="text-[10px] font-black uppercase text-gray-500">
-                                    {file ? file.name : (initialExpense as any)?.attachment ? "Tap to replace bill" : "Tap to upload bill (JPG, PNG, PDF)"}
-                                </p>
+                                <p className="text-[10px] font-black uppercase text-gray-500">{file ? file.name : (initialExpense as any)?.attachment ? "Tap to replace bill" : "Tap to upload bill (JPG, PNG, PDF)"}</p>
                             </div>
                         </div>
 
@@ -1054,12 +1012,10 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                                 </div>
                             </div>
                         )}
-
-                        {/* Removed OCR failure message as per user request */}
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Notes</label>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Notes</label>
                         <input
                             type="text"
                             placeholder="Optional notes..."
@@ -1070,21 +1026,8 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-6 py-2 text-xs font-black uppercase text-gray-400 hover:text-gray-600 transition-all"
-                            disabled={isUploading}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-10 py-3 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50"
-                            disabled={isUploading || ocrProcessing}
-                        >
-                            {isUploading ? "Saving..." : "Confirm & Save"}
-                        </button>
+                        <button type="button" onClick={onClose} className="px-6 py-2 text-xs font-black uppercase text-gray-600 hover:bg-gray-100 rounded-xl transition-all" disabled={isUploading}>Cancel</button>
+                        <button type="submit" className="px-10 py-3 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50" disabled={isUploading || ocrProcessing}>{isUploading ? "Saving..." : "Confirm & Save"}</button>
                     </div>
                 </form>
             </div>
@@ -1124,7 +1067,7 @@ function TDSModal({ onClose, userId, clients, currentFY }: { onClose: () => void
                 <div className="p-10 pb-0 flex justify-between items-start">
                     <div>
                         <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Record TDS</h3>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Deduction from payment</p>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Deduction from payment</p>
                     </div>
                     <button onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">✕</button>
                 </div>
@@ -1132,7 +1075,7 @@ function TDSModal({ onClose, userId, clients, currentFY }: { onClose: () => void
                 <form onSubmit={handleSubmit} className="p-10 space-y-8">
                     <div className="grid grid-cols-2 gap-8">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount (₹)</label>
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Amount (₹)</label>
                             <input
                                 type="number"
                                 placeholder="0"
@@ -1143,7 +1086,7 @@ function TDSModal({ onClose, userId, clients, currentFY }: { onClose: () => void
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Client</label>
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Client</label>
                             <select
                                 className="w-full h-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-2 focus:outline-none cursor-pointer"
                                 value={formData.clientId}
@@ -1157,7 +1100,7 @@ function TDSModal({ onClose, userId, clients, currentFY }: { onClose: () => void
 
                     <div className="flex items-center justify-between gap-8">
                         <div className="flex-1 space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Financial Year</label>
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Financial Year</label>
                             <input
                                 type="text"
                                 className="w-full text-sm font-bold text-gray-700 border-b-2 border-gray-100 bg-transparent focus:border-gray-900 py-2 focus:outline-none"
@@ -1172,12 +1115,12 @@ function TDSModal({ onClose, userId, clients, currentFY }: { onClose: () => void
                                 checked={formData.hasCertificate}
                                 onChange={(e) => setFormData({ ...formData, hasCertificate: e.target.checked })}
                             />
-                            <span className="text-[10px] font-black uppercase text-gray-500 tracking-tight">Verified</span>
+                            <span className="text-[10px] font-black uppercase text-gray-600 tracking-tight">Verified</span>
                         </label>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Narrative</label>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Narrative</label>
                         <input
                             type="text"
                             placeholder="Notes for CA summary..."
@@ -1188,19 +1131,8 @@ function TDSModal({ onClose, userId, clients, currentFY }: { onClose: () => void
                     </div>
 
                     <div className="flex justify-end gap-4 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-6 py-2 text-xs font-black uppercase text-gray-400 hover:text-gray-600 transition-all font-sans"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-10 py-4 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-gray-800 transition-all active:scale-95"
-                        >
-                            Save Record
-                        </button>
+                        <button type="button" onClick={onClose} className="px-6 py-2 text-xs font-black uppercase text-gray-600 hover:bg-gray-100 rounded-xl transition-all">Cancel</button>
+                        <button type="submit" className="px-10 py-4 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-gray-800 transition-all active:scale-95">Save Record</button>
                     </div>
                 </form>
             </div>

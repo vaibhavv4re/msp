@@ -72,13 +72,13 @@ export function Services({ services, userId }: { services: Service[]; userId: st
       <div className="space-y-6">
         {/* Active Services */}
         <div>
-          <h3 className="text-[10px] font-black uppercase tracking-widest mb-4 text-gray-400">Active Services</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-widest mb-4 text-gray-600">Active Services</h3>
 
           {/* Mobile Card View */}
           <div className="md:hidden space-y-4">
             {activeServices.length === 0 ? (
               <div className="py-12 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                <p className="text-sm font-black text-gray-400 uppercase tracking-widest">No active services</p>
+                <p className="text-sm font-black text-gray-600 uppercase tracking-widest">No active services</p>
               </div>
             ) : (
               activeServices.map((service) => (
@@ -88,7 +88,7 @@ export function Services({ services, userId }: { services: Service[]; userId: st
                       <h3 className="font-black text-gray-900 uppercase tracking-tight truncate leading-tight mb-1">
                         {service.name}
                       </h3>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{service.sacCode || "No SAC Code"}</p>
+                      <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">{service.sacCode || "No SAC Code"}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-black text-gray-900 leading-none">₹{service.rate.toLocaleString('en-IN')}</p>
@@ -131,17 +131,17 @@ export function Services({ services, userId }: { services: Service[]; userId: st
             <table className="min-w-full bg-white border rounded-xl overflow-hidden shadow-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="py-4 px-6 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Name</th>
-                  <th className="py-4 px-6 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Description</th>
-                  <th className="py-4 px-6 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">SAC Code</th>
-                  <th className="py-4 px-6 text-right text-[10px] font-black uppercase tracking-widest text-gray-500">Rate (₹)</th>
-                  <th className="py-4 px-6 text-center text-[10px] font-black uppercase tracking-widest text-gray-500">Actions</th>
+                  <th className="py-4 px-6 text-left text-[10px] font-black uppercase tracking-widest text-gray-600">Name</th>
+                  <th className="py-4 px-6 text-left text-[10px] font-black uppercase tracking-widest text-gray-600">Description</th>
+                  <th className="py-4 px-6 text-left text-[10px] font-black uppercase tracking-widest text-gray-600">SAC Code</th>
+                  <th className="py-4 px-6 text-right text-[10px] font-black uppercase tracking-widest text-gray-600">Rate (₹)</th>
+                  <th className="py-4 px-6 text-center text-[10px] font-black uppercase tracking-widest text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {activeServices.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-sm font-black text-gray-400 uppercase tracking-widest">
+                    <td colSpan={5} className="py-12 text-center text-sm font-black text-gray-600 uppercase tracking-widest">
                       No active services found
                     </td>
                   </tr>
@@ -150,7 +150,7 @@ export function Services({ services, userId }: { services: Service[]; userId: st
                     <tr key={service.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="py-4 px-6 font-bold text-gray-900">{service.name}</td>
                       <td className="py-4 px-6 text-sm text-gray-600 leading-relaxed font-bold">{service.description || "—"}</td>
-                      <td className="py-4 px-6 text-sm text-gray-500 font-mono">{service.sacCode || "—"}</td>
+                      <td className="py-4 px-6 text-sm text-gray-600 font-mono">{service.sacCode || "—"}</td>
                       <td className="py-4 px-6 text-right font-black text-gray-900">
                         ₹{service.rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
@@ -172,7 +172,7 @@ export function Services({ services, userId }: { services: Service[]; userId: st
         {/* Inactive Services */}
         {inactiveServices.length > 0 && (
           <div>
-            <h3 className="text-[10px] font-black uppercase tracking-widest mb-4 text-gray-400">Inactive Services</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-widest mb-4 text-gray-600">Inactive Services</h3>
 
             {/* Mobile View */}
             <div className="md:hidden space-y-4 opacity-70">
@@ -180,7 +180,7 @@ export function Services({ services, userId }: { services: Service[]; userId: st
                 <div key={service.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden grayscale">
                   <div className="p-4 border-b border-gray-50 flex justify-between items-start bg-gray-50">
                     <div className="min-w-0">
-                      <h3 className="font-black text-gray-500 uppercase tracking-tight truncate leading-tight mb-1">
+                      <h3 className="font-black text-gray-600 uppercase tracking-tight truncate leading-tight mb-1">
                         {service.name}
                       </h3>
                     </div>
@@ -207,7 +207,7 @@ export function Services({ services, userId }: { services: Service[]; userId: st
             <div className="hidden md:block overflow-x-auto opacity-70">
               <table className="min-w-full bg-white border border-gray-100 rounded-xl overflow-hidden grayscale">
                 <thead>
-                  <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-600">
                     <th className="py-4 px-6 text-left">Name</th>
                     <th className="py-4 px-6 text-left">Description</th>
                     <th className="py-4 px-6 text-left">SAC Code</th>
@@ -218,10 +218,10 @@ export function Services({ services, userId }: { services: Service[]; userId: st
                 <tbody>
                   {inactiveServices.map((service) => (
                     <tr key={service.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <td className="py-4 px-6 font-bold text-gray-400">{service.name}</td>
-                      <td className="py-4 px-6 text-sm text-gray-400 font-bold">{service.description || "—"}</td>
-                      <td className="py-4 px-6 text-sm text-gray-400 font-mono">{service.sacCode || "—"}</td>
-                      <td className="py-4 px-6 text-right font-black text-gray-400">
+                      <td className="py-4 px-6 font-bold text-gray-600">{service.name}</td>
+                      <td className="py-4 px-6 text-sm text-gray-600 font-bold">{service.description || "—"}</td>
+                      <td className="py-4 px-6 text-sm text-gray-600 font-mono">{service.sacCode || "—"}</td>
+                      <td className="py-4 px-6 text-right font-black text-gray-600">
                         ₹{service.rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="py-4 px-6 text-center">
