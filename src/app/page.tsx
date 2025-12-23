@@ -142,34 +142,34 @@ function App() {
   }, [user]);
 
 
-  const { isLoading: dataLoading, error, data } = db.useQuery({
-    clients: { invoices: {} },
-    invoices: { lineItems: {}, client: {}, business: {} },
-    calendarEvents: {},
-    $users: {},
-    services: {},
-    taxes: {},
-    termsTemplates: {},
-    businesses: {},
-    expenses: {},
-    tdsEntries: {
-      client: {}
+  const { isLoading: dataLoading, error, data } = db.useQuery(user ? {
+    $users: {
+      $: { where: { id: user.id } },
+      clients: { invoices: {} },
+      invoices: { lineItems: {}, client: {}, business: {} },
+      calendarEvents: {},
+      services: {},
+      taxes: {},
+      termsTemplates: {},
+      businesses: {},
+      expenses: {},
+      tdsEntries: {
+        client: {}
+      }
     }
-  });
+  } : null);
 
   // Extract data safely
-  const clients = data?.clients || [];
-  const invoices = data?.invoices || [];
-  const calendarEvents = data?.calendarEvents || [];
-  const services = data?.services || [];
-  const taxes = data?.taxes || [];
-  const termsTemplates = data?.termsTemplates || [];
-  const businesses = data?.businesses || [];
-  const expenses = data?.expenses || [];
-  const tdsEntries = data?.tdsEntries || [];
-  const $users = data?.$users || [];
-
-  const currentUser = $users.find((u: any) => u.id === user?.id);
+  const currentUser = data?.$users?.[0];
+  const clients = currentUser?.clients || [];
+  const invoices = currentUser?.invoices || [];
+  const calendarEvents = currentUser?.calendarEvents || [];
+  const services = currentUser?.services || [];
+  const taxes = currentUser?.taxes || [];
+  const termsTemplates = currentUser?.termsTemplates || [];
+  const businesses = currentUser?.businesses || [];
+  const expenses = currentUser?.expenses || [];
+  const tdsEntries = currentUser?.tdsEntries || [];
 
   // Generate calendar secret if missing
   useEffect(() => {
@@ -224,8 +224,7 @@ function App() {
     return <div className="text-red-500 p-4">Error: {error.message}</div>;
   }
 
-  // No changes needed here, just removing the misplaced block from previous edit
-  // if it exists.
+  // No changes needed here.
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
