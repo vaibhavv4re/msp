@@ -416,9 +416,15 @@ function App() {
         {view === "customers" && (
           <Customers
             clients={clients as any}
+            invoices={invoices as any}
+            businesses={businesses as any}
             userId={user.id}
             initiallyOpenModal={modalToOpen === "create-client"}
             onModalClose={() => setModalToOpen(null)}
+            onNavigate={(newView: View, modal?: string) => {
+              setView(newView);
+              if (modal) setModalToOpen(modal);
+            }}
           />
         )}
         {view === "invoices" && (
@@ -430,7 +436,7 @@ function App() {
             termsTemplates={termsTemplates as any}
             businesses={businesses as any}
             userId={user.id}
-            initiallyOpenModal={modalToOpen === "create-invoice"}
+            initiallyOpenModal={modalToOpen || undefined}
             onModalClose={() => setModalToOpen(null)}
           />
         )}

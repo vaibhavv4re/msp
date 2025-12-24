@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { db } from "@/lib/db";
 import { id } from "@instantdb/react";
-import { Client } from "@/app/page";
+import { Client, Invoice, Business } from "@/app/page";
+import { CustomerSummary } from "./CustomerSummary";
 
 const PAYMENT_TERMS = [
   { value: "due_on_receipt", label: "Due on Receipt" },
@@ -16,24 +17,53 @@ import React from "react";
 
 export function Customers({
   clients,
+  invoices,
+  businesses,
   userId,
   initiallyOpenModal,
   onModalClose,
+  onNavigate,
 }: {
   clients: Client[];
+  invoices: Invoice[];
+  businesses: Business[];
   userId: string;
   initiallyOpenModal?: boolean;
   onModalClose?: () => void;
+  onNavigate?: (view: any, modal?: string) => void;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [view, setView] = useState<"list" | "summary">("list");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   React.useEffect(() => {
     if (initiallyOpenModal) {
       setIsModalOpen(true);
     }
   }, [initiallyOpenModal]);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+
+  const selectedClientForSummary = clients.find(c => c.id === selectedCustomerId);
+
+  if (view === "summary" && selectedClientForSummary) {
+    return (
+      <CustomerSummary
+        client={selectedClientForSummary}
+        invoices={invoices}
+        businesses={businesses}
+        userId={userId}
+        onBack={() => setView("list")}
+        onEdit={(client) => openModal(client)}
+        onCreateInvoice={(clientId) => {
+          if (onNavigate) onNavigate("invoices", "create-invoice");
+        }}
+        onViewInvoice={(invoiceId) => {
+          if (onNavigate) onNavigate("invoices", `edit-invoice:${invoiceId}`);
+        }}
+      />
+    );
+  }
 
   const filteredClients = clients.filter((client) => {
     const displayName = client.displayName?.toLowerCase() || "";
@@ -142,10 +172,10 @@ export function Customers({
 
               <div className="p-3 bg-white flex gap-2 border-t border-gray-100">
                 <button
-                  onClick={() => openModal(client)}
+                  onClick={() => { setSelectedCustomerId(client.id); setView("summary"); }}
                   className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
                 >
-                  Edit profile
+                  View Summary
                 </button>
                 <button
                   onClick={() => deleteClient(client)}
@@ -210,6 +240,12 @@ export function Customers({
                   </td>
                   <td className="py-2 px-4 text-center">
                     <button
+                      onClick={() => { setSelectedCustomerId(client.id); setView("summary"); }}
+                      className="text-gray-900 font-bold hover:underline mr-3"
+                    >
+                      View
+                    </button>
+                    <button
                       onClick={() => openModal(client)}
                       className="text-blue-500 hover:underline mr-3"
                     >
@@ -264,6 +300,7 @@ export function CustomerModal({
   const [currency, setCurrency] = useState(client?.currency || "INR");
   const [paymentTerms, setPaymentTerms] = useState(client?.paymentTerms || "net_30");
   const [customTermDays, setCustomTermDays] = useState(client?.customTermDays?.toString() || "");
+  const [isTdsDeducting, setIsTdsDeducting] = useState((client as any)?.isTdsDeducting || false);
 
   // Auto-generate display name
   function generateDisplayName() {
@@ -300,10 +337,10 @@ export function CustomerModal({
       address: address || undefined,
       pan: pan || undefined,
       tan: tan || undefined,
-      gst: gst || undefined,
       currency: currency || undefined,
       paymentTerms: paymentTerms || undefined,
       customTermDays: paymentTerms === "custom" && customTermDays ? parseInt(customTermDays) : undefined,
+      isTdsDeducting: isTdsDeducting || undefined,
     };
 
     const isNew = !client;
@@ -356,6 +393,21 @@ export function CustomerModal({
                 Individual
               </label>
             </div>
+          </div>
+
+          {/* TDS Marking */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="text-sm font-bold mb-2 uppercase text-blue-800">Tax Settings</h4>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isTdsDeducting}
+                onChange={(e) => setIsTdsDeducting(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm font-bold text-blue-900 uppercase tracking-wide">Client always deducts TDS?</span>
+            </label>
+            <p className="text-[10px] text-blue-600 mt-1 ml-7 uppercase font-bold tabular-nums">Mark this if the client habitually deducts TDS from payments</p>
           </div>
 
           {/* Primary Contact */}

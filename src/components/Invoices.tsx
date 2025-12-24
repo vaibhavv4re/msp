@@ -7,6 +7,7 @@ import { Business } from "@/app/page";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { CustomerModal } from "./Customers";
+import { parseFile, preprocessImportData, executeImport, ImportSummary } from "@/lib/invoiceImport";
 
 export type Client = InstaQLEntity<typeof schema, "clients"> & { invoices?: Invoice[] };
 export type Invoice = InstaQLEntity<typeof schema, "invoices"> & {
@@ -36,7 +37,8 @@ function calculateInvoiceTotal(invoice: Invoice) {
 function calculatePendingBalance(invoice: Invoice) {
   const total = calculateInvoiceTotal(invoice);
   const advance = invoice.isAdvanceReceived ? (invoice.advanceAmount || 0) : 0;
-  return total - advance;
+  const tds = (invoice as any).tdsDeducted ? ((invoice as any).tdsAmount || 0) : 0;
+  return total - advance - tds;
 }
 
 function calculateDueDate(invoiceDate: string, paymentTerms: string, customDays?: number): string {
@@ -65,19 +67,28 @@ export function Invoices({
   taxes?: Tax[];
   termsTemplates?: TermsTemplate[];
   businesses: Business[];
-  initiallyOpenModal?: boolean;
+  initiallyOpenModal?: boolean | string;
   onModalClose?: () => void;
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [businessFilter, setBusinessFilter] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   React.useEffect(() => {
-    if (initiallyOpenModal) {
+    if (initiallyOpenModal === true || initiallyOpenModal === "create-invoice") {
       setIsModalOpen(true);
+      setEditingInvoice(null);
+    } else if (typeof initiallyOpenModal === 'string' && initiallyOpenModal.startsWith('edit-invoice:')) {
+      const invId = initiallyOpenModal.split(':')[1];
+      const inv = invoices.find(i => i.id === invId);
+      if (inv) {
+        setEditingInvoice(inv);
+        setIsModalOpen(true);
+      }
     }
-  }, [initiallyOpenModal]);
+  }, [initiallyOpenModal, invoices]);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
@@ -140,12 +151,23 @@ export function Invoices({
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Invoices</h2>
-        <button
-          onClick={() => openModal()}
-          className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800"
-        >
-          Create Invoice
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 border-2 border-gray-900 rounded-md text-gray-900 font-bold hover:bg-gray-50 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Import Invoices
+          </button>
+          <button
+            onClick={() => openModal()}
+            className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800"
+          >
+            Create Invoice
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -201,6 +223,219 @@ export function Invoices({
           onClose={closeModal}
         />
       )}
+
+      {isImportModalOpen && (
+        <ImportModal
+          onClose={() => setIsImportModalOpen(false)}
+          userId={userId}
+          existingInvoices={invoices}
+          existingClients={clients}
+        />
+      )}
+    </div>
+  );
+}
+
+function ImportModal({
+  onClose,
+  userId,
+  existingInvoices,
+  existingClients,
+}: {
+  onClose: () => void;
+  userId: string;
+  existingInvoices: any[];
+  existingClients: any[];
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [summary, setSummary] = useState<ImportSummary | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    setFile(selectedFile);
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const data = await parseFile(selectedFile);
+      const res = preprocessImportData(data, existingInvoices, existingClients);
+      setSummary(res);
+    } catch (err: any) {
+      setError("Failed to parse file. Please ensure it's a valid CSV or Excel file.");
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  async function handleImport() {
+    if (!summary) return;
+    setIsImporting(true);
+    try {
+      await executeImport(summary, userId);
+      alert("Import successful!");
+      onClose();
+    } catch (err) {
+      setError("Failed to execute import. Please try again.");
+      console.error(err);
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="p-6 bg-gray-50 border-b flex justify-between items-center">
+          <div>
+            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Import Invoices</h3>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">CSV / Excel Import Utility</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-8 flex-1 overflow-y-auto space-y-6">
+          {!summary ? (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border-2 border-blue-100 rounded-xl p-4">
+                <h4 className="text-blue-900 font-bold text-sm mb-2 uppercase tracking-wide">Expected Columns (Canonical Schema):</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] font-medium text-blue-800">
+                  <div className="font-bold border-b border-blue-200 pb-1">Invoice Header:</div>
+                  <div className="font-bold border-b border-blue-200 pb-1">Customer Identity:</div>
+                  <div>• Invoice Number *</div>
+                  <div>• Customer Name *</div>
+                  <div>• Invoice Date *</div>
+                  <div>• Customer Email</div>
+                  <div>• Due Date</div>
+                  <div>• Customer GSTIN</div>
+                  <div>• Order / PO Number</div>
+                  <div>• Customer PAN</div>
+                  <div>• Subject / Project Title</div>
+                  <div>• Customer Phone</div>
+                  <div>• Invoice Status *</div>
+                  <div>• Tax Type *</div>
+                  <div>• Customer Address</div>
+                  <div className="font-bold mt-2 border-b border-blue-200 pb-1">Item Data (One per row):</div>
+                  <div className="font-bold mt-2 border-b border-blue-200 pb-1">Tax Rates:</div>
+                  <div>• Item Description *</div>
+                  <div>• CGST Rate</div>
+                  <div>• Item Rate *</div>
+                  <div>• SGST Rate</div>
+                  <div>• Item Quantity (default 1)</div>
+                  <div>• IGST Rate</div>
+                  <div>• Item SAC</div>
+                  <div className="font-bold mt-2 border-b border-blue-200 pb-1">TDS Support:</div>
+                  <div className="mt-2"></div>
+                  <div>• TDS (TRUE/FALSE)</div>
+                  <div>• TDS Amount</div>
+                  <div className="text-[9px] text-blue-600 mt-2 col-span-2">* Required fields</div>
+                </div>
+              </div>
+              <div className="relative group">
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
+                <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center group-hover:border-gray-900 transition-colors bg-gray-50 group-hover:bg-white">
+                  <div className="bg-gray-900 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-black text-gray-900 uppercase">Click to upload or drag & drop</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase mt-2 tracking-widest">Supports CSV, XLSX</p>
+                </div>
+              </div>
+              {isProcessing && (
+                <div className="flex items-center justify-center py-4 text-gray-600 font-bold uppercase text-xs animate-pulse">
+                  Analyzing file...
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-gray-900 rounded-2xl p-6 text-white">
+                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-800">
+                  <div className="bg-green-500 w-10 h-10 rounded-full flex items-center justify-center font-black">✓</div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Analysis Complete</p>
+                    <p className="text-sm font-black">{file?.name}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-800 p-4 rounded-xl">
+                    <p className="text-[20px] font-black">{summary.uniqueInvoices}</p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Invoices found</p>
+                  </div>
+                  <div className="bg-gray-800 p-4 rounded-xl">
+                    <p className="text-[20px] font-black text-blue-400">{summary.newCustomers}</p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">New Customers</p>
+                  </div>
+                  <div className="bg-gray-800 p-4 rounded-xl">
+                    <p className="text-[20px] font-black text-green-400">{summary.reusedCustomers}</p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Reused Customers</p>
+                  </div>
+                  <div className="bg-gray-800 p-4 rounded-xl">
+                    <p className="text-[20px] font-black text-red-400">{summary.duplicatesSkipped}</p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Duplicates skipped</p>
+                  </div>
+                </div>
+
+                {summary.duplicatesSkipped > 0 && (
+                  <p className="text-[10px] text-red-400 font-bold uppercase mt-4">
+                    ⚠️ {summary.duplicatesSkipped} rows match existing invoice numbers/dates and will be ignored.
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 flex gap-3">
+                <div className="text-yellow-600 text-xl font-black">ⓘ</div>
+                <div>
+                  <p className="text-xs font-black text-yellow-900 uppercase">Pro Tip</p>
+                  <p className="text-[11px] font-medium text-yellow-800 leading-tight mt-1">
+                    Customers are automatically matched by GSTIN or Email. If no match is found, a new customer profile will be created automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 text-red-700 font-bold text-xs uppercase text-center animate-shake">
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div className="p-6 bg-gray-50 border-t flex gap-3">
+          <button
+            onClick={() => { setFile(null); setSummary(null); setError(null); }}
+            className="flex-1 py-3 border-2 border-gray-300 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 active:scale-95 transition-all text-gray-600"
+            disabled={isImporting}
+          >
+            Reset
+          </button>
+          <button
+            onClick={handleImport}
+            className="flex-[2] py-3 bg-gray-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black active:scale-95 transition-all shadow-lg disabled:opacity-50"
+            disabled={!summary || isImporting || summary.uniqueInvoices === 0}
+          >
+            {isImporting ? "Importing Data..." : "Confirm & Import"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -266,6 +501,7 @@ function InvoiceTable({
             advanceAmount: newTotalPaid,
             isAdvanceReceived: true,
             status: newStatus,
+            paidAt: newStatus === "Paid" ? new Date().toISOString() : undefined,
           })
         );
       }
@@ -639,9 +875,21 @@ function InvoiceTable({
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex justify-center gap-4">
-                        <button onClick={() => onEdit(invoice)} className="text-gray-600 hover:text-blue-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
-                        <button onClick={() => downloadPDF(invoice)} className="text-gray-600 hover:text-red-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></button>
-                        <button onClick={() => recordPayment(invoice)} className="text-gray-600 hover:text-yellow-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
+                        <button onClick={() => duplicateInvoice(invoice, userId)} className="text-gray-400 hover:text-blue-500 transition-colors" title="Duplicate">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                        </button>
+                        <button onClick={() => onEdit(invoice)} className="text-gray-400 hover:text-gray-900 transition-colors" title="Edit">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button onClick={() => downloadPDF(invoice)} className="text-gray-400 hover:text-red-500 transition-colors" title="Download PDF">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </button>
+                        <button onClick={() => recordPayment(invoice)} className="text-gray-400 hover:text-green-500 transition-colors" title="Record Payment">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </button>
+                        <button onClick={() => deleteInvoice(invoice)} className="text-gray-400 hover:text-red-600 transition-colors" title="Delete">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -697,18 +945,26 @@ function InvoiceTable({
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-1">
-                  <button onClick={() => downloadPDF(invoice)} className="flex-1 py-3 bg-gray-50 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black text-gray-600 uppercase tracking-tight hover:bg-gray-100 active:scale-95 transition-all">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button onClick={() => downloadPDF(invoice)} className="flex-1 min-w-[30%] py-2 bg-gray-50 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-gray-600 uppercase tracking-tighter hover:bg-gray-100 active:scale-95 transition-all">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     PDF
                   </button>
-                  <button onClick={() => onEdit(invoice)} className="flex-1 py-3 bg-gray-50 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black text-gray-600 uppercase tracking-tight hover:bg-gray-100 active:scale-95 transition-all">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                  <button onClick={() => onEdit(invoice)} className="flex-1 min-w-[30%] py-2 bg-gray-50 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-gray-600 uppercase tracking-tighter hover:bg-gray-100 active:scale-95 transition-all">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     Edit
                   </button>
-                  <button onClick={() => recordPayment(invoice)} className="flex-1 py-3 bg-gray-900 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black text-white uppercase tracking-tight hover:bg-gray-800 active:scale-95 transition-all">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <button onClick={() => recordPayment(invoice)} className="flex-1 min-w-[30%] py-2 bg-gray-900 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-white uppercase tracking-tighter hover:bg-gray-800 active:scale-95 transition-all">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     Pay
+                  </button>
+                  <button onClick={() => duplicateInvoice(invoice, userId)} className="flex-1 min-w-[45%] py-2 border border-gray-100 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-gray-600 uppercase tracking-tighter hover:bg-gray-50 active:scale-95 transition-all">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                    Copy
+                  </button>
+                  <button onClick={() => deleteInvoice(invoice)} className="flex-1 min-w-[45%] py-2 bg-red-50 text-red-600 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-tighter hover:bg-red-100 active:scale-95 transition-all">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Delete
                   </button>
                 </div>
               </div>
@@ -751,6 +1007,8 @@ function InvoiceModal({
         business: (invoice as any).business || { id: "" },
         advanceAmount: (invoice as any).advanceAmount || 0,
         isAdvanceReceived: (invoice as any).isAdvanceReceived || false,
+        tdsDeducted: (invoice as any).tdsDeducted || false,
+        tdsAmount: (invoice as any).tdsAmount || 0,
       };
     }
 
@@ -779,6 +1037,8 @@ function InvoiceModal({
       usageExclusivity: "",
       advanceAmount: 0,
       isAdvanceReceived: false,
+      tdsDeducted: false,
+      tdsAmount: 0,
     };
   });
 
@@ -955,6 +1215,8 @@ function InvoiceModal({
           usageExclusivity: invoiceData.usageExclusivity || undefined,
           advanceAmount: Number(invoiceData.advanceAmount),
           isAdvanceReceived: !!invoiceData.isAdvanceReceived,
+          tdsDeducted: !!formData.tdsDeducted,
+          tdsAmount: Number(formData.tdsAmount),
         }),
         db.tx.invoices[invoiceId].link({ client: formData.client.id }),
         db.tx.invoices[invoiceId].link({ business: formData.business.id }),
@@ -1021,552 +1283,595 @@ function InvoiceModal({
               </button>
             </nav>
           </div>
+        </div>
 
-          <div className="overflow-y-auto flex-1 p-6">
-            <form id="invoice-form" onSubmit={handleSubmit} className="space-y-6">
-              {modalTab === "general" ? (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-bold mb-1 uppercase text-gray-600 tracking-wider">
-                        Business Profile <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        name="business"
-                        className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-bold"
-                        value={formData.business?.id || ""}
-                        onChange={(e) => setFormData((prev: any) => ({ ...prev, business: { id: e.target.value } }))}
-                        required
-                      >
-                        <option value="">Select Business</option>
-                        {businesses.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold mb-1 uppercase text-gray-600 tracking-wider">
-                        Invoice # <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="invoiceNumber"
-                        className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-mono"
-                        value={formData.invoiceNumber}
-                        onChange={handleChange}
-                        placeholder="INV-001"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold mb-1 uppercase text-gray-600 tracking-wider">Status</label>
-                      <select
-                        name="status"
-                        className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-bold"
-                        value={formData.status}
-                        onChange={handleChange}
-                      >
-                        <option value="Unpaid">Unpaid</option>
-                        <option value="Sent">Sent</option>
-                        <option value="Paid">Paid</option>
-                        <option value="Partially Paid">Partially Paid</option>
-                        <option value="Overdue">Overdue</option>
-                      </select>
-                    </div>
+        <div className="overflow-y-auto flex-1 p-6">
+          <form id="invoice-form" onSubmit={handleSubmit} className="space-y-6">
+            {modalTab === "general" ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-bold mb-1 uppercase text-gray-600 tracking-wider">
+                      Business Profile <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="business"
+                      className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-bold"
+                      value={formData.business?.id || ""}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, business: { id: e.target.value } }))}
+                      required
+                    >
+                      <option value="">Select Business</option>
+                      {businesses.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-bold mb-1 uppercase text-gray-600 tracking-wider">
+                      Invoice # <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="invoiceNumber"
+                      className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-mono"
+                      value={formData.invoiceNumber}
+                      onChange={handleChange}
+                      placeholder="INV-001"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold mb-1 uppercase text-gray-600 tracking-wider">Status</label>
+                    <select
+                      name="status"
+                      className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-bold"
+                      value={formData.status}
+                      onChange={handleChange}
+                    >
+                      <option value="Unpaid">Unpaid</option>
+                      <option value="Sent">Sent</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Partially Paid">Partially Paid</option>
+                      <option value="Overdue">Overdue</option>
+                    </select>
+                  </div>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Order Number</label>
-                      <input
-                        type="text"
-                        name="orderNumber"
-                        className="border p-2 rounded-md w-full"
-                        value={formData.orderNumber}
-                        onChange={handleChange}
-                        placeholder="PO-001"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Invoice Date <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        name="invoiceDate"
-                        className="border p-2 rounded-md w-full"
-                        value={formData.invoiceDate}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Payment Terms</label>
-                      <select
-                        name="paymentTerms"
-                        className="border p-2 rounded-md w-full"
-                        value={formData.paymentTerms}
-                        onChange={handleChange}
-                      >
-                        <option value="">Select Terms</option>
-                        {PAYMENT_TERMS.map((term) => (
-                          <option key={term.value} value={term.value}>
-                            {term.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Due Date <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        name="dueDate"
-                        className="border p-2 rounded-md w-full"
-                        value={formData.dueDate}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Order Number</label>
+                    <input
+                      type="text"
+                      name="orderNumber"
+                      className="border p-2 rounded-md w-full"
+                      value={formData.orderNumber}
+                      onChange={handleChange}
+                      placeholder="PO-001"
+                    />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium mb-1">
-                      Customer <span className="text-red-500">*</span>
+                      Invoice Date <span className="text-red-500">*</span>
                     </label>
-                    <select
+                    <input
+                      type="date"
+                      name="invoiceDate"
                       className="border p-2 rounded-md w-full"
-                      value={formData.client?.id || ""}
-                      onChange={(e) => handleClientChange(e.target.value)}
+                      value={formData.invoiceDate}
+                      onChange={handleChange}
                       required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Payment Terms</label>
+                    <select
+                      name="paymentTerms"
+                      className="border p-2 rounded-md w-full"
+                      value={formData.paymentTerms}
+                      onChange={handleChange}
                     >
-                      <option value="">Select Customer</option>
-                      <option value="add_new" className="font-bold text-blue-600">+ Add New Customer</option>
-                      {clients.map((client) => (
-                        <option key={client.id} value={client.id}>
-                          {client.displayName || client.firstName || "Unnamed"}
+                      <option value="">Select Terms</option>
+                      {PAYMENT_TERMS.map((term) => (
+                        <option key={term.value} value={term.value}>
+                          {term.label}
                         </option>
                       ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Subject / Project Title</label>
+                    <label className="block text-sm font-medium mb-1">
+                      Due Date <span className="text-red-500">*</span>
+                    </label>
                     <input
-                      type="text"
-                      name="subject"
+                      type="date"
+                      name="dueDate"
                       className="border p-2 rounded-md w-full"
-                      value={formData.subject}
+                      value={formData.dueDate}
                       onChange={handleChange}
-                      placeholder="e.g., Photography services for Wedding Shoot"
+                      required
                     />
                   </div>
+                </div>
 
-                  <div className="border rounded-lg p-4 bg-gray-50">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold">Line Items</h3>
-                      <div className="flex gap-2">
-                        {activeServices.length > 0 && (
-                          <select
-                            className="border p-2 rounded-md text-sm"
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                addServiceLineItem(e.target.value);
-                                e.target.value = "";
-                              }
-                            }}
-                          >
-                            <option value="">+ Add Service</option>
-                            {activeServices.map((service) => (
-                              <option key={service.id} value={service.id}>
-                                {service.name} - ₹{service.rate}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                        <button
-                          type="button"
-                          onClick={addCustomLineItem}
-                          className="px-3 py-2 bg-gray-900 text-white rounded-md text-sm hover:bg-gray-800"
-                        >
-                          + Custom Item
-                        </button>
-                      </div>
-                    </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Customer <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className="border p-2 rounded-md w-full"
+                    value={formData.client?.id || ""}
+                    onChange={(e) => handleClientChange(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Customer</option>
+                    <option value="add_new" className="font-bold text-blue-600">+ Add New Customer</option>
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.displayName || client.firstName || "Unnamed"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                    <div className="space-y-4">
-                      {formData.lineItems.map((item: any, index: number) => (
-                        <div key={index} className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm md:grid md:grid-cols-12 md:items-center md:p-2 md:gap-2">
-                          <div className="md:col-span-4">
-                            <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Description</label>
-                            <input
-                              type="text"
-                              className="border p-2 rounded-md w-full text-sm md:text-sm"
-                              value={item.description}
-                              onChange={(e) => handleLineItemChange(index, 'description', e.target.value)}
-                              placeholder="e.g. Headshot Session"
-                              required
-                            />
-                          </div>
-                          <div className="flex gap-2 md:contents">
-                            <div className="flex-1 md:col-span-2">
-                              <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">SAC</label>
-                              <input
-                                type="text"
-                                className="border p-2 rounded-md w-full text-sm"
-                                value={item.sacCode || ""}
-                                onChange={(e) => handleLineItemChange(index, 'sacCode', e.target.value)}
-                                placeholder="998311"
-                              />
-                            </div>
-                            <div className="flex-1 md:col-span-2">
-                              <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Qty</label>
-                              <input
-                                type="number"
-                                className="border p-2 rounded-md w-full text-sm text-right"
-                                value={item.quantity}
-                                onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
-                                min="0"
-                                step="0.01"
-                                required
-                              />
-                            </div>
-                          </div>
-                          <div className="flex items-end gap-2 md:contents">
-                            <div className="flex-1 md:col-span-2">
-                              <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Rate</label>
-                              <input
-                                type="number"
-                                className="border p-2 rounded-md w-full text-sm text-right font-bold"
-                                value={item.rate}
-                                onChange={(e) => handleLineItemChange(index, 'rate', e.target.value)}
-                                min="0"
-                                step="0.01"
-                                required
-                              />
-                            </div>
-                            <div className="flex-1 md:col-span-1 text-right md:text-center flex flex-col justify-center">
-                              <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Total</label>
-                              <div className="text-sm font-black text-gray-900 md:font-bold">
-                                ₹{item.amount?.toLocaleString('en-IN') || '0'}
-                              </div>
-                            </div>
-                            <div className="md:col-span-1 text-center">
-                              <button
-                                type="button"
-                                onClick={() => removeLineItem(index)}
-                                className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 md:bg-transparent md:text-red-400 md:p-0 md:hover:text-red-600"
-                              >
-                                <span className="md:hidden text-[10px] font-black uppercase">Remove</span>
-                                <span className="hidden md:inline text-xl">✕</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Subject / Project Title</label>
+                  <input
+                    type="text"
+                    name="subject"
+                    className="border p-2 rounded-md w-full"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    placeholder="e.g., Photography services for Wedding Shoot"
+                  />
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-sm font-semibold mb-2 uppercase text-gray-600">Tax Configuration</h4>
-                        <div className="space-y-2">
-                          <select
-                            className="border p-2 rounded-md w-full"
-                            value={taxType}
-                            onChange={(e) => setTaxType(e.target.value as any)}
-                          >
-                            <option value="intrastate">Intra-State (CGST + SGST)</option>
-                            <option value="interstate">Inter-State (IGST)</option>
-                          </select>
-
-                          {taxType === "intrastate" ? (
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-gray-600">CGST %</span>
-                                <input
-                                  type="number"
-                                  className="border p-2 rounded-md w-full text-right"
-                                  value={cgstRate}
-                                  onChange={(e) => setCgstRate(Number(e.target.value))}
-                                  step="0.01"
-                                />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-gray-600">SGST %</span>
-                                <input
-                                  type="number"
-                                  className="border p-2 rounded-md w-full text-right"
-                                  value={sgstRate}
-                                  onChange={(e) => setSgstRate(Number(e.target.value))}
-                                  step="0.01"
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-gray-600">IGST %</span>
-                              <input
-                                type="number"
-                                className="border p-2 rounded-md w-full text-right"
-                                value={igstRate}
-                                onChange={(e) => setIgstRate(Number(e.target.value))}
-                                step="0.01"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                        <h4 className="text-sm font-bold mb-2 uppercase text-yellow-800">Recording Advance</h4>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              id="isAdvanceReceived"
-                              name="isAdvanceReceived"
-                              checked={formData.isAdvanceReceived}
-                              onChange={handleChange}
-                              className="w-4 h-4"
-                            />
-                            <label htmlFor="isAdvanceReceived" className="text-sm font-bold text-yellow-900">Advance Payment Received?</label>
-                          </div>
-                          {formData.isAdvanceReceived && (
-                            <div>
-                              <label className="block text-xs font-bold mb-1 text-yellow-700">Advance Amount (INR)</label>
-                              <input
-                                type="number"
-                                name="advanceAmount"
-                                value={formData.advanceAmount}
-                                onChange={handleChange}
-                                className="border-2 border-yellow-300 p-2 rounded-md w-full bg-white font-bold"
-                                placeholder="0.00"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border rounded-lg p-6 bg-gray-50 space-y-3">
-                      <h4 className="text-sm font-bold mb-2 uppercase text-gray-600">Summary</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">Subtotal</span>
-                          <span className="font-mono">₹{formData.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                        </div>
-                        {taxType === "intrastate" ? (
-                          <>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">CGST ({cgstRate}%)</span>
-                              <span className="font-mono">₹{formData.cgst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">SGST ({sgstRate}%)</span>
-                              <span className="font-mono">₹{formData.sgst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">IGST ({igstRate}%)</span>
-                            <span className="font-mono">₹{formData.igst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                          </div>
-                        )}
-
-                        <div className="flex justify-between font-black text-xl pt-3 border-t-2 border-gray-200">
-                          <span className="uppercase tracking-tighter">Total</span>
-                          <span className="text-gray-900">₹{formData.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                        </div>
-
-                        {formData.isAdvanceReceived && (
-                          <div className="space-y-2 pt-3 border-t border-dashed border-gray-300">
-                            <div className="flex justify-between text-yellow-700 font-bold">
-                              <span className="uppercase text-[11px]">Advance Received</span>
-                              <span>- ₹{Number(formData.advanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                            </div>
-                            <div className="flex justify-between text-red-600 font-black text-lg">
-                              <span className="uppercase text-[12px] tracking-tight">Pending Balance</span>
-                              <span>₹{(formData.total - Number(formData.advanceAmount)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Internal Notes</label>
-                    <textarea
-                      name="notes"
-                      className="border p-2 rounded-md w-full bg-white text-sm"
-                      value={formData.notes}
-                      onChange={handleChange}
-                      placeholder="Visible only to you"
-                      rows={2}
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium uppercase text-gray-600 text-[11px] font-bold">Terms & Conditions</label>
-                      {termsTemplates.length > 0 && (
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-lg font-semibold">Line Items</h3>
+                    <div className="flex gap-2">
+                      {activeServices.length > 0 && (
                         <select
-                          className="text-[10px] border p-1 rounded font-bold uppercase"
+                          className="border p-2 rounded-md text-sm"
                           onChange={(e) => {
-                            const template = termsTemplates.find(t => t.id === e.target.value);
-                            if (template) {
-                              setFormData((prev: any) => ({ ...prev, termsAndConditions: template.content }));
+                            if (e.target.value) {
+                              addServiceLineItem(e.target.value);
+                              e.target.value = "";
                             }
                           }}
                         >
-                          <option value="">Load Template</option>
-                          {termsTemplates.map((template) => (
-                            <option key={template.id} value={template.id}>
-                              {template.title}
+                          <option value="">+ Add Service</option>
+                          {activeServices.map((service) => (
+                            <option key={service.id} value={service.id}>
+                              {service.name} - ₹{service.rate}
                             </option>
                           ))}
                         </select>
                       )}
+                      <button
+                        type="button"
+                        onClick={addCustomLineItem}
+                        className="px-3 py-2 bg-gray-900 text-white rounded-md text-sm hover:bg-gray-800"
+                      >
+                        + Custom Item
+                      </button>
                     </div>
-                    <textarea
-                      name="termsAndConditions"
-                      className="border p-2 rounded-md w-full font-mono text-[11px] leading-relaxed"
-                      value={formData.termsAndConditions}
-                      onChange={handleChange}
-                      placeholder="Visible to customer"
-                      rows={4}
-                    />
                   </div>
-                </>
-              ) : (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Usage Type</label>
-                        <select
-                          name="usageType"
-                          className="border p-2 rounded-md w-full"
-                          value={formData.usageType}
-                          onChange={handleChange}
-                        >
-                          <option value="">Select Type</option>
-                          <option value="Editorial">Editorial</option>
-                          <option value="Social media">Social media</option>
-                          <option value="Website">Website</option>
-                          <option value="Print">Print</option>
-                          <option value="Commercial / Ads">Commercial / Ads</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
 
-                      {formData.usageType === "Other" && (
-                        <div>
-                          <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Usage Description</label>
+                  <div className="space-y-4">
+                    {formData.lineItems.map((item: any, index: number) => (
+                      <div key={index} className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm md:grid md:grid-cols-12 md:items-center md:p-2 md:gap-2">
+                        <div className="md:col-span-4">
+                          <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Description</label>
                           <input
                             type="text"
-                            name="usageOther"
-                            className="border p-2 rounded-md w-full"
-                            value={formData.usageOther}
-                            onChange={handleChange}
-                            placeholder="Describe specific usage rights"
+                            className="border p-2 rounded-md w-full text-sm md:text-sm"
+                            value={item.description}
+                            onChange={(e) => handleLineItemChange(index, 'description', e.target.value)}
+                            placeholder="e.g. Headshot Session"
+                            required
                           />
+                        </div>
+                        <div className="flex gap-2 md:contents">
+                          <div className="flex-1 md:col-span-2">
+                            <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">SAC</label>
+                            <input
+                              type="text"
+                              className="border p-2 rounded-md w-full text-sm"
+                              value={item.sacCode || ""}
+                              onChange={(e) => handleLineItemChange(index, 'sacCode', e.target.value)}
+                              placeholder="998311"
+                            />
+                          </div>
+                          <div className="flex-1 md:col-span-2">
+                            <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Qty</label>
+                            <input
+                              type="number"
+                              className="border p-2 rounded-md w-full text-sm text-right"
+                              value={item.quantity}
+                              onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
+                              min="0"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-end gap-2 md:contents">
+                          <div className="flex-1 md:col-span-2">
+                            <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Rate</label>
+                            <input
+                              type="number"
+                              className="border p-2 rounded-md w-full text-sm text-right font-bold"
+                              value={item.rate}
+                              onChange={(e) => handleLineItemChange(index, 'rate', e.target.value)}
+                              min="0"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+                          <div className="flex-1 md:col-span-1 text-right md:text-center flex flex-col justify-center">
+                            <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Total</label>
+                            <div className="text-sm font-black text-gray-900 md:font-bold">
+                              ₹{item.amount?.toLocaleString('en-IN') || '0'}
+                            </div>
+                          </div>
+                          <div className="md:col-span-1 text-center">
+                            <button
+                              type="button"
+                              onClick={() => removeLineItem(index)}
+                              className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 md:bg-transparent md:text-red-400 md:p-0 md:hover:text-red-600"
+                            >
+                              <span className="md:hidden text-[10px] font-black uppercase">Remove</span>
+                              <span className="hidden md:inline text-xl">✕</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2 uppercase text-gray-600">Tax Configuration</h4>
+                      <div className="space-y-2">
+                        <select
+                          className="border p-2 rounded-md w-full"
+                          value={taxType}
+                          onChange={(e) => setTaxType(e.target.value as any)}
+                        >
+                          <option value="intrastate">Intra-State (CGST + SGST)</option>
+                          <option value="interstate">Inter-State (IGST)</option>
+                        </select>
+
+                        {taxType === "intrastate" ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-gray-600">CGST %</span>
+                              <input
+                                type="number"
+                                className="border p-2 rounded-md w-full text-right"
+                                value={cgstRate}
+                                onChange={(e) => setCgstRate(Number(e.target.value))}
+                                step="0.01"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-gray-600">SGST %</span>
+                              <input
+                                type="number"
+                                className="border p-2 rounded-md w-full text-right"
+                                value={sgstRate}
+                                onChange={(e) => setSgstRate(Number(e.target.value))}
+                                step="0.01"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-600">IGST %</span>
+                            <input
+                              type="number"
+                              className="border p-2 rounded-md w-full text-right"
+                              value={igstRate}
+                              onChange={(e) => setIgstRate(Number(e.target.value))}
+                              step="0.01"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                      <h4 className="text-sm font-bold mb-2 uppercase text-yellow-800">Recording Advance</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="isAdvanceReceived"
+                            name="isAdvanceReceived"
+                            checked={formData.isAdvanceReceived}
+                            onChange={handleChange}
+                            className="w-4 h-4"
+                          />
+                          <label htmlFor="isAdvanceReceived" className="text-sm font-bold text-yellow-900">Advance Payment Received?</label>
+                        </div>
+                        {formData.isAdvanceReceived && (
+                          <div>
+                            <label className="block text-xs font-bold mb-1 text-yellow-700">Advance Amount (INR)</label>
+                            <input
+                              type="number"
+                              name="advanceAmount"
+                              value={formData.advanceAmount}
+                              onChange={handleChange}
+                              className="border-2 border-yellow-300 p-2 rounded-md w-full bg-white font-bold"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <h4 className="text-sm font-bold mb-2 uppercase text-blue-800">Recording TDS</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="tdsDeducted"
+                            name="tdsDeducted"
+                            checked={formData.tdsDeducted}
+                            onChange={handleChange}
+                            className="w-4 h-4"
+                          />
+                          <label htmlFor="tdsDeducted" className="text-sm font-bold text-blue-900">TDS Deducted by Client?</label>
+                        </div>
+                        {formData.tdsDeducted && (
+                          <div>
+                            <label className="block text-xs font-bold mb-1 text-blue-700">TDS Amount (INR)</label>
+                            <input
+                              type="number"
+                              name="tdsAmount"
+                              value={formData.tdsAmount}
+                              onChange={handleChange}
+                              className="border-2 border-blue-300 p-2 rounded-md w-full bg-white font-bold"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-6 bg-gray-50 space-y-3">
+                    <h4 className="text-sm font-bold mb-2 uppercase text-gray-600">Summary</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">Subtotal</span>
+                        <span className="font-mono">₹{formData.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      {taxType === "intrastate" ? (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">CGST ({cgstRate}%)</span>
+                            <span className="font-mono">₹{formData.cgst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">SGST ({sgstRate}%)</span>
+                            <span className="font-mono">₹{formData.sgst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">IGST ({igstRate}%)</span>
+                          <span className="font-mono">₹{formData.igst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                         </div>
                       )}
 
-                      <div>
-                        <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Duration</label>
-                        <select
-                          name="usageDuration"
-                          className="border p-2 rounded-md w-full"
-                          value={formData.usageDuration}
-                          onChange={handleChange}
-                        >
-                          <option value="">Select Duration</option>
-                          <option value="3 months">3 months</option>
-                          <option value="1 year">1 year</option>
-                          <option value="perpetual">perpetual</option>
-                        </select>
+                      <div className="flex justify-between font-black text-xl pt-3 border-t-2 border-gray-200">
+                        <span className="uppercase tracking-tighter">Total</span>
+                        <span className="text-gray-900">₹{formData.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
+
+                      {formData.isAdvanceReceived && (
+                        <div className="space-y-2 pt-3 border-t border-dashed border-gray-300">
+                          <div className="flex justify-between text-yellow-700 font-bold">
+                            <span className="uppercase text-[11px]">Advance Received</span>
+                            <span>- ₹{Number(formData.advanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between text-red-600 font-black text-lg">
+                            <span className="uppercase text-[12px] tracking-tight">Pending Balance</span>
+                            <span>₹{(formData.total - Number(formData.advanceAmount)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.tdsDeducted && (
+                        <div className="space-y-2 pt-3 border-t border-dashed border-gray-300 italic">
+                          <div className="flex justify-between text-blue-700 font-bold">
+                            <span className="uppercase text-[11px]">TDS Deduction</span>
+                            <span>- ₹{Number(formData.tdsAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between text-gray-900 font-black text-lg">
+                            <span className="uppercase text-[12px] tracking-tight">Net Receivable</span>
+                            <span>₹{(formData.total - Number(formData.advanceAmount) - Number(formData.tdsAmount)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Geography</label>
-                        <select
-                          name="usageGeography"
-                          className="border p-2 rounded-md w-full"
-                          value={formData.usageGeography}
-                          onChange={handleChange}
-                        >
-                          <option value="">Select Geography</option>
-                          <option value="India">India</option>
-                          <option value="Global">Global</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Exclusivity</label>
-                        <select
-                          name="usageExclusivity"
-                          className="border p-2 rounded-md w-full"
-                          value={formData.usageExclusivity}
-                          onChange={handleChange}
-                        >
-                          <option value="">Select Option</option>
-                          <option value="Yes">Yes</option>
-                          <option value="No">No</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
-                    <h4 className="text-blue-900 font-black mb-3 text-lg uppercase tracking-tight">Understanding Usage Rights</h4>
-                    <p className="text-sm text-blue-800 leading-relaxed mb-4">
-                      Usage rights define how your client can consume the intellectual property (photographs/videos) you deliver.
-                      Misunderstandings here often lead to legal disputes or lost revenue.
-                    </p>
-                    <ul className="text-sm text-blue-800 space-y-2 font-medium">
-                      <li>• <strong className="text-blue-900">Geography:</strong> Restrict usage to specific regions if necessary.</li>
-                      <li>• <strong className="text-blue-900">Duration:</strong> Limit how long the assets can be used before license renewal.</li>
-                      <li>• <strong className="text-blue-900">Exclusivity:</strong> Decides if you can sell/re-use these images for other clients.</li>
-                    </ul>
                   </div>
                 </div>
-              )}
-            </form>
-          </div>
 
-          <div className="bg-gray-100 border-t p-6 rounded-b-lg flex justify-between items-center flex-shrink-0">
-            <div className="text-sm font-bold text-gray-600 uppercase tracking-widest italic">
-              {formData.invoiceNumber || "Draft Invoice"}
-            </div>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-8 py-2 border-2 border-gray-300 font-bold uppercase text-xs rounded-md hover:bg-gray-200"
-                disabled={isUploading}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="invoice-form"
-                className="px-10 py-2 bg-gray-900 text-white font-bold uppercase text-xs rounded-md hover:bg-black transition-all shadow-lg disabled:opacity-50"
-                disabled={isUploading}
-              >
-                {isUploading ? "Uploading..." : (invoice ? "Update" : "Create")} Invoice
-              </button>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Internal Notes</label>
+                  <textarea
+                    name="notes"
+                    className="border p-2 rounded-md w-full bg-white text-sm"
+                    value={formData.notes}
+                    onChange={handleChange}
+                    placeholder="Visible only to you"
+                    rows={2}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium uppercase text-gray-600 text-[11px] font-bold">Terms & Conditions</label>
+                    {termsTemplates.length > 0 && (
+                      <select
+                        className="text-[10px] border p-1 rounded font-bold uppercase"
+                        onChange={(e) => {
+                          const template = termsTemplates.find(t => t.id === e.target.value);
+                          if (template) {
+                            setFormData((prev: any) => ({ ...prev, termsAndConditions: template.content }));
+                          }
+                        }}
+                      >
+                        <option value="">Load Template</option>
+                        {termsTemplates.map((template) => (
+                          <option key={template.id} value={template.id}>
+                            {template.title}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <textarea
+                    name="termsAndConditions"
+                    className="border p-2 rounded-md w-full font-mono text-[11px] leading-relaxed"
+                    value={formData.termsAndConditions}
+                    onChange={handleChange}
+                    placeholder="Visible to customer"
+                    rows={4}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Usage Type</label>
+                      <select
+                        name="usageType"
+                        className="border p-2 rounded-md w-full"
+                        value={formData.usageType}
+                        onChange={handleChange}
+                      >
+                        <option value="">Select Type</option>
+                        <option value="Editorial">Editorial</option>
+                        <option value="Social media">Social media</option>
+                        <option value="Website">Website</option>
+                        <option value="Print">Print</option>
+                        <option value="Commercial / Ads">Commercial / Ads</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    {formData.usageType === "Other" && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Usage Description</label>
+                        <input
+                          type="text"
+                          name="usageOther"
+                          className="border p-2 rounded-md w-full"
+                          value={formData.usageOther}
+                          onChange={handleChange}
+                          placeholder="Describe specific usage rights"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Duration</label>
+                      <select
+                        name="usageDuration"
+                        className="border p-2 rounded-md w-full"
+                        value={formData.usageDuration}
+                        onChange={handleChange}
+                      >
+                        <option value="">Select Duration</option>
+                        <option value="3 months">3 months</option>
+                        <option value="1 year">1 year</option>
+                        <option value="perpetual">perpetual</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Geography</label>
+                      <select
+                        name="usageGeography"
+                        className="border p-2 rounded-md w-full"
+                        value={formData.usageGeography}
+                        onChange={handleChange}
+                      >
+                        <option value="">Select Geography</option>
+                        <option value="India">India</option>
+                        <option value="Global">Global</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1 uppercase text-gray-600 text-[11px] font-bold">Exclusivity</label>
+                      <select
+                        name="usageExclusivity"
+                        className="border p-2 rounded-md w-full"
+                        value={formData.usageExclusivity}
+                        onChange={handleChange}
+                      >
+                        <option value="">Select Option</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
+                  <h4 className="text-blue-900 font-black mb-3 text-lg uppercase tracking-tight">Understanding Usage Rights</h4>
+                  <p className="text-sm text-blue-800 leading-relaxed mb-4">
+                    Usage rights define how your client can consume the intellectual property (photographs/videos) you deliver.
+                    Misunderstandings here often lead to legal disputes or lost revenue.
+                  </p>
+                  <ul className="text-sm text-blue-800 space-y-2 font-medium">
+                    <li>• <strong className="text-blue-900">Geography:</strong> Restrict usage to specific regions if necessary.</li>
+                    <li>• <strong className="text-blue-900">Duration:</strong> Limit how long the assets can be used before license renewal.</li>
+                    <li>• <strong className="text-blue-900">Exclusivity:</strong> Decides if you can sell/re-use these images for other clients.</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
+
+        <div className="bg-gray-100 border-t p-6 rounded-b-lg flex justify-between items-center flex-shrink-0">
+          <div className="text-sm font-bold text-gray-600 uppercase tracking-widest italic">
+            {formData.invoiceNumber || "Draft Invoice"}
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-8 py-2 border-2 border-gray-300 font-bold uppercase text-xs rounded-md hover:bg-gray-200"
+              disabled={isUploading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="invoice-form"
+              className="px-10 py-2 bg-gray-900 text-white font-bold uppercase text-xs rounded-md hover:bg-black transition-all shadow-lg disabled:opacity-50"
+              disabled={isUploading}
+            >
+              {isUploading ? "Uploading..." : (invoice ? "Update" : "Create")} Invoice
+            </button>
           </div>
         </div>
 

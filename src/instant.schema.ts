@@ -45,6 +45,7 @@ const _schema = i.schema({
       currency: i.string().optional(),
       paymentTerms: i.string().optional(), // Due on receipt, net 15, net 30, net 45, net 60, custom
       customTermDays: i.number().optional(),
+      isTdsDeducting: i.boolean().optional(),
     }),
     businesses: i.entity({
       name: i.string(),
@@ -78,6 +79,9 @@ const _schema = i.schema({
       advanceAmount: i.number().optional(),
       isAdvanceReceived: i.boolean().optional(),
       sentAt: i.string().optional(), // ISO timestamp when marked as sent
+      tdsDeducted: i.boolean().optional(),
+      tdsAmount: i.number().optional(),
+      paidAt: i.string().optional(), // ISO timestamp
     }),
     lineItems: i.entity({
       itemType: i.string().optional(), // 'service' or 'custom'
