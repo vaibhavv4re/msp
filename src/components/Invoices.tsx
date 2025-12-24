@@ -3,7 +3,7 @@ import React from "react";
 import { db } from "@/lib/db";
 import { id, InstaQLEntity } from "@instantdb/react";
 import schema from "@/instant.schema";
-import { Business } from "@/app/page";
+import { Business, BankAccount } from "@/app/page";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { CustomerModal } from "./Customers";
@@ -14,6 +14,7 @@ export type Invoice = InstaQLEntity<typeof schema, "invoices"> & {
   client?: Client;
   lineItems: LineItem[];
   business?: Business;
+  bankAccount?: BankAccount;
 };
 export type LineItem = InstaQLEntity<typeof schema, "lineItems">;
 
@@ -346,6 +347,10 @@ function InvoiceTable({
   function downloadPDF(invoice: Invoice) {
     const client = clients.find(c => c.id === invoice.client?.id);
     const business = businesses.find(b => b.id === (invoice as any).business?.id);
+    const bankAccount = (invoice as any).bankAccount;
+
+    const brandColor = business?.color || "#000000";
+    const rgbColor = hexToRgb(brandColor);
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -368,10 +373,27 @@ function InvoiceTable({
     doc.setFontSize(9);
     doc.setTextColor(80);
     let bizY = 30;
+
+    // Legal Name if different
+    if (business?.legalName && business.legalName !== business.name) {
+      doc.setFont("helvetica", "bold");
+      doc.text(business.legalName, pageWidth - 20, bizY, { align: "right" });
+      bizY += 4.5;
+      doc.setFont("helvetica", "normal");
+    }
+
     if (business?.address) {
-      const addrLines = business.address.split(/[,|\n]/).map((l: string) => l.trim().toUpperCase()).filter((l: string) => l);
-      addrLines.forEach((line: string) => {
-        doc.text(line, pageWidth - 20, bizY, { align: "right" });
+      const fullAddr = [
+        business.address,
+        business.city,
+        business.state,
+        business.pin,
+        business.country
+      ].filter(Boolean).join(", ");
+
+      const splitAddr = doc.splitTextToSize(fullAddr, 80);
+      splitAddr.forEach((line: string) => {
+        doc.text(line.toUpperCase(), pageWidth - 20, bizY, { align: "right" });
         bizY += 4.5;
       });
     }
@@ -385,10 +407,10 @@ function InvoiceTable({
       bizY += 4.5;
     }
 
-    // Horizontal Divider
+    // Horizontal Divider with Brand Color
     const headerEnd = Math.max(bizY, 35);
-    doc.setDrawColor(230);
-    doc.setLineWidth(0.5);
+    doc.setDrawColor(rgbColor[0], rgbColor[1], rgbColor[2]);
+    doc.setLineWidth(1);
     doc.line(20, headerEnd + 5, pageWidth - 20, headerEnd + 5);
 
     // 2. Info Row (Bill To & Invoice Details)
@@ -444,12 +466,14 @@ function InvoiceTable({
     doc.setFont("helvetica", "normal");
     doc.text(formatDate(invoice.dueDate), infoValX, currentY + 16, { align: "right" });
 
-    // Amount Due Highlight Box
-    doc.setFillColor(245, 247, 249);
-    doc.rect(pageWidth - 85, currentY + 22, 65, 10, 'F');
+    // Amount Due Highlight Box with Brand Color
+    doc.setFillColor(rgbColor[0], rgbColor[1], rgbColor[2]);
+    doc.rect(pageWidth - 85, currentY + 22, 65, 12, 'F');
+    doc.setTextColor(255);
     doc.setFont("helvetica", "bold");
-    doc.text("Amount Due:", pageWidth - 80, currentY + 28.5);
-    doc.text(`Rs. ${calculatePendingBalance(invoice).toLocaleString('en-IN')}`, pageWidth - 22, currentY + 28.5, { align: "right" });
+    doc.text("Amount Due:", pageWidth - 80, currentY + 29.5);
+    doc.text(`Rs. ${calculatePendingBalance(invoice).toLocaleString('en-IN')}`, pageWidth - 22, currentY + 29.5, { align: "right" });
+    doc.setTextColor(0);
 
     // 3. Table Section
     const tableData = invoice.lineItems.map(item => [
@@ -466,7 +490,7 @@ function InvoiceTable({
       body: tableData,
       theme: 'grid',
       headStyles: {
-        fillColor: [60, 60, 60],
+        fillColor: rgbColor,
         textColor: 255,
         fontStyle: 'bold',
         halign: 'center'
@@ -527,7 +551,7 @@ function InvoiceTable({
       doc.text(`- Rs. ${advAmt.toLocaleString('en-IN')}`, totValX, ty, { align: "right" });
 
       ty += 10;
-      doc.setFillColor(30, 30, 30);
+      doc.setFillColor(rgbColor[0], rgbColor[1], rgbColor[2]);
       doc.rect(totLabelX - 25, ty - 6, totValX - totLabelX + 30, 10, 'F');
       doc.setTextColor(255);
       doc.setFont("helvetica", "bold");
@@ -536,8 +560,11 @@ function InvoiceTable({
     }
 
     // 5. Footer (Notes & Terms)
-    let footerY = Math.max(ty + 20, (doc as any).lastAutoTable.finalY + 30);
-    if (footerY > 240) {
+    // Reduce initial gap from 30 to 15
+    let footerY = Math.max(ty + 10, (doc as any).lastAutoTable.finalY + 15);
+
+    // Check if we need a new page for footer components
+    if (footerY > 250) {
       doc.addPage();
       footerY = 20;
     }
@@ -545,26 +572,85 @@ function InvoiceTable({
     // Notes
     if (invoice.notes) {
       doc.setTextColor(150);
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setFont("helvetica", "bold");
       doc.text("NOTES", 20, footerY);
       doc.setTextColor(50);
       doc.setFont("helvetica", "normal");
       const splitNotes = doc.splitTextToSize(invoice.notes, 100);
-      doc.text(splitNotes, 20, footerY + 5);
-      footerY += (splitNotes.length * 4) + 12;
+      doc.text(splitNotes, 20, footerY + 4);
+      footerY += (splitNotes.length * 3.5) + 8;
     }
 
     // Terms
     if (invoice.termsAndConditions) {
+      if (footerY > 260) { doc.addPage(); footerY = 20; }
       doc.setTextColor(150);
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setFont("helvetica", "bold");
       doc.text("TERMS & CONDITIONS", 20, footerY);
       doc.setTextColor(50);
       doc.setFont("helvetica", "normal");
       const splitTerms = doc.splitTextToSize(invoice.termsAndConditions, 170);
-      doc.text(splitTerms, 20, footerY + 5);
+      doc.text(splitTerms, 20, footerY + 4);
+      footerY += (splitTerms.length * 3.5) + 8;
+    }
+
+    // Space Check before Payment & Sign
+    if (footerY > 230) {
+      doc.addPage();
+      footerY = 20;
+    }
+
+    // 6. Payment Information (Left Side)
+    let paymentEndY = footerY;
+    if (bankAccount) {
+      doc.setTextColor(rgbColor[0], rgbColor[1], rgbColor[2]);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text("Payment Details", 20, footerY);
+      let py = footerY + 5;
+
+      doc.setFontSize(7.5);
+      doc.setTextColor(60);
+
+      const drawLine = (label: string, value: string) => {
+        doc.setFont("helvetica", "bold");
+        doc.text(`${label}: `, 20, py);
+        const labelWidth = doc.getTextWidth(`${label}: `);
+        doc.setFont("helvetica", "normal");
+        doc.text(value, 20 + labelWidth, py);
+        py += 4;
+      };
+
+      drawLine("Bank", bankAccount.bankName || "N/A");
+      drawLine("A/C Name", bankAccount.holderName || "N/A");
+      drawLine("A/C No", bankAccount.accountNumber || "N/A");
+      drawLine("IFSC", (bankAccount.ifsc || "N/A").toUpperCase());
+
+      if (bankAccount.upiId || bankAccount.chequeName) py += 1;
+      if (bankAccount.upiId) drawLine("UPI", bankAccount.upiId);
+      if (bankAccount.chequeName) drawLine("Cheque in favor of", bankAccount.chequeName);
+
+      paymentEndY = py;
+    }
+
+    // 7. Signature (Right Side)
+    if (business?.signatureUrl) {
+      try {
+        // Place signature on the same vertical level as payment details if possible
+        const sigY = Math.max(footerY, paymentEndY - 20);
+        doc.addImage(business.signatureUrl, 'PNG', pageWidth - 60, sigY, 40, 15);
+        doc.setFontSize(7);
+        doc.setTextColor(120);
+        doc.setFont("helvetica", "bold");
+        doc.text("Authorized Signatory", pageWidth - 40, sigY + 18, { align: "center" });
+
+        // Final line for brand
+        doc.setDrawColor(rgbColor[0], rgbColor[1], rgbColor[2]);
+        doc.setLineWidth(0.5);
+        doc.line(pageWidth - 60, sigY + 19, pageWidth - 20, sigY + 19);
+      } catch (e) { console.error("Could not add signature to PDF", e); }
     }
 
     doc.save(`Invoice_${invoice.invoiceNumber}.pdf`);
@@ -899,6 +985,7 @@ function InvoiceModal({
       status: "Unpaid",
       client: { id: "" },
       business: { id: businesses[0]?.id || "" },
+      bankAccount: { id: businesses[0]?.bankAccounts?.[0]?.id || "" },
       lineItems: [{ itemType: "custom", description: "", sacCode: "", quantity: 1, rate: 0, amount: 0 }],
       subtotal: 0,
       cgst: 0,
@@ -1097,6 +1184,7 @@ function InvoiceModal({
         }),
         db.tx.invoices[invoiceId].link({ client: formData.client.id }),
         db.tx.invoices[invoiceId].link({ business: formData.business.id }),
+        ...(formData.bankAccount?.id ? [db.tx.invoices[invoiceId].link({ bankAccount: formData.bankAccount.id })] : []),
         ...(lineItems as any[]).map((li: any, i: number) =>
           db.tx.lineItems[lineItemIds[i]].update({
             itemType: li.itemType || undefined,
@@ -1166,19 +1254,28 @@ function InvoiceModal({
           <form id="invoice-form" onSubmit={handleSubmit} className="space-y-6">
             {modalTab === "general" ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-black mb-1 uppercase text-gray-900 tracking-widest">
+                {/* Business & Account Selection */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black mb-2 uppercase text-gray-400 tracking-[0.2em]">
                       Business Profile <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="business"
-                      className="border-2 border-gray-300 p-2 rounded-xl w-full bg-white font-black text-xs uppercase tracking-widest"
+                      className="w-full bg-white border-2 border-gray-100 rounded-2xl px-4 py-3 text-xs font-bold text-gray-900 outline-none focus:border-gray-900 transition-all appearance-none"
                       value={formData.business?.id || ""}
-                      onChange={(e) => setFormData((prev: any) => ({ ...prev, business: { id: e.target.value } }))}
+                      onChange={(e) => {
+                        const bId = e.target.value;
+                        const biz = businesses.find(b => b.id === bId);
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          business: { id: bId },
+                          bankAccount: { id: biz?.bankAccounts?.find(a => a.isActive)?.id || biz?.bankAccounts?.[0]?.id || "" }
+                        }));
+                      }}
                       required
                     >
-                      <option value="">Select Business</option>
+                      <option value="">Select Profile</option>
                       {businesses.map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.name}
@@ -1186,14 +1283,32 @@ function InvoiceModal({
                       ))}
                     </select>
                   </div>
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black mb-2 uppercase text-gray-400 tracking-[0.2em]">
+                      Payment Account
+                    </label>
+                    <select
+                      name="bankAccount"
+                      className="w-full bg-white border-2 border-gray-100 rounded-2xl px-4 py-3 text-xs font-bold text-gray-900 outline-none focus:border-gray-900 transition-all appearance-none"
+                      value={formData.bankAccount?.id || ""}
+                      onChange={(e) => setFormData((prev: any) => ({ ...prev, bankAccount: { id: e.target.value } }))}
+                    >
+                      <option value="">No Account</option>
+                      {businesses.find(b => b.id === formData.business?.id)?.bankAccounts?.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.label} - {acc.bankName} (..{acc.accountNumber?.slice(-4)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
-                    <label className="block text-sm font-black mb-1 uppercase text-gray-900 tracking-widest">
+                    <label className="block text-[10px] font-black mb-2 uppercase text-gray-400 tracking-[0.2em]">
                       Invoice # <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="invoiceNumber"
-                      className="border-2 border-gray-300 p-2 rounded-xl w-full bg-white font-mono font-bold"
+                      className="w-full bg-white border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-mono font-bold text-gray-900 outline-none focus:border-gray-900"
                       value={formData.invoiceNumber}
                       onChange={handleChange}
                       placeholder="INV-001"
@@ -1201,10 +1316,10 @@ function InvoiceModal({
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-black mb-1 uppercase text-gray-900 tracking-widest">Status</label>
+                    <label className="block text-[10px] font-black mb-2 uppercase text-gray-400 tracking-[0.2em]">Status</label>
                     <select
                       name="status"
-                      className="border-2 border-gray-300 p-2 rounded-xl w-full bg-white font-black text-xs uppercase tracking-widest"
+                      className="w-full bg-white border-2 border-gray-100 rounded-2xl px-4 py-3 text-xs font-bold text-gray-900 outline-none focus:border-gray-900 transition-all appearance-none"
                       value={formData.status}
                       onChange={handleChange}
                     >
@@ -1215,39 +1330,69 @@ function InvoiceModal({
                       <option value="Overdue">Overdue</option>
                     </select>
                   </div>
+
+                  {/* Account Details Preview Banner */}
+                  {formData.bankAccount?.id && (
+                    <div className="md:col-span-4 bg-white/50 rounded-2xl border border-gray-100 p-4 mt-2 flex flex-wrap gap-x-8 gap-y-4 items-center">
+                      {(() => {
+                        const acc = businesses.find(b => b.id === formData.business?.id)?.bankAccounts?.find(a => a.id === formData.bankAccount?.id);
+                        if (!acc) return null;
+                        return (
+                          <>
+                            <div className="flex flex-col">
+                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Bank Name</span>
+                              <span className="text-[10px] font-black text-gray-900 uppercase">{acc.bankName}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Account Number</span>
+                              <span className="text-[10px] font-black text-gray-900">{acc.accountNumber}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">IFSC</span>
+                              <span className="text-[10px] font-black text-gray-900 uppercase">{acc.ifsc}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Holder</span>
+                              <span className="text-[10px] font-black text-gray-900 uppercase">{acc.holderName}</span>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">Order Number</label>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Order Number</label>
                     <input
                       type="text"
                       name="orderNumber"
-                      className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
+                      className="w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 outline-none focus:border-gray-900 transition-all"
                       value={formData.orderNumber}
                       onChange={handleChange}
                       placeholder="PO-001"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">
                       Invoice Date <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
                       name="invoiceDate"
-                      className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
+                      className="w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 outline-none focus:border-gray-900 transition-all"
                       value={formData.invoiceDate}
                       onChange={handleChange}
                       required
                     />
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">Payment Terms</label>
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Payment Terms</label>
                     <select
                       name="paymentTerms"
-                      className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
+                      className="w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 outline-none focus:border-gray-900 transition-all appearance-none"
                       value={formData.paymentTerms}
                       onChange={handleChange}
                     >
@@ -1260,14 +1405,14 @@ function InvoiceModal({
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">
                       Due Date <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
                       name="dueDate"
-                      className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
+                      className="w-full bg-gray-50 border-2 border-transparent rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 outline-none focus:border-gray-900 transition-all"
                       value={formData.dueDate}
                       onChange={handleChange}
                       required
@@ -1275,36 +1420,38 @@ function InvoiceModal({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">
-                    Customer <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
-                    value={formData.client?.id || ""}
-                    onChange={(e) => handleClientChange(e.target.value)}
-                    required
-                  >
-                    <option value="">Select Customer</option>
-                    <option value="add_new" className="font-bold text-blue-600">+ Add New Customer</option>
-                    {clients.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {client.displayName || client.firstName || "Unnamed"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">
+                      Customer Profile <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className="w-full bg-white border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 outline-none focus:border-gray-900 transition-all appearance-none shadow-sm"
+                      value={formData.client?.id || ""}
+                      onChange={(e) => handleClientChange(e.target.value)}
+                      required
+                    >
+                      <option value="">Select Customer</option>
+                      <option value="add_new" className="font-bold text-blue-600">+ Add New Customer</option>
+                      {clients.map((client) => (
+                        <option key={client.id} value={client.id}>
+                          {client.displayName || client.firstName || "Unnamed"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">Subject / Project Title</label>
-                  <input
-                    type="text"
-                    name="subject"
-                    className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    placeholder="e.g., Photography services for Wedding Shoot"
-                  />
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Subject / Project Title</label>
+                    <input
+                      type="text"
+                      name="subject"
+                      className="w-full bg-white border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 outline-none focus:border-gray-900 transition-all shadow-sm"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      placeholder="e.g., Photography services for Wedding Shoot"
+                    />
+                  </div>
                 </div>
 
                 <div className="border rounded-lg p-4 bg-gray-50 mb-6">

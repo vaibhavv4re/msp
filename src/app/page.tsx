@@ -23,7 +23,8 @@ export type Invoice = InstaQLEntity<AppSchema, "invoices"> & {
 };
 export type LineItem = InstaQLEntity<AppSchema, "lineItems">;
 export type CalendarEvent = InstaQLEntity<AppSchema, "calendarEvents">;
-export type Business = InstaQLEntity<AppSchema, "businesses">;
+export type Business = InstaQLEntity<AppSchema, "businesses"> & { bankAccounts: BankAccount[] };
+export type BankAccount = InstaQLEntity<AppSchema, "bankAccounts">;
 
 type View = "dashboard" | "invoices" | "calendar" | "customers" | "services" | "taxzone" | "settings" | "data";
 
@@ -155,12 +156,13 @@ function App() {
     $users: {
       $: { where: { id: user.id } },
       clients: { invoices: { attachment: {} } },
-      invoices: { lineItems: {}, client: {}, business: {}, attachment: {} },
+      invoices: { lineItems: {}, client: {}, business: {}, attachment: {}, bankAccount: {} },
       calendarEvents: {},
       services: {},
       taxes: {},
       termsTemplates: {},
-      businesses: {},
+      businesses: { bankAccounts: {} },
+      bankAccounts: {},
       expenses: { attachment: {} },
       tdsEntries: {
         client: {}
@@ -177,6 +179,7 @@ function App() {
   const taxes = currentUser?.taxes || [];
   const termsTemplates = currentUser?.termsTemplates || [];
   const businesses = currentUser?.businesses || [];
+  const bankAccounts = currentUser?.bankAccounts || [];
   const expenses = currentUser?.expenses || [];
   const tdsEntries = currentUser?.tdsEntries || [];
 

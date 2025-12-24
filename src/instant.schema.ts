@@ -48,13 +48,34 @@ const _schema = i.schema({
       isTdsDeducting: i.boolean().optional(),
     }),
     businesses: i.entity({
-      name: i.string(),
-      address: i.string().optional(),
-      contact: i.string().optional(),
-      email: i.string().optional(),
+      name: i.string(), // Brand Name
+      legalName: i.string().optional(),
+      businessType: i.string().optional(), // Individual, Proprietorship, LLP, Pvt Ltd
+      address: i.string().optional(), // Registered Address
+      city: i.string().optional(),
+      state: i.string().optional(),
+      pin: i.string().optional(),
+      country: i.string().optional(),
+      contact: i.string().optional(), // Business Phone
+      email: i.string().optional(), // Business Email
       pan: i.string().optional(),
       gst: i.string().optional(),
+      gstType: i.string().optional(), // Regular, Composition, etc.
+      stateCode: i.string().optional(),
+      isComposition: i.boolean().optional(),
+      taxBehavior: i.string().optional(), // inclusive, exclusive
       color: i.string().optional(), // HEX color for business
+      signatureUrl: i.string().optional(),
+    }),
+    bankAccounts: i.entity({
+      label: i.string(), // Primary / Secondary
+      bankName: i.string(),
+      holderName: i.string(),
+      accountNumber: i.string(),
+      ifsc: i.string(),
+      upiId: i.string().optional(),
+      chequeName: i.string().optional(),
+      isActive: i.boolean(),
     }),
     invoices: i.entity({
       invoiceNumber: i.string(),
@@ -268,6 +289,18 @@ const _schema = i.schema({
         label: "invoices",
       },
     },
+    invoicesBankAccount: {
+      forward: {
+        on: "invoices",
+        has: "one",
+        label: "bankAccount",
+      },
+      reverse: {
+        on: "bankAccounts",
+        has: "many",
+        label: "invoices",
+      },
+    },
     lineItemsInvoice: {
       forward: {
         on: "lineItems",
@@ -350,6 +383,30 @@ const _schema = i.schema({
         on: "attachments",
         has: "one",
         label: "invoice",
+      },
+    },
+    bankAccountsOwner: {
+      forward: {
+        on: "bankAccounts",
+        has: "one",
+        label: "owner",
+      },
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "bankAccounts",
+      },
+    },
+    bankAccountsBusiness: {
+      forward: {
+        on: "bankAccounts",
+        has: "one",
+        label: "business",
+      },
+      reverse: {
+        on: "businesses",
+        has: "many",
+        label: "bankAccounts",
       },
     },
   },
