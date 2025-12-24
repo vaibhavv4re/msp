@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Create Instant App',
-  description: 'Instant DB Starter App',
+  title: process.env.NEXT_PUBLIC_APP_NAME || 'MSP',
+  description: 'Business Suite Application',
 };
 
 export default function RootLayout({

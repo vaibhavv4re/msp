@@ -98,6 +98,9 @@ export function TaxZone({
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
     const [showTDSModal, setShowTDSModal] = useState(false);
+    const [expensePage, setExpensePage] = useState(1);
+    const [expenseLimit, setExpenseLimit] = useState(15);
+    const [expenseDateFilter, setExpenseDateFilter] = useState(expenses.length > 50 ? "90days" : "all");
 
     // External Trigger Handling
     useEffect(() => {
@@ -165,6 +168,33 @@ export function TaxZone({
     }, [tdsEntries, selectedFY]);
 
     const [isExporting, setIsExporting] = useState(false);
+
+    const filteredExpenses = useMemo(() => {
+        let list = [...expenses].sort((a, b) => b.date.localeCompare(a.date));
+
+        if (expenseDateFilter === "90days") {
+            const ninetyDaysAgo = new Date();
+            ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+            list = list.filter(e => new Date(e.date) >= ninetyDaysAgo);
+        } else if (expenseDateFilter === "thisMonth") {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            list = list.filter(e => new Date(e.date) >= firstDay);
+        }
+
+        return list;
+    }, [expenses, expenseDateFilter]);
+
+    const itemsPerPage = 25;
+    const totalExpensePages = Math.ceil(filteredExpenses.length / itemsPerPage);
+    const pagedExpenses = filteredExpenses.slice((expensePage - 1) * itemsPerPage, expensePage * itemsPerPage);
+    const mobilePagedExpenses = filteredExpenses.slice(0, expenseLimit);
+
+    // Reset pagination when filter changes
+    useEffect(() => {
+        setExpensePage(1);
+        setExpenseLimit(15);
+    }, [expenseDateFilter]);
 
     const handleDownloadAuditPack = async () => {
         setIsExporting(true);
@@ -382,6 +412,22 @@ export function TaxZone({
                             </div>
                         </div>
 
+                        <div className="flex gap-4">
+                            <select
+                                className="bg-white border border-gray-100 rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-gray-900 shadow-sm"
+                                value={expenseDateFilter}
+                                onChange={(e) => setExpenseDateFilter(e.target.value)}
+                            >
+                                <option value="all">All Dates</option>
+                                <option value="90days">Last 90 Days</option>
+                                <option value="thisMonth">This Month</option>
+                            </select>
+                            <div className="flex-1"></div>
+                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center">
+                                Showing {filteredExpenses.length} total
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             {EXPENSE_CATEGORIES.map(cat => (
                                 <div key={cat} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-gray-900 transition-all">
@@ -402,10 +448,10 @@ export function TaxZone({
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
-                                    {expenses.length === 0 ? (
+                                    {pagedExpenses.length === 0 ? (
                                         <tr><td colSpan={4} className="px-6 py-12 text-center text-xs font-bold text-gray-500 uppercase">No expenses recorded</td></tr>
                                     ) : (
-                                        expenses.sort((a, b) => b.date.localeCompare(a.date)).map(exp => (
+                                        pagedExpenses.map(exp => (
                                             <tr key={exp.id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 text-sm font-bold text-gray-900 whitespace-nowrap">{new Date(exp.date).toLocaleDateString("en-IN", { day: '2-digit', month: 'short' })}</td>
                                                 <td className="px-6 py-4">
@@ -461,6 +507,51 @@ export function TaxZone({
                                     )}
                                 </tbody>
                             </table>
+
+                            {/* Pagination for Web */}
+                            {filteredExpenses.length > 0 && totalExpensePages > 1 && (
+                                <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-100">
+                                    <div className="text-[10px] font-black text-gray-900 uppercase tracking-widest">
+                                        Showing {pagedExpenses.length} of {filteredExpenses.length} expenses
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setExpensePage(Math.max(1, expensePage - 1))}
+                                            disabled={expensePage === 1}
+                                            className="px-3 py-1.5 border-2 border-gray-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                                        >
+                                            Prev
+                                        </button>
+                                        <div className="flex items-center px-4 text-[10px] font-black text-gray-900 uppercase">
+                                            Page {expensePage} of {totalExpensePages}
+                                        </div>
+                                        <button
+                                            onClick={() => setExpensePage(Math.min(totalExpensePages, expensePage + 1))}
+                                            disabled={expensePage === totalExpensePages}
+                                            className="px-3 py-1.5 border-2 border-gray-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Mobile Load More */}
+                            <div className="md:hidden p-4 bg-gray-50 border-t border-gray-100 space-y-4">
+                                {expenseLimit < filteredExpenses.length && (
+                                    <button
+                                        onClick={() => setExpenseLimit(prev => prev + 15)}
+                                        className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-gray-200 active:scale-95 transition-all outline-none"
+                                    >
+                                        Load More ({filteredExpenses.length - mobilePagedExpenses.length} remaining)
+                                    </button>
+                                )}
+                                {expenseLimit >= filteredExpenses.length && filteredExpenses.length > 0 && (
+                                    <div className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest py-4">
+                                        End of list • {filteredExpenses.length} total
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}

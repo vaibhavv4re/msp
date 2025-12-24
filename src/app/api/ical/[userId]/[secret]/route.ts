@@ -38,14 +38,16 @@ export async function GET(
         }
     });
 
+    const appName = process.env.NEXT_PUBLIC_APP_NAME || "MSP";
+
     // 3. Generate iCal string
     let ical = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//MSP Business Suite//Calendar Sync//EN",
+        `PRODID:-//${appName} Business Suite//Calendar Sync//EN`,
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
-        `X-WR-CALNAME:MSP Shoots (${user.email || "User"})`,
+        `X-WR-CALNAME:${appName} events (${user.email || "User"})`,
         "X-WR-TIMEZONE:UTC",
     ];
 
@@ -58,7 +60,7 @@ export async function GET(
         ical.push(`DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`);
         ical.push(`DTSTART:${startStr}`);
         ical.push(`DTEND:${endStr}`);
-        ical.push(`SUMMARY:${event.title || "MSP Shoot"}`);
+        ical.push(`SUMMARY:${event.title || appName + " Shoot"}`);
         ical.push(`STATUS:${event.status === "confirmed" ? "CONFIRMED" : "TENTATIVE"}`);
         ical.push("END:VEVENT");
     });
@@ -68,7 +70,7 @@ export async function GET(
     return new NextResponse(ical.join("\r\n"), {
         headers: {
             "Content-Type": "text/calendar; charset=utf-8",
-            "Content-Disposition": `attachment; filename="msp-shoots-${userId}.ics"`,
+            "Content-Disposition": `attachment; filename="${appName.toLowerCase()}-events-${userId}.ics"`,
         },
     });
 }

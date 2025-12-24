@@ -1,25 +1,20 @@
 import React from "react";
 import { Invoice, Client, Business } from "@/app/page";
-import { db } from "@/lib/db";
 import {
     ArrowLeft,
     Mail,
     Phone,
     MapPin,
     Plus,
-    FileText,
     Edit,
     User,
     Briefcase,
     Camera,
-    Calendar,
     Clock,
     AlertCircle,
-    TrendingUp,
     Receipt,
     StickyNote,
     ChevronRight,
-    Filter
 } from "lucide-react";
 
 interface CustomerSummaryProps {
@@ -105,19 +100,19 @@ export function CustomerSummary({
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="flex items-center gap-4">
                             <button onClick={onBack} className="p-2 hover:bg-gray-50 rounded-full transition-colors">
-                                <ArrowLeft className="w-5 h-5 text-gray-600" />
+                                <ArrowLeft className="w-5 h-5 text-gray-900" />
                             </button>
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     {client.customerType === "Business" ? <Briefcase className="w-4 h-4 text-blue-500" /> : <User className="w-4 h-4 text-green-500" />}
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{client.customerType || "Individual"}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">{client.customerType || "Individual"}</span>
                                 </div>
                                 <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tighter leading-none">
                                     {client.displayName || client.companyName || "Unnamed client"}
                                 </h1>
                                 <div className="flex items-center gap-3 mt-3">
-                                    {client.gst && <span className="text-[11px] font-bold text-gray-600 px-2 py-0.5 bg-gray-100 rounded tracking-wider uppercase">GSTIN: {client.gst}</span>}
-                                    {client.pan && <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">PAN: {client.pan}</span>}
+                                    {client.gst && <span className="text-[11px] font-bold text-gray-900 px-2 py-0.5 bg-gray-100 rounded tracking-wider uppercase">GSTIN: {client.gst}</span>}
+                                    {client.pan && <span className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">PAN: {client.pan}</span>}
                                 </div>
                             </div>
                         </div>
@@ -139,15 +134,15 @@ export function CustomerSummary({
                     </div>
 
                     <div className="mt-8 flex flex-wrap gap-x-8 gap-y-4 pt-6 border-t border-gray-50">
-                        <div className="flex items-center gap-2 text-gray-600">
+                        <div className="flex items-center gap-2 text-gray-900">
                             <Mail className="w-4 h-4" />
                             <span className="text-sm font-bold truncate max-w-[200px]">{client.email || "No email listed"}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-600">
+                        <div className="flex items-center gap-2 text-gray-900">
                             <Phone className="w-4 h-4" />
                             <span className="text-sm font-bold tracking-wider">{client.phone || "No phone listed"}</span>
                         </div>
-                        <div className="flex items-start gap-2 text-gray-600 group cursor-pointer">
+                        <div className="flex items-start gap-2 text-gray-900 group cursor-pointer">
                             <MapPin className="w-4 h-4 mt-0.5" />
                             <span className="text-sm font-bold line-clamp-1 group-hover:line-clamp-none transition-all">{client.address || "No address listed"}</span>
                         </div>
@@ -163,16 +158,16 @@ export function CustomerSummary({
 
                         {/* 2. Relationship Snapshot */}
                         <section>
-                            <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Relationship Snapshot</h3>
+                            <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.2em] mb-4">Relationship Snapshot</h3>
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                 {[
                                     { label: "Lifetime Invoiced", value: `₹${lifetimeInvoiced.toLocaleString()}`, color: "text-gray-900" },
                                     { label: "Total Received", value: `₹${totalReceived.toLocaleString()}`, color: "text-green-600" },
-                                    { label: "Outstanding", value: `₹${outstandingBalance.toLocaleString()}`, color: outstandingBalance > 0 ? "text-red-500" : "text-gray-400" },
+                                    { label: "Outstanding", value: `₹${outstandingBalance.toLocaleString()}`, color: outstandingBalance > 0 ? "text-red-500" : "text-gray-900" },
                                     { label: "Invoices", value: totalInvoicesCount, color: "text-blue-600" }
                                 ].map((stat, i) => (
                                     <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm transition-transform hover:translate-y-[-2px]">
-                                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">{stat.label}</p>
+                                        <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-2">{stat.label}</p>
                                         <p className={`text-xl font-black ${stat.color} tracking-tight`}>{stat.value}</p>
                                     </div>
                                 ))}
@@ -182,13 +177,13 @@ export function CustomerSummary({
                         {/* 4. Invoice History */}
                         <section>
                             <div className="flex justify-between items-end mb-4">
-                                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Invoice History</h3>
+                                <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-[0.2em]">Invoice History</h3>
                                 <div className="flex bg-white rounded-lg border border-gray-100 p-0.5">
                                     {["All", "Paid", "Unpaid", "Overdue"].map((t) => (
                                         <button
                                             key={t}
                                             onClick={() => setFilter(t as any)}
-                                            className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-tight transition-all ${filter === t ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-900"}`}
+                                            className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-tight transition-all ${filter === t ? "bg-gray-900 text-white" : "text-gray-900 hover:bg-gray-50"}`}
                                         >
                                             {t}
                                         </button>
@@ -202,10 +197,10 @@ export function CustomerSummary({
                                     <table className="w-full text-left">
                                         <thead>
                                             <tr className="bg-gray-50 border-b border-gray-100">
-                                                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Number</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Issued</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-gray-900 uppercase tracking-widest">Number</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-gray-900 uppercase tracking-widest">Issued</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-gray-900 uppercase tracking-widest">Amount</th>
+                                                <th className="px-6 py-4 text-[10px] font-black text-gray-900 uppercase tracking-widest">Status</th>
                                                 <th className="px-6 py-4 text-right"></th>
                                             </tr>
                                         </thead>
@@ -217,7 +212,7 @@ export function CustomerSummary({
                                                     className="hover:bg-gray-50/50 transition-colors cursor-pointer group"
                                                 >
                                                     <td className="px-6 py-4 text-gray-900 font-mono tracking-tighter uppercase">{inv.invoiceNumber}</td>
-                                                    <td className="px-6 py-4 text-gray-500 font-bold">{new Date(inv.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                                    <td className="px-6 py-4 text-gray-900 font-bold">{new Date(inv.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                                                     <td className="px-6 py-4 text-gray-900 font-black">₹{inv.total?.toLocaleString()}</td>
                                                     <td className="px-6 py-4">
                                                         <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${inv.status === "Paid" ? "bg-green-50 text-green-600" :
@@ -228,7 +223,7 @@ export function CustomerSummary({
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <button className="p-2 group-hover:bg-gray-100 rounded-full transition-colors">
-                                                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                                                            <ChevronRight className="w-4 h-4 text-gray-900" />
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -251,11 +246,11 @@ export function CustomerSummary({
                                                     <span className={`text-[8px] font-black tracking-widest uppercase px-1.5 py-0.5 rounded ${inv.status === "Paid" ? "bg-green-50 text-green-600" : "bg-yellow-50 text-yellow-600"
                                                         }`}>{inv.status}</span>
                                                 </div>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{new Date(inv.invoiceDate).toLocaleDateString()}</p>
+                                                <p className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">{new Date(inv.invoiceDate).toLocaleDateString()}</p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-sm font-black text-gray-900 tracking-tight">₹{inv.total?.toLocaleString()}</p>
-                                                <ChevronRight className="w-4 h-4 text-gray-300 ml-auto mt-1" />
+                                                <ChevronRight className="w-4 h-4 text-gray-900 ml-auto mt-1" />
                                             </div>
                                         </div>
                                     ))}
@@ -263,7 +258,7 @@ export function CustomerSummary({
 
                                 {filteredInvoices.length === 0 && (
                                     <div className="p-20 text-center">
-                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">No matching invoices</p>
+                                        <p className="text-xs font-black text-gray-900 uppercase tracking-widest">No matching invoices</p>
                                     </div>
                                 )}
                             </div>
@@ -276,7 +271,7 @@ export function CustomerSummary({
                         {/* 3. Payment Behaviour */}
                         <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Payment Behaviour</h3>
+                                <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Payment Behaviour</h3>
                                 <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tight ${reliabilityColor}`}>
                                     {reliability}
                                 </span>
@@ -288,7 +283,7 @@ export function CustomerSummary({
                                         <Clock className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Average Payment Time</p>
+                                        <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-0.5">Average Payment Time</p>
                                         <p className="text-lg font-black text-gray-900 tracking-tight">
                                             {avgPaymentDays ? `Pays in ~${avgPaymentDays} days` : "Data Pending"}
                                         </p>
@@ -300,7 +295,7 @@ export function CustomerSummary({
                                         <AlertCircle className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Late Payments</p>
+                                        <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-0.5">Late Payments</p>
                                         <p className="text-lg font-black text-gray-900 tracking-tight">
                                             {latePaymentsCount} {latePaymentsCount === 1 ? 'instance' : 'instances'}
                                         </p>
@@ -312,7 +307,7 @@ export function CustomerSummary({
                                         <Receipt className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Advance Policy</p>
+                                        <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-0.5">Advance Policy</p>
                                         <p className="text-lg font-black text-gray-900 tracking-tight">
                                             {invoices.some(i => i.isAdvanceReceived) ? "Usually taken" : "None recorded"}
                                         </p>
@@ -320,7 +315,7 @@ export function CustomerSummary({
                                 </div>
                             </div>
 
-                            <p className="mt-8 text-[9px] font-bold text-gray-400 uppercase leading-relaxed text-center px-4">
+                            <p className="mt-8 text-[9px] font-bold text-gray-900 uppercase leading-relaxed text-center px-4">
                                 Behavior analytics based on {paidInvoices.length} settled transactions
                             </p>
                         </section>
@@ -348,17 +343,17 @@ export function CustomerSummary({
                         {/* 6. Usage Context */}
                         <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 overflow-hidden relative">
                             <div className="relative z-10">
-                                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-6">Usage & Work context</h3>
+                                <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-widest mb-6">Usage & Work context</h3>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight mb-1">Yearly Frequency</p>
+                                        <p className="text-[9px] font-black text-gray-900 uppercase tracking-tight mb-1">Yearly Frequency</p>
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-2xl font-black text-gray-900">{yearlyShootFrequency}</span>
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase">shoots</span>
+                                            <span className="text-[10px] font-bold text-gray-900 uppercase">shoots</span>
                                         </div>
                                     </div>
                                     <div>
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight mb-1">Val. Range</p>
+                                        <p className="text-[9px] font-black text-gray-900 uppercase tracking-tight mb-1">Val. Range</p>
                                         <div className="text-xs font-black text-gray-900 tracking-tight">
                                             ₹{minValue / 1000}k — ₹{maxValue / 1000}k
                                         </div>
@@ -372,7 +367,7 @@ export function CustomerSummary({
                         <section className="bg-white rounded-3xl border-2 border-dashed border-gray-100 p-6">
                             <div className="flex items-center gap-2 mb-4">
                                 <StickyNote className="w-4 h-4 text-yellow-500" />
-                                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Notes / Memory</h3>
+                                <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Notes / Memory</h3>
                             </div>
                             <textarea
                                 className="w-full bg-transparent text-sm font-bold text-gray-700 placeholder:text-gray-300 resize-none focus:outline-none"

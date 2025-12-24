@@ -7,7 +7,7 @@ import { Business } from "@/app/page";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { CustomerModal } from "./Customers";
-import { parseFile, preprocessImportData, executeImport, ImportSummary } from "@/lib/invoiceImport";
+import { APP_CONFIG } from "@/config";
 
 export type Client = InstaQLEntity<typeof schema, "clients"> & { invoices?: Invoice[] };
 export type Invoice = InstaQLEntity<typeof schema, "invoices"> & {
@@ -73,8 +73,10 @@ export function Invoices({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [businessFilter, setBusinessFilter] = useState("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState(invoices.length > 50 ? "90days" : "all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [mobileLimit, setMobileLimit] = useState(15);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   React.useEffect(() => {
     if (initiallyOpenModal === true || initiallyOpenModal === "create-invoice") {
@@ -102,10 +104,28 @@ export function Invoices({
     if (statusFilter !== "all" && invoice.status !== statusFilter) return false;
     if (businessFilter !== "all" && invoice.business?.id !== businessFilter) return false;
 
+    if (dateRangeFilter === "90days") {
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const invDate = new Date(invoice.invoiceDate);
+      if (invDate < ninetyDaysAgo) return false;
+    } else if (dateRangeFilter === "thisMonth") {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const invDate = new Date(invoice.invoiceDate);
+      if (invDate < firstDay) return false;
+    }
+
     return clientName.toLowerCase().includes(term) ||
       invoiceNumber.includes(term) ||
       orderNumber.includes(term);
   });
+
+  // Reset pagination when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+    setMobileLimit(15);
+  }, [searchTerm, statusFilter, businessFilter, dateRangeFilter]);
 
   const sortedInvoices = [...filteredInvoices].sort((a, b) => {
     if (!sortConfig) return new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime();
@@ -127,6 +147,11 @@ export function Invoices({
     if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
+
+  const itemsPerPage = 25;
+  const totalPages = Math.ceil(sortedInvoices.length / itemsPerPage);
+  const pagedInvoices = sortedInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const mobilePagedInvoices = sortedInvoices.slice(0, mobileLimit);
 
   function openModal(invoice: Invoice | null = null) {
     setEditingInvoice(invoice);
@@ -153,15 +178,6 @@ export function Invoices({
         <h2 className="text-xl font-bold">Invoices</h2>
         <div className="flex gap-2">
           <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 border-2 border-gray-900 rounded-md text-gray-900 font-bold hover:bg-gray-50 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-            Import Invoices
-          </button>
-          <button
             onClick={() => openModal()}
             className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800"
           >
@@ -170,7 +186,7 @@ export function Invoices({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <input
           type="text"
           placeholder="Search items..."
@@ -190,6 +206,15 @@ export function Invoices({
         </select>
         <select
           className="border p-2 rounded-md font-bold"
+          value={dateRangeFilter}
+          onChange={(e) => setDateRangeFilter(e.target.value)}
+        >
+          <option value="all">All Dates</option>
+          <option value="90days">Last 90 Days</option>
+          <option value="thisMonth">This Month</option>
+        </select>
+        <select
+          className="border p-2 rounded-md font-bold"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -203,12 +228,19 @@ export function Invoices({
       </div>
 
       <InvoiceTable
-        invoices={sortedInvoices as any}
+        invoices={pagedInvoices}
+        mobileInvoices={mobilePagedInvoices}
         clients={clients}
         businesses={businesses}
         onEdit={openModal}
         userId={userId}
         onSort={handleSort}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        onLoadMore={() => setMobileLimit(prev => prev + 15)}
+        hasMore={mobileLimit < sortedInvoices.length}
+        totalCount={sortedInvoices.length}
       />
 
       {isModalOpen && (
@@ -224,236 +256,39 @@ export function Invoices({
         />
       )}
 
-      {isImportModalOpen && (
-        <ImportModal
-          onClose={() => setIsImportModalOpen(false)}
-          userId={userId}
-          existingInvoices={invoices}
-          existingClients={clients}
-        />
-      )}
     </div>
   );
 }
 
-function ImportModal({
-  onClose,
-  userId,
-  existingInvoices,
-  existingClients,
-}: {
-  onClose: () => void;
-  userId: string;
-  existingInvoices: any[];
-  existingClients: any[];
-}) {
-  const [file, setFile] = useState<File | null>(null);
-  const [summary, setSummary] = useState<ImportSummary | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-
-    setFile(selectedFile);
-    setIsProcessing(true);
-    setError(null);
-
-    try {
-      const data = await parseFile(selectedFile);
-      const res = preprocessImportData(data, existingInvoices, existingClients);
-      setSummary(res);
-    } catch (err: any) {
-      setError("Failed to parse file. Please ensure it's a valid CSV or Excel file.");
-      console.error(err);
-    } finally {
-      setIsProcessing(false);
-    }
-  }
-
-  async function handleImport() {
-    if (!summary) return;
-    setIsImporting(true);
-    try {
-      await executeImport(summary, userId);
-      alert("Import successful!");
-      onClose();
-    } catch (err) {
-      setError("Failed to execute import. Please try again.");
-      console.error(err);
-    } finally {
-      setIsImporting(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-6 bg-gray-50 border-b flex justify-between items-center">
-          <div>
-            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Import Invoices</h3>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">CSV / Excel Import Utility</p>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="p-8 flex-1 overflow-y-auto space-y-6">
-          {!summary ? (
-            <div className="space-y-6">
-              <div className="bg-blue-50 border-2 border-blue-100 rounded-xl p-4">
-                <h4 className="text-blue-900 font-bold text-sm mb-2 uppercase tracking-wide">Expected Columns (Canonical Schema):</h4>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] font-medium text-blue-800">
-                  <div className="font-bold border-b border-blue-200 pb-1">Invoice Header:</div>
-                  <div className="font-bold border-b border-blue-200 pb-1">Customer Identity:</div>
-                  <div>• Invoice Number *</div>
-                  <div>• Customer Name *</div>
-                  <div>• Invoice Date *</div>
-                  <div>• Customer Email</div>
-                  <div>• Due Date</div>
-                  <div>• Customer GSTIN</div>
-                  <div>• Order / PO Number</div>
-                  <div>• Customer PAN</div>
-                  <div>• Subject / Project Title</div>
-                  <div>• Customer Phone</div>
-                  <div>• Invoice Status *</div>
-                  <div>• Tax Type *</div>
-                  <div>• Customer Address</div>
-                  <div className="font-bold mt-2 border-b border-blue-200 pb-1">Item Data (One per row):</div>
-                  <div className="font-bold mt-2 border-b border-blue-200 pb-1">Tax Rates:</div>
-                  <div>• Item Description *</div>
-                  <div>• CGST Rate</div>
-                  <div>• Item Rate *</div>
-                  <div>• SGST Rate</div>
-                  <div>• Item Quantity (default 1)</div>
-                  <div>• IGST Rate</div>
-                  <div>• Item SAC</div>
-                  <div className="font-bold mt-2 border-b border-blue-200 pb-1">TDS Support:</div>
-                  <div className="mt-2"></div>
-                  <div>• TDS (TRUE/FALSE)</div>
-                  <div>• TDS Amount</div>
-                  <div className="text-[9px] text-blue-600 mt-2 col-span-2">* Required fields</div>
-                </div>
-              </div>
-              <div className="relative group">
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center group-hover:border-gray-900 transition-colors bg-gray-50 group-hover:bg-white">
-                  <div className="bg-gray-900 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-black text-gray-900 uppercase">Click to upload or drag & drop</p>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase mt-2 tracking-widest">Supports CSV, XLSX</p>
-                </div>
-              </div>
-              {isProcessing && (
-                <div className="flex items-center justify-center py-4 text-gray-600 font-bold uppercase text-xs animate-pulse">
-                  Analyzing file...
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="bg-gray-900 rounded-2xl p-6 text-white">
-                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-800">
-                  <div className="bg-green-500 w-10 h-10 rounded-full flex items-center justify-center font-black">✓</div>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Analysis Complete</p>
-                    <p className="text-sm font-black">{file?.name}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-800 p-4 rounded-xl">
-                    <p className="text-[20px] font-black">{summary.uniqueInvoices}</p>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Invoices found</p>
-                  </div>
-                  <div className="bg-gray-800 p-4 rounded-xl">
-                    <p className="text-[20px] font-black text-blue-400">{summary.newCustomers}</p>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">New Customers</p>
-                  </div>
-                  <div className="bg-gray-800 p-4 rounded-xl">
-                    <p className="text-[20px] font-black text-green-400">{summary.reusedCustomers}</p>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Reused Customers</p>
-                  </div>
-                  <div className="bg-gray-800 p-4 rounded-xl">
-                    <p className="text-[20px] font-black text-red-400">{summary.duplicatesSkipped}</p>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Duplicates skipped</p>
-                  </div>
-                </div>
-
-                {summary.duplicatesSkipped > 0 && (
-                  <p className="text-[10px] text-red-400 font-bold uppercase mt-4">
-                    ⚠️ {summary.duplicatesSkipped} rows match existing invoice numbers/dates and will be ignored.
-                  </p>
-                )}
-              </div>
-
-              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 flex gap-3">
-                <div className="text-yellow-600 text-xl font-black">ⓘ</div>
-                <div>
-                  <p className="text-xs font-black text-yellow-900 uppercase">Pro Tip</p>
-                  <p className="text-[11px] font-medium text-yellow-800 leading-tight mt-1">
-                    Customers are automatically matched by GSTIN or Email. If no match is found, a new customer profile will be created automatically.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 text-red-700 font-bold text-xs uppercase text-center animate-shake">
-              {error}
-            </div>
-          )}
-        </div>
-
-        <div className="p-6 bg-gray-50 border-t flex gap-3">
-          <button
-            onClick={() => { setFile(null); setSummary(null); setError(null); }}
-            className="flex-1 py-3 border-2 border-gray-300 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 active:scale-95 transition-all text-gray-600"
-            disabled={isImporting}
-          >
-            Reset
-          </button>
-          <button
-            onClick={handleImport}
-            className="flex-[2] py-3 bg-gray-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black active:scale-95 transition-all shadow-lg disabled:opacity-50"
-            disabled={!summary || isImporting || summary.uniqueInvoices === 0}
-          >
-            {isImporting ? "Importing Data..." : "Confirm & Import"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function InvoiceTable({
   invoices,
+  mobileInvoices,
   clients,
   businesses,
   onEdit,
   userId,
   onSort,
+  currentPage,
+  totalPages,
+  onPageChange,
+  onLoadMore,
+  hasMore,
+  totalCount,
 }: {
-  invoices: Invoice[];
-  clients: Client[];
-  businesses: Business[];
-  onEdit: (invoice: Invoice) => void;
+  invoices: any[];
+  mobileInvoices: any[];
+  clients: any[];
+  businesses: any[];
+  onEdit: (invoice: any) => void;
   userId: string;
   onSort: (key: string) => void;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  onLoadMore: () => void;
+  hasMore: boolean;
+  totalCount: number;
 }) {
   async function deleteInvoice(invoice: Invoice) {
     if (confirm("Are you sure you want to delete this invoice?")) {
@@ -526,7 +361,7 @@ function InvoiceTable({
     // Right: Business Details
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    const bizName = business?.name || "MSP Productions";
+    const bizName = business?.name || `${APP_CONFIG.NAME} Productions`;
     doc.text(bizName, pageWidth - 20, 25, { align: "right" });
 
     doc.setFont("helvetica", "normal");
@@ -534,8 +369,8 @@ function InvoiceTable({
     doc.setTextColor(80);
     let bizY = 30;
     if (business?.address) {
-      const addrLines = business.address.split(/[,|\n]/).map(l => l.trim().toUpperCase()).filter(l => l);
-      addrLines.forEach(line => {
+      const addrLines = business.address.split(/[,|\n]/).map((l: string) => l.trim().toUpperCase()).filter((l: string) => l);
+      addrLines.forEach((line: string) => {
         doc.text(line, pageWidth - 20, bizY, { align: "right" });
         bizY += 4.5;
       });
@@ -898,81 +733,123 @@ function InvoiceTable({
             )}
           </tbody>
         </table>
+
+        {/* Web Pagination Controls */}
+        {totalCount > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-100">
+            <div className="text-[10px] font-black text-gray-900 uppercase tracking-widest">
+              Showing {invoices.length} of {totalCount} invoices
+            </div>
+            {totalPages > 1 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 border-2 border-gray-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                >
+                  Prev
+                </button>
+                <div className="flex items-center px-4 text-[10px] font-black text-gray-900 uppercase">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <button
+                  onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 border-2 border-gray-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Card List for Mobile */}
       <div className="md:hidden space-y-4">
-        {invoices.length === 0 ? (
+        {mobileInvoices.length === 0 ? (
           <div className="p-12 text-center text-gray-600 font-bold uppercase text-xs">No invoices found</div>
         ) : (
-          invoices.map((invoice) => {
-            const client = clients.find((c) => c.id === invoice.client?.id);
-            const displayName = client?.displayName || client?.firstName || "Unknown";
-            const business = businesses.find(b => b.id === (invoice as any).business?.id);
-            const total = calculateInvoiceTotal(invoice);
-            const balance = calculatePendingBalance(invoice);
-            const today = new Date().toISOString().split('T')[0];
-            const isOverdue = invoice.status !== "Paid" && invoice.dueDate < today;
-            const displayStatus = isOverdue ? "Overdue" : invoice.status;
+          <>
+            {mobileInvoices.map((invoice) => {
+              const client = clients.find((c) => c.id === invoice.client?.id);
+              const displayName = client?.displayName || client?.firstName || "Unknown";
+              const business = businesses.find(b => b.id === (invoice as any).business?.id);
+              const total = calculateInvoiceTotal(invoice);
+              const balance = calculatePendingBalance(invoice);
+              const today = new Date().toISOString().split('T')[0];
+              const isOverdue = invoice.status !== "Paid" && invoice.dueDate < today;
+              const displayStatus = isOverdue ? "Overdue" : invoice.status;
 
-            return (
-              <div key={invoice.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-6 rounded-full" style={{ backgroundColor: business?.color || "#e5e7eb" }}></span>
-                    <span className="text-xs font-black text-gray-900 uppercase tracking-tighter">{invoice.invoiceNumber}</span>
+              return (
+                <div key={invoice.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1 h-6 rounded-full" style={{ backgroundColor: business?.color || "#e5e7eb" }}></span>
+                      <span className="text-xs font-black text-gray-900 uppercase tracking-tighter">{invoice.invoiceNumber}</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight ${displayStatus === "Paid" ? "bg-green-100 text-green-700" :
+                      displayStatus === "Overdue" ? "bg-red-100 text-red-700" :
+                        "bg-yellow-100 text-yellow-700"
+                      }`}>{displayStatus}</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight ${displayStatus === "Paid" ? "bg-green-100 text-green-700" :
-                    displayStatus === "Overdue" ? "bg-red-100 text-red-700" :
-                      "bg-yellow-100 text-yellow-700"
-                    }`}>{displayStatus}</span>
-                </div>
 
-                <div>
-                  <h4 className="text-sm font-bold text-gray-800">{displayName}</h4>
-                  <p className="text-[10px] font-black text-gray-600 uppercase tracking-tight">{business?.name}</p>
-                </div>
-
-                <div className="flex justify-between items-end pt-2 border-t border-gray-50">
                   <div>
-                    <p className="text-[9px] font-black text-gray-600 uppercase mb-0.5">Total & Bal</p>
-                    <div className="text-sm font-black text-gray-900">₹{total.toLocaleString("en-IN")}</div>
-                    {balance > 0 && <div className="text-[9px] font-bold text-red-500">Bal: ₹{balance.toLocaleString("en-IN")}</div>}
+                    <h4 className="text-sm font-black text-gray-900">{displayName}</h4>
+                    <p className="text-[10px] font-black text-gray-900 uppercase tracking-tight">{business?.name}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black text-gray-600 uppercase mb-0.5">Due On</p>
-                    <p className={`text-xs font-mono ${isOverdue ? "text-red-500 font-bold" : "text-gray-600"}`}>{invoice.dueDate}</p>
-                  </div>
-                </div>
 
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <button onClick={() => downloadPDF(invoice)} className="flex-1 min-w-[30%] py-2 bg-gray-50 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-gray-600 uppercase tracking-tighter hover:bg-gray-100 active:scale-95 transition-all">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    PDF
-                  </button>
-                  <button onClick={() => onEdit(invoice)} className="flex-1 min-w-[30%] py-2 bg-gray-50 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-gray-600 uppercase tracking-tighter hover:bg-gray-100 active:scale-95 transition-all">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    Edit
-                  </button>
-                  <button onClick={() => recordPayment(invoice)} className="flex-1 min-w-[30%] py-2 bg-gray-900 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-white uppercase tracking-tighter hover:bg-gray-800 active:scale-95 transition-all">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Pay
-                  </button>
-                  <button onClick={() => duplicateInvoice(invoice, userId)} className="flex-1 min-w-[45%] py-2 border border-gray-100 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-gray-600 uppercase tracking-tighter hover:bg-gray-50 active:scale-95 transition-all">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
-                    Copy
-                  </button>
-                  <button onClick={() => deleteInvoice(invoice)} className="flex-1 min-w-[45%] py-2 bg-red-50 text-red-600 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-tighter hover:bg-red-100 active:scale-95 transition-all">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    Delete
-                  </button>
+                  <div className="flex justify-between items-end pt-2 border-t border-gray-100">
+                    <div>
+                      <p className="text-[9px] font-black text-gray-900 uppercase mb-0.5">Total & Bal</p>
+                      <div className="text-sm font-black text-gray-900">₹{total.toLocaleString("en-IN")}</div>
+                      {balance > 0 && <div className="text-[9px] font-bold text-red-500">Bal: ₹{balance.toLocaleString("en-IN")}</div>}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] font-black text-gray-900 uppercase mb-0.5">Due On</p>
+                      <p className={`text-xs font-mono ${isOverdue ? "text-red-500 font-bold" : "text-gray-900"}`}>{invoice.dueDate}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100 mt-3 pt-3">
+                    <button onClick={() => downloadPDF(invoice)} className="flex-1 min-w-[30%] py-2 bg-gray-50 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-gray-900 uppercase tracking-tighter hover:bg-gray-100 active:scale-95 transition-all outline-none">
+                      PDF
+                    </button>
+                    <button onClick={() => onEdit(invoice)} className="flex-1 min-w-[30%] py-2 bg-gray-50 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-gray-900 uppercase tracking-tighter hover:bg-gray-100 active:scale-95 transition-all outline-none">
+                      Edit
+                    </button>
+                    <button onClick={() => recordPayment(invoice)} className="flex-1 min-w-[30%] py-2 bg-gray-50 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-gray-900 uppercase tracking-tighter hover:bg-gray-100 active:scale-95 transition-all outline-none">
+                      Pay
+                    </button>
+                    <button onClick={() => duplicateInvoice(invoice, userId)} className="flex-1 min-w-[45%] py-2 border border-gray-100 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black text-gray-900 uppercase tracking-tighter hover:bg-gray-50 active:scale-95 transition-all">
+                      Copy
+                    </button>
+                    <button onClick={() => deleteInvoice(invoice)} className="flex-1 min-w-[45%] py-2 bg-red-50 text-red-600 rounded-lg flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-tighter hover:bg-red-100 active:scale-95 transition-all">
+                      Delete
+                    </button>
+                  </div>
                 </div>
+              );
+            })}
+
+            {hasMore && (
+              <button
+                onClick={onLoadMore}
+                className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-gray-200 active:scale-95 transition-all"
+              >
+                Load More ({totalCount - mobileInvoices.length} remaining)
+              </button>
+            )}
+
+            {!hasMore && totalCount > 0 && (
+              <div className="py-8 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                End of list • {totalCount} total
               </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
-    </div>
+    </div >
   );
 }
 
@@ -1291,12 +1168,12 @@ function InvoiceModal({
               <>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-bold mb-1 uppercase text-gray-600 tracking-wider">
+                    <label className="block text-sm font-black mb-1 uppercase text-gray-900 tracking-widest">
                       Business Profile <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="business"
-                      className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-bold"
+                      className="border-2 border-gray-300 p-2 rounded-xl w-full bg-white font-black text-xs uppercase tracking-widest"
                       value={formData.business?.id || ""}
                       onChange={(e) => setFormData((prev: any) => ({ ...prev, business: { id: e.target.value } }))}
                       required
@@ -1310,13 +1187,13 @@ function InvoiceModal({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold mb-1 uppercase text-gray-600 tracking-wider">
+                    <label className="block text-sm font-black mb-1 uppercase text-gray-900 tracking-widest">
                       Invoice # <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="invoiceNumber"
-                      className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-mono"
+                      className="border-2 border-gray-300 p-2 rounded-xl w-full bg-white font-mono font-bold"
                       value={formData.invoiceNumber}
                       onChange={handleChange}
                       placeholder="INV-001"
@@ -1324,10 +1201,10 @@ function InvoiceModal({
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold mb-1 uppercase text-gray-600 tracking-wider">Status</label>
+                    <label className="block text-sm font-black mb-1 uppercase text-gray-900 tracking-widest">Status</label>
                     <select
                       name="status"
-                      className="border-2 border-gray-300 p-2 rounded-md w-full bg-white font-bold"
+                      className="border-2 border-gray-300 p-2 rounded-xl w-full bg-white font-black text-xs uppercase tracking-widest"
                       value={formData.status}
                       onChange={handleChange}
                     >
@@ -1342,11 +1219,11 @@ function InvoiceModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Order Number</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">Order Number</label>
                     <input
                       type="text"
                       name="orderNumber"
-                      className="border p-2 rounded-md w-full"
+                      className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
                       value={formData.orderNumber}
                       onChange={handleChange}
                       placeholder="PO-001"
@@ -1354,23 +1231,23 @@ function InvoiceModal({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">
                       Invoice Date <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
                       name="invoiceDate"
-                      className="border p-2 rounded-md w-full"
+                      className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
                       value={formData.invoiceDate}
                       onChange={handleChange}
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Payment Terms</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">Payment Terms</label>
                     <select
                       name="paymentTerms"
-                      className="border p-2 rounded-md w-full"
+                      className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
                       value={formData.paymentTerms}
                       onChange={handleChange}
                     >
@@ -1384,13 +1261,13 @@ function InvoiceModal({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">
                       Due Date <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
                       name="dueDate"
-                      className="border p-2 rounded-md w-full"
+                      className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
                       value={formData.dueDate}
                       onChange={handleChange}
                       required
@@ -1399,11 +1276,11 @@ function InvoiceModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">
                     Customer <span className="text-red-500">*</span>
                   </label>
                   <select
-                    className="border p-2 rounded-md w-full"
+                    className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
                     value={formData.client?.id || ""}
                     onChange={(e) => handleClientChange(e.target.value)}
                     required
@@ -1419,24 +1296,24 @@ function InvoiceModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Subject / Project Title</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">Subject / Project Title</label>
                   <input
                     type="text"
                     name="subject"
-                    className="border p-2 rounded-md w-full"
+                    className="border-2 border-gray-300 p-2 rounded-xl w-full text-sm font-bold bg-white"
                     value={formData.subject}
                     onChange={handleChange}
                     placeholder="e.g., Photography services for Wedding Shoot"
                   />
                 </div>
 
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-lg font-semibold">Line Items</h3>
-                    <div className="flex gap-2">
+                <div className="border rounded-lg p-4 bg-gray-50 mb-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h3 className="text-lg font-black uppercase tracking-tight text-gray-900 leading-none">Line Items</h3>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                       {activeServices.length > 0 && (
                         <select
-                          className="border p-2 rounded-md text-sm"
+                          className="w-full sm:w-auto border-2 border-gray-300 p-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white h-11 active:scale-[0.98] transition-all"
                           onChange={(e) => {
                             if (e.target.value) {
                               addServiceLineItem(e.target.value);
@@ -1455,7 +1332,7 @@ function InvoiceModal({
                       <button
                         type="button"
                         onClick={addCustomLineItem}
-                        className="px-3 py-2 bg-gray-900 text-white rounded-md text-sm hover:bg-gray-800"
+                        className="w-full sm:w-auto px-4 py-2 border-2 border-gray-900 text-gray-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95 h-11"
                       >
                         + Custom Item
                       </button>
@@ -1847,9 +1724,10 @@ function InvoiceModal({
                   </ul>
                 </div>
               </div>
-            )}
-          </form>
-        </div>
+            )
+            }
+          </form >
+        </div >
 
         <div className="bg-gray-100 border-t p-6 rounded-b-lg flex justify-between items-center flex-shrink-0">
           <div className="text-sm font-bold text-gray-600 uppercase tracking-widest italic">
@@ -1875,18 +1753,20 @@ function InvoiceModal({
           </div>
         </div>
 
-        {isCustomerModalOpen && (
-          <CustomerModal
-            client={null}
-            userId={userId}
-            onClose={() => setIsCustomerModalOpen(false)}
-            onSuccess={(clientId) => {
-              handleClientChange(clientId);
-              setIsCustomerModalOpen(false);
-            }}
-          />
-        )}
-      </div>
-    </div>
+        {
+          isCustomerModalOpen && (
+            <CustomerModal
+              client={null}
+              userId={userId}
+              onClose={() => setIsCustomerModalOpen(false)}
+              onSuccess={(clientId) => {
+                handleClientChange(clientId);
+                setIsCustomerModalOpen(false);
+              }}
+            />
+          )
+        }
+      </div >
+    </div >
   );
 }

@@ -37,6 +37,8 @@ export function Customers({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [mobileLimit, setMobileLimit] = useState(15);
 
   React.useEffect(() => {
     if (initiallyOpenModal) {
@@ -82,6 +84,17 @@ export function Customers({
       phone.includes(term)
     );
   });
+
+  // Reset pagination when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+    setMobileLimit(15);
+  }, [searchTerm]);
+
+  const itemsPerPage = 25;
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+  const pagedClients = filteredClients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const mobilePagedClients = filteredClients.slice(0, mobileLimit);
 
   function openModal(client: Client | null = null) {
     setEditingClient(client);
@@ -129,88 +142,101 @@ export function Customers({
 
       {/* Mobile Card View */}
       <div className="md:hidden space-y-4">
-        {filteredClients.length === 0 ? (
+        {mobilePagedClients.length === 0 ? (
           <div className="py-12 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
             <p className="text-sm font-black text-gray-600 uppercase tracking-widest">No customers found</p>
           </div>
         ) : (
-          filteredClients.map((client) => (
-            <div key={client.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden active:scale-[0.98] transition-all">
-              <div className="p-4 border-b border-gray-50 flex justify-between items-start">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`w-2 h-2 rounded-full ${client.customerType === "Business" ? "bg-blue-500" : "bg-green-500"}`}></span>
-                    <h3 className="font-black text-gray-900 uppercase tracking-tight truncate">
-                      {client.displayName || client.firstName || "Unnamed"}
-                    </h3>
+          <>
+            {mobilePagedClients.map((client) => (
+              <div key={client.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden active:scale-[0.98] transition-all">
+                <div className="p-4 border-b border-gray-50 flex justify-between items-start">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`w-2 h-2 rounded-full ${client.customerType === "Business" ? "bg-blue-500" : "bg-green-500"}`}></span>
+                      <h3 className="font-black text-gray-900 uppercase tracking-tight truncate">
+                        {client.displayName || client.firstName || "Unnamed"}
+                      </h3>
+                    </div>
+                    {client.companyName && (
+                      <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest ml-4">{client.companyName}</p>
+                    )}
                   </div>
-                  {client.companyName && (
-                    <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest ml-4">{client.companyName}</p>
-                  )}
+                  <div className="text-right">
+                    <span className={`inline-block px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${client.customerType === "Business" ? "bg-blue-50 text-blue-600" : "bg-green-50 text-green-600"
+                      }`}>
+                      {client.customerType || "Individual"}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className={`inline-block px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${client.customerType === "Business" ? "bg-blue-50 text-blue-600" : "bg-green-50 text-green-600"
-                    }`}>
-                    {client.customerType || "Individual"}
-                  </span>
-                </div>
-              </div>
 
-              <div className="p-4 grid grid-cols-2 gap-4 bg-gray-50/30">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest leading-none">Contact</p>
-                  <p className="text-[11px] font-bold text-gray-700 truncate">{client.email || "No Email"}</p>
-                  {client.phone && <p className="text-[11px] font-bold text-gray-600">{client.phone}</p>}
+                <div className="p-4 grid grid-cols-2 gap-4 bg-gray-50/30">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest leading-none">Contact</p>
+                    <p className="text-[11px] font-bold text-gray-700 truncate">{client.email || "No Email"}</p>
+                    {client.phone && <p className="text-[11px] font-bold text-gray-600">{client.phone}</p>}
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest leading-none">Terms</p>
+                    <p className="text-[11px] font-bold text-gray-700">
+                      {PAYMENT_TERMS.find(t => t.value === client.paymentTerms)?.label || "—"}
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1 text-right">
-                  <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest leading-none">Terms</p>
-                  <p className="text-[11px] font-bold text-gray-700">
-                    {PAYMENT_TERMS.find(t => t.value === client.paymentTerms)?.label || "—"}
-                  </p>
-                </div>
-              </div>
 
-              <div className="p-3 bg-white flex gap-2 border-t border-gray-100">
-                <button
-                  onClick={() => { setSelectedCustomerId(client.id); setView("summary"); }}
-                  className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
-                >
-                  View Summary
-                </button>
-                <button
-                  onClick={() => deleteClient(client)}
-                  className="px-4 py-3 bg-red-50 text-red-600 rounded-xl active:scale-95 transition-all"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
+                <div className="p-3 bg-white flex gap-2 border-t border-gray-100">
+                  <button
+                    onClick={() => { setSelectedCustomerId(client.id); setView("summary"); }}
+                    className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    View Summary
+                  </button>
+                  <button
+                    onClick={() => deleteClient(client)}
+                    className="px-4 py-3 bg-red-50 text-red-600 rounded-xl active:scale-95 transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+
+            {mobileLimit < filteredClients.length && (
+              <button
+                onClick={() => setMobileLimit(prev => prev + 15)}
+                className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-gray-200 active:scale-95 transition-all outline-none"
+              >
+                Load More ({filteredClients.length - mobilePagedClients.length} remaining)
+              </button>
+            )}
+
+            {mobileLimit >= filteredClients.length && filteredClients.length > 0 && (
+              <div className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest py-4">
+                End of list • {filteredClients.length} total
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Desktop Table View */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full bg-white">
+        <table className="min-w-full">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="py-2 px-4 text-left">Display Name</th>
-              <th className="py-2 px-4 text-left">Type</th>
-              <th className="py-2 px-4 text-left">Contact</th>
-              <th className="py-2 px-4 text-left">Payment Terms</th>
-              <th className="py-2 px-4 text-center">Invoices</th>
-              <th className="py-2 px-4 text-center">Actions</th>
+            <tr className="bg-gray-50 border-b border-gray-100">
+              <th className="py-3 px-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">Customer</th>
+              <th className="py-3 px-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">Status / Type</th>
+              <th className="py-3 px-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">Email / Phone</th>
+              <th className="py-3 px-4 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {filteredClients.length === 0 ? (
+          <tbody className="divide-y divide-gray-50">
+            {pagedClients.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-4 text-center text-gray-600">
-                  No customers found. Add your first customer to get started.
-                </td>
+                <td colSpan={4} className="py-12 text-center text-gray-600 font-bold uppercase text-xs">No customers found</td>
               </tr>
             ) : (
-              filteredClients.map((client) => (
+              pagedClients.map((client) => (
                 <tr key={client.id} className="border-t hover:bg-gray-50">
                   <td className="py-2 px-4">
                     <div className="font-medium">{client.displayName || "—"}</div>
@@ -231,12 +257,6 @@ export function Customers({
                       {client.email && <div>{client.email}</div>}
                       {client.phone && <div className="text-gray-600">{client.phone}</div>}
                     </div>
-                  </td>
-                  <td className="py-2 px-4">
-                    {PAYMENT_TERMS.find(t => t.value === client.paymentTerms)?.label || "—"}
-                  </td>
-                  <td className="py-2 px-4 text-center">
-                    {client.invoices?.length || 0}
                   </td>
                   <td className="py-2 px-4 text-center">
                     <button
@@ -263,6 +283,36 @@ export function Customers({
             )}
           </tbody>
         </table>
+
+        {/* Pagination Controls */}
+        {filteredClients.length > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-100 mt-4 rounded-b-lg">
+            <div className="text-[10px] font-black text-gray-900 uppercase tracking-widest">
+              Showing {pagedClients.length} of {filteredClients.length} customers
+            </div>
+            {totalPages > 1 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 border-2 border-gray-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                >
+                  Prev
+                </button>
+                <div className="flex items-center px-4 text-[10px] font-black text-gray-900 uppercase">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 border-2 border-gray-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {isModalOpen && (

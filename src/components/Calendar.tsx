@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { id } from "@instantdb/react";
 import { CalendarEvent } from "@/app/page";
 import { syncToCalendars, ensureIcalUid } from "@/lib/calendarSync";
+import { APP_CONFIG } from "@/config";
+import { CalendarSyncStatus } from "./CalendarSyncStatus";
 
 // Helper to get date string in local timezone (YYYY-MM-DD)
 function getLocalDateString(date: Date): string {
@@ -207,25 +209,33 @@ export function Calendar({
         </div>
       )}
 
-      {/* iCal Subscription Footer */}
-      {icalUrl && (
-        <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-              <h4 className="text-sm font-black text-blue-900 uppercase">Subscribe to your Calendar</h4>
-              <p className="text-[10px] font-bold text-blue-700 uppercase mt-1">Sync your MSP events directly to your iPhone or Mac calendar.</p>
+      {/* Sync Footer */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {icalUrl && (
+          <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100 flex flex-col justify-between">
+            <div className="mb-4">
+              <h4 className="text-sm font-black text-blue-900 uppercase">iCal Subscription</h4>
+              <p className="text-[10px] font-bold text-blue-700 uppercase mt-1">Sync your {APP_CONFIG.NAME} events directly to your iPhone or Mac calendar.</p>
             </div>
             <button
               onClick={() => {
                 window.location.href = icalUrl.replace('http', 'webcal');
               }}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
+              className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
             >
               Add to My Calendar
             </button>
           </div>
+        )}
+
+        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex flex-col justify-between">
+          <div className="mb-4">
+            <h4 className="text-sm font-black text-gray-900 uppercase">Google Calendar</h4>
+            <p className="text-[10px] font-bold text-gray-600 uppercase mt-1">Mirror your shoots to Google Calendar for cross-device visibility.</p>
+          </div>
+          <CalendarSyncStatus />
         </div>
-      )}
+      </div>
 
       {isModalOpen && selectedDate && (
         <EventModal
@@ -297,7 +307,8 @@ function EventModal({
     // Mirror to Google Calendar
     try {
       const { googleEventId } = await syncToCalendars({ id: eventId, ...eventData }, event ? 'update' : 'create');
-      if (googleEventId) eventData.googleEventId = googleEventId;
+      // Update the googleEventId (could be undefined if it was cancelled/deleted from Google)
+      eventData.googleEventId = googleEventId;
     } catch (err) {
       console.error("Mirroring failed:", err);
     }
@@ -317,7 +328,10 @@ function EventModal({
   async function handleDelete() {
     if (!event) return;
     if (confirm("Permanently remove this event from all calendars?")) {
-      await syncToCalendars(event as any, 'delete');
+      const { error } = await syncToCalendars(event as any, 'delete');
+      if (error) {
+        alert(`Warning: Failed to remove from Google Calendar. ${error}. The event will still be deleted locally.`);
+      }
       db.transact(db.tx.calendarEvents[event.id].delete());
       onClose();
     }

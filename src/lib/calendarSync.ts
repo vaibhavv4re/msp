@@ -3,10 +3,11 @@ import { db } from "./db";
 import { GoogleCalendarAPI, GoogleCalendarEvent } from "./googleCalendar";
 import { AppSchema } from "@/instant.schema";
 import { id as generateId, InstaQLEntity } from "@instantdb/react";
+import { APP_CONFIG } from "@/config";
 
 export type AppEvent = InstaQLEntity<AppSchema, "calendarEvents">;
 
-const SOURCE_TAG = "MSP-Business-Suite";
+const SOURCE_TAG = `${APP_CONFIG.NAME}-Business-Suite`;
 
 /**
  * Syncs an app event to all connected external calendars.
@@ -19,7 +20,11 @@ export async function syncToCalendars(
 
     if (action === 'delete') {
         if (event.googleEventId) {
-            await GoogleCalendarAPI.deleteEvent(event.googleEventId);
+            const result = await GoogleCalendarAPI.deleteEvent(event.googleEventId);
+            if (!result.success) {
+                console.error("❌ Failed to delete from Google Calendar:", result.error);
+                return { error: result.error };
+            }
         }
         return { success: true } as any;
     }
@@ -34,7 +39,7 @@ export async function syncToCalendars(
     }
 
     const googleEvent: GoogleCalendarEvent = {
-        summary: event.title || "MSP Work Event",
+        summary: event.title || `${APP_CONFIG.NAME} Work Event`,
         start: { dateTime: event.start! },
         end: { dateTime: event.end! },
         extendedProperties: {
@@ -58,5 +63,5 @@ export async function syncToCalendars(
  * Helper to ensure an event has an icalUid.
  */
 export function ensureIcalUid(event: Partial<AppEvent>): string {
-    return event.icalUid || `msp-${generateId()}`;
+    return event.icalUid || `${APP_CONFIG.NAME.toLowerCase()}-${generateId()}`;
 }

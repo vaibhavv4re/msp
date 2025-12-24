@@ -136,6 +136,12 @@ export class GoogleCalendarAPI {
       console.log('📡 Delete response status:', response.status, response.statusText);
 
       if (!response.ok) {
+        // If the event is already gone (404), consider it a success
+        if (response.status === 404) {
+          console.log('ℹ️ Event not found in Google Calendar (404), treating as deleted');
+          return { success: true };
+        }
+
         let errorMessage = "Failed to delete event";
         try {
           const error = await response.json();
