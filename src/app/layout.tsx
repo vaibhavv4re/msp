@@ -12,9 +12,24 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+import { InstallPrompt } from '@/components/InstallPrompt';
+
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME || 'MSP',
   description: 'Business Suite Application',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'MSP Suite',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    apple: [
+      { url: '/apple-icon.png' },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -24,10 +39,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="theme-color" content="#000000" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <InstallPrompt />
       </body>
     </html>
   );
