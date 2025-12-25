@@ -14,6 +14,7 @@ import { DataManagement } from "@/components/DataManagement";
 import { GoogleCalendarAPI } from "@/lib/googleCalendar";
 import { GoogleCalendarAuth } from "@/lib/googleOAuth";
 import { APP_CONFIG } from "@/config";
+import { Onboarding } from "@/components/Onboarding";
 
 export type Client = InstaQLEntity<AppSchema, "clients"> & { invoices: Invoice[] };
 export type Invoice = InstaQLEntity<AppSchema, "invoices"> & {
@@ -94,7 +95,19 @@ function App() {
   const [modalToOpen, setModalToOpen] = useState<string | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+  const [hasDismissedOnboarding, setHasDismissedOnboarding] = useState(false);
   const { isLoading, user, error: authError } = db.useAuth();
+
+  // Load onboarding dismissal state from localStorage
+  useEffect(() => {
+    const dismissed = localStorage.getItem("backdrop_onboarding_dismissed");
+    if (dismissed === "true") setHasDismissedOnboarding(true);
+  }, []);
+
+  const dismissOnboarding = () => {
+    localStorage.setItem("backdrop_onboarding_dismissed", "true");
+    setHasDismissedOnboarding(true);
+  };
 
   // Handle OAuth callback and extract Google access token
   useEffect(() => {
@@ -278,7 +291,10 @@ function App() {
     return <div className="text-red-500 p-4">Error: {error.message}</div>;
   }
 
-  // No changes needed here.
+  // Show onboarding if no businesses exist and user hasn't dismissed it
+  if (businesses.length === 0 && !hasDismissedOnboarding) {
+    return <Onboarding userId={user.id} onComplete={dismissOnboarding} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">

@@ -153,15 +153,17 @@ export function Calendar({
                   <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${event.status === 'confirmed' ? 'bg-gray-900 text-white' : 'bg-white border-2 border-gray-100 text-gray-600'
                     }`}>
                     <span className="text-[10px] font-black uppercase leading-none mb-1">
-                      {new Date(event.start!).toLocaleString('default', { month: 'short' })}
+                      {event.start ? new Date(event.start).toLocaleString('default', { month: 'short' }) : '---'}
                     </span>
-                    <span className="text-xl font-black leading-none">{new Date(event.start!).getDate()}</span>
+                    <span className="text-xl font-black leading-none">
+                      {event.start ? new Date(event.start).getDate() || '?' : '??'}
+                    </span>
                   </div>
                   <div className="flex-1">
                     <h4 className="font-black text-gray-900 uppercase text-sm tracking-tight">{event.title}</h4>
                     <p className="text-[10px] font-bold text-gray-600 uppercase mt-1">
-                      {new Date(event.start!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
-                      {new Date(event.end!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {event.start ? new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '00:00'} -
+                      {event.end ? new Date(event.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '00:00'}
                     </p>
                     {businesses.find(b => b.id === (event as any).business?.id) && (
                       <div className="flex items-center gap-1.5 mt-2">

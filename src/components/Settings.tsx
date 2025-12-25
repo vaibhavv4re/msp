@@ -225,7 +225,7 @@ function SectionHeader({ title, number }: { title: string; number: string }) {
   );
 }
 
-function BusinessModal({
+export function BusinessModal({
   business,
   userId,
   onClose,
