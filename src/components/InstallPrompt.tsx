@@ -84,10 +84,10 @@ export function InstallPrompt() {
 
                 <div className="flex items-center gap-4">
                     <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
-                        <span className="text-white font-black text-xl italic tracking-tighter">MSP</span>
+                        <span className="text-white font-black text-[10px] italic tracking-tighter">BACKDROP</span>
                     </div>
                     <div className="flex-1 pr-6">
-                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Install MSP Suite</h4>
+                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Install BACKDROP Suite</h4>
                         <p className="text-[11px] font-bold text-gray-500 uppercase leading-relaxed mt-0.5">
                             Add to your home screen for a premium, lightning-fast experience.
                         </p>

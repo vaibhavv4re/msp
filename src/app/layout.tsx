@@ -15,12 +15,12 @@ const geistMono = Geist_Mono({
 import { InstallPrompt } from '@/components/InstallPrompt';
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_APP_NAME || 'MSP',
+  title: process.env.NEXT_PUBLIC_APP_NAME || 'BACKDROP',
   description: 'Business Suite Application',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'MSP Suite',
+    title: 'BACKDROP Suite',
   },
   formatDetection: {
     telephone: false,

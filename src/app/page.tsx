@@ -288,9 +288,12 @@ function App() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-6">
               <div className="flex-shrink-0 flex items-center pr-4">
-                <h1 className="text-xl font-black text-gray-900 uppercase tracking-tighter truncate max-w-[200px] lg:max-w-[300px]" title={APP_CONFIG.NAME}>
-                  {APP_CONFIG.NAME}
-                </h1>
+                <div className="group relative cursor-default" title={APP_CONFIG.NAME}>
+                  <div className="flex items-center">
+                    <span className="text-3xl font-[1000] text-gray-900 leading-none">B</span>
+                    <span className="text-3xl font-[1000] text-blue-600 leading-none -ml-0.5">.</span>
+                  </div>
+                </div>
               </div>
 
             </div>
@@ -415,17 +418,28 @@ function App() {
                 </div>
               )}
 
-              <div className="border-l border-gray-300 h-8 mx-2"></div>
-              {user.email && (
-                <span className="text-sm text-gray-600 hidden lg:inline">{user.email}</span>
-              )}
-              <button
-                onClick={() => db.auth.signOut()}
-                className="p-2 text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
-                title="Sign Out"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-              </button>
+              <div className="flex items-center gap-3 pr-2">
+                <div className="border-l border-gray-300 h-8 mx-2"></div>
+                {(user as any)?.google?.picture || (user as any)?.picture ? (
+                  <img
+                    src={((user as any)?.google?.picture || (user as any)?.picture) as string}
+                    alt={user.email || 'User'}
+                    className="w-8 h-8 rounded-full border-2 border-white shadow-sm ring-1 ring-gray-100"
+                    title={user.email || undefined}
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-[10px] font-black text-white uppercase shrink-0" title={user.email || undefined}>
+                    {(user.email || "?")[0]}
+                  </div>
+                )}
+                <button
+                  onClick={() => db.auth.signOut()}
+                  className="p-2 text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
+                  title="Sign Out"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -433,13 +447,23 @@ function App() {
 
       {/* Mobile Top Header */}
       <header className="md:hidden bg-white shadow-sm sticky top-0 z-[60] px-5 py-3 border-b border-gray-100 flex justify-between items-center h-14">
-        <h1 className="text-base font-black text-gray-900 uppercase tracking-tighter truncate pr-4" title={APP_CONFIG.NAME}>
-          {APP_CONFIG.NAME}
-        </h1>
+        <div className="flex items-center cursor-default" title={APP_CONFIG.NAME}>
+          <span className="text-2xl font-[1000] text-gray-900 leading-none">B</span>
+          <span className="text-2xl font-[1000] text-blue-600 leading-none -ml-0.5">.</span>
+        </div>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-[10px] font-black text-white uppercase shrink-0">
-            {user.email?.[0] || user.id[0]}
-          </div>
+          {(user as any)?.google?.picture || (user as any)?.picture ? (
+            <img
+              src={((user as any)?.google?.picture || (user as any)?.picture) as string}
+              alt={user.email || 'User'}
+              className="w-8 h-8 rounded-full border border-gray-100"
+              title={user.email || undefined}
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-[10px] font-black text-white uppercase shrink-0" title={user.email || undefined}>
+              {(user.email || user.id)[0]}
+            </div>
+          )}
         </div>
       </header>
 

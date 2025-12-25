@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: process.env.NEXT_PUBLIC_APP_NAME || 'MSP Business Suite',
-        short_name: 'MSP',
+        name: process.env.NEXT_PUBLIC_APP_NAME || 'BACKDROP Business Suite',
+        short_name: 'BACKDROP',
         description: 'A premium suite for business management and invoicing.',
         start_url: '/',
         display: 'standalone',
