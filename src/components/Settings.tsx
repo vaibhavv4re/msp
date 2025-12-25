@@ -5,6 +5,7 @@ import { AppSchema } from "@/instant.schema";
 import schema from "@/instant.schema";
 import { Business, BankAccount } from "@/app/page";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import { getFY } from "@/lib/invoiceUtils";
 
 export type Client = InstaQLEntity<AppSchema, "clients">;
 export type Invoice = InstaQLEntity<AppSchema, "invoices"> & {
@@ -29,6 +30,7 @@ export function Settings({
   taxes,
   termsTemplates,
   userId,
+  activeBusinessId,
   invoices,
   clients,
   businesses,
@@ -36,6 +38,7 @@ export function Settings({
   taxes: Tax[];
   termsTemplates: TermsTemplate[];
   userId: string;
+  activeBusinessId: string;
   invoices: Invoice[];
   clients: Client[];
   businesses: Business[];
@@ -87,8 +90,8 @@ export function Settings({
         </nav>
       </div>
 
-      {activeTab === "taxes" && <TaxesTab taxes={taxes} userId={userId} />}
-      {activeTab === "terms" && <TermsTab termsTemplates={termsTemplates} userId={userId} />}
+      {activeTab === "taxes" && <TaxesTab taxes={taxes} userId={userId} activeBusinessId={activeBusinessId} />}
+      {activeTab === "terms" && <TermsTab termsTemplates={termsTemplates} userId={userId} activeBusinessId={activeBusinessId} />}
       {activeTab === "usage" && <UsageTrackerTab invoices={invoices} clients={clients} />}
       {activeTab === "businesses" && <BusinessesTab businesses={businesses} userId={userId} />}
     </div>
@@ -250,6 +253,12 @@ function BusinessModal({
     taxBehavior: business?.taxBehavior || "exclusive",
     color: business?.color || BUSINESS_COLORS[0].value,
     signatureUrl: business?.signatureUrl || "",
+    invoicePrefix: (business as any)?.invoicePrefix || "INV",
+    invoiceSeparator: (business as any)?.invoiceSeparator || "/",
+    invoiceIncludeFY: (business as any)?.invoiceIncludeFY || false,
+    invoiceFYFormat: (business as any)?.invoiceFYFormat || "FY25",
+    invoiceStartNumber: (business as any)?.invoiceStartNumber || 1,
+    invoicePadding: (business as any)?.invoicePadding || 4,
   });
 
   const [bankAccounts, setBankAccounts] = useState<Partial<BankAccount>[]>(
@@ -616,10 +625,131 @@ function BusinessModal({
             </div>
           </div>
 
-          {/* Section 4: Payment Accounts */}
+          {/* Section 4: Invoice Numbering Presets */}
+          <div>
+            <SectionHeader number="04" title="Invoice Numbering Presets" />
+            <div className="bg-gray-50 p-8 rounded-[32px] border border-gray-100 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Prefix</label>
+                  <input
+                    type="text"
+                    className="w-full bg-white rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none border border-gray-100 focus:border-gray-900 transition-all shadow-sm"
+                    value={formData.invoicePrefix}
+                    onChange={(e) => setFormData({ ...formData, invoicePrefix: e.target.value.toUpperCase() })}
+                    placeholder="INV, STX"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Separator</label>
+                  <div className="relative">
+                    <select
+                      className="w-full bg-white rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none border border-gray-100 focus:border-gray-900 appearance-none transition-all shadow-sm"
+                      value={formData.invoiceSeparator}
+                      onChange={(e) => setFormData({ ...formData, invoiceSeparator: e.target.value })}
+                    >
+                      <option value="/">Slash (/)</option>
+                      <option value="-">Dash (-)</option>
+                      <option value=".">Dot (.)</option>
+                      <option value="">None</option>
+                    </select>
+                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Start #</label>
+                  <input
+                    type="number"
+                    className="w-full bg-white rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none border border-gray-100 focus:border-gray-900 transition-all shadow-sm"
+                    value={formData.invoiceStartNumber}
+                    onChange={(e) => setFormData({ ...formData, invoiceStartNumber: parseInt(e.target.value) || 1 })}
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Padding</label>
+                  <div className="relative">
+                    <select
+                      className="w-full bg-white rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none border border-gray-100 focus:border-gray-900 appearance-none transition-all shadow-sm"
+                      value={formData.invoicePadding}
+                      onChange={(e) => setFormData({ ...formData, invoicePadding: parseInt(e.target.value) })}
+                    >
+                      <option value="1">1 (No padding)</option>
+                      <option value="2">01</option>
+                      <option value="3">001</option>
+                      <option value="4">0001</option>
+                      <option value="5">00001</option>
+                    </select>
+                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 bg-white rounded-[24px] border border-gray-100">
+                <div className="space-y-4 max-w-md">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, invoiceIncludeFY: !formData.invoiceIncludeFY })}
+                        className={`w-12 h-6 rounded-full transition-all relative ${formData.invoiceIncludeFY ? 'bg-black' : 'bg-gray-200'}`}
+                      >
+                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-all ${formData.invoiceIncludeFY ? 'translate-x-6' : ''}`}></div>
+                      </button>
+                      <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Include Financial Year</span>
+                    </div>
+                  </div>
+                  {formData.invoiceIncludeFY && (
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: `FY${getFY()}`, value: "FY25" },
+                        { label: getFY(), value: "25" }
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, invoiceFYFormat: opt.value })}
+                          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${formData.invoiceFYFormat === opt.value ? 'bg-black text-white border-black shadow-lg shadow-gray-200' : 'bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-200'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {formData.invoiceIncludeFY && (
+                    <div className="flex items-start gap-2">
+                      <svg className="w-3.5 h-3.5 text-gray-900 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                      <p className="text-[9px] font-bold text-gray-900 uppercase leading-relaxed tracking-tight">
+                        Invoice numbering will automatically reset at the start of each financial year.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Live Preview</span>
+                  <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <span className="text-sm font-mono font-black text-black tracking-wider">
+                      {formData.invoicePrefix}
+                      {formData.invoiceSeparator}
+                      {formData.invoiceIncludeFY ? `${formData.invoiceFYFormat === '25' ? getFY() : `FY${getFY()}`}${formData.invoiceSeparator}` : ''}
+                      {String(formData.invoiceStartNumber).padStart(formData.invoicePadding, '0')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+          {/* Section 5: Payment Accounts */}
           <div>
             <div className="flex justify-between items-center mb-6">
-              <SectionHeader number="04" title="Payment Accounts" />
+              <SectionHeader number="05" title="Payment Accounts" />
               <button
                 type="button"
                 onClick={addBankAccount}
@@ -733,12 +863,12 @@ function BusinessModal({
             {business ? 'Save Profile Changes' : 'Create Business Profile'}
           </button>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
 
-function TaxesTab({ taxes, userId }: { taxes: Tax[]; userId: string }) {
+function TaxesTab({ taxes, userId, activeBusinessId }: { taxes: Tax[]; userId: string; activeBusinessId: string }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTax, setEditingTax] = useState<Tax | null>(null);
 
@@ -788,11 +918,12 @@ function TaxesTab({ taxes, userId }: { taxes: Tax[]; userId: string }) {
         <table className="min-w-full bg-white border">
           <thead>
             <tr className="bg-gray-100">
-              <th className="py-2 px-4 text-left">Name</th>
-              <th className="py-2 px-4 text-left">Type</th>
-              <th className="py-2 px-4 text-right">Rate (%)</th>
-              <th className="py-2 px-4 text-center">Default</th>
-              <th className="py-2 px-4 text-center">Actions</th>
+              <th className="py-2 px-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Business</th>
+              <th className="py-2 px-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Name</th>
+              <th className="py-2 px-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Type</th>
+              <th className="py-2 px-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-500">Rate (%)</th>
+              <th className="py-2 px-4 text-center text-[10px] font-black uppercase tracking-widest text-gray-500">Default</th>
+              <th className="py-2 px-4 text-center text-[10px] font-black uppercase tracking-widest text-gray-500">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -805,7 +936,17 @@ function TaxesTab({ taxes, userId }: { taxes: Tax[]; userId: string }) {
             ) : (
               taxes.map((tax) => (
                 <tr key={tax.id} className="border-t hover:bg-gray-50">
-                  <td className="py-2 px-4 font-medium">{tax.name}</td>
+                  <td className="py-2 px-4 font-medium text-xs">
+                    {(tax as any).business ? (
+                      <span className="flex items-center gap-1.5 font-black text-[9px] uppercase tracking-widest" style={{ color: (tax as any).business.color || '#000' }}>
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: (tax as any).business.color || '#000' }}></div>
+                        {(tax as any).business.name}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Global</span>
+                    )}
+                  </td>
+                  <td className="py-2 px-4 font-black uppercase text-xs tracking-tight">{tax.name}</td>
                   <td className="py-2 px-4">{tax.taxType}</td>
                   <td className="py-2 px-4 text-right">{tax.rate}%</td>
                   <td className="py-2 px-4 text-center">
@@ -843,7 +984,7 @@ function TaxesTab({ taxes, userId }: { taxes: Tax[]; userId: string }) {
         </table>
       </div>
 
-      {isModalOpen && <TaxModal tax={editingTax} userId={userId} onClose={closeModal} />}
+      {isModalOpen && <TaxModal tax={editingTax} userId={userId} activeBusinessId={activeBusinessId} onClose={closeModal} />}
     </div>
   );
 }
@@ -851,10 +992,12 @@ function TaxesTab({ taxes, userId }: { taxes: Tax[]; userId: string }) {
 function TaxModal({
   tax,
   userId,
+  activeBusinessId,
   onClose,
 }: {
   tax: Tax | null;
   userId: string;
+  activeBusinessId: string;
   onClose: () => void;
 }) {
   const [name, setName] = useState(tax?.name || "");
@@ -889,6 +1032,9 @@ function TaxModal({
         db.tx.taxes[taxId].update(taxData),
         db.tx.taxes[taxId].link({ owner: userId })
       ]);
+      if (activeBusinessId !== "ALL") {
+        db.transact(db.tx.taxes[taxId].link({ business: activeBusinessId }));
+      }
     } else {
       // Updating existing tax - no need to relink owner
       db.transact(db.tx.taxes[taxId].update(taxData));
@@ -978,7 +1124,7 @@ function TaxModal({
   );
 }
 
-function TermsTab({ termsTemplates, userId }: { termsTemplates: TermsTemplate[]; userId: string }) {
+function TermsTab({ termsTemplates, userId, activeBusinessId }: { termsTemplates: TermsTemplate[]; userId: string; activeBusinessId: string }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTerms, setEditingTerms] = useState<TermsTemplate | null>(null);
 
@@ -1037,6 +1183,16 @@ function TermsTab({ termsTemplates, userId }: { termsTemplates: TermsTemplate[];
             >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    {(terms as any).business ? (
+                      <span className="flex items-center gap-1 font-black text-[8px] uppercase tracking-widest px-2 py-0.5 rounded bg-gray-50 border border-gray-100" style={{ color: (terms as any).business.color || '#000' }}>
+                        <div className="w-1 h-1 rounded-full" style={{ backgroundColor: (terms as any).business.color || '#000' }}></div>
+                        {(terms as any).business.name}
+                      </span>
+                    ) : (
+                      <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-gray-50 border border-gray-100">Global</span>
+                    )}
+                  </div>
                   <h4 className="font-semibold text-lg">{terms.title}</h4>
                   {terms.isDefault && (
                     <span className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
@@ -1076,7 +1232,7 @@ function TermsTab({ termsTemplates, userId }: { termsTemplates: TermsTemplate[];
       </div>
 
       {isModalOpen && (
-        <TermsModal terms={editingTerms} userId={userId} onClose={closeModal} />
+        <TermsModal terms={editingTerms} userId={userId} activeBusinessId={activeBusinessId} onClose={closeModal} />
       )}
     </div>
   );
@@ -1085,10 +1241,12 @@ function TermsTab({ termsTemplates, userId }: { termsTemplates: TermsTemplate[];
 function TermsModal({
   terms,
   userId,
+  activeBusinessId,
   onClose,
 }: {
   terms: TermsTemplate | null;
   userId: string;
+  activeBusinessId: string;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(terms?.title || "");
@@ -1121,6 +1279,9 @@ function TermsModal({
         db.tx.termsTemplates[termsId].update(termsData),
         db.tx.termsTemplates[termsId].link({ owner: userId })
       ]);
+      if (activeBusinessId !== "ALL") {
+        db.transact(db.tx.termsTemplates[termsId].link({ business: activeBusinessId }));
+      }
     } else {
       // Updating existing terms template - no need to relink owner
       db.transact(db.tx.termsTemplates[termsId].update(termsData));

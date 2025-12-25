@@ -92,11 +92,13 @@ export function Dashboard({
   invoices,
   clients,
   calendarEvents,
+  activeBusinessId,
   onNavigate
 }: {
   invoices: Invoice[];
   clients: Client[];
   calendarEvents: CalendarEvent[];
+  activeBusinessId: string;
   onNavigate: (view: any, modal?: string) => void;
 }) {
   const [context, setContext] = useState<TimeContext>("this_month");
@@ -154,8 +156,15 @@ export function Dashboard({
     <div className="space-y-8">
       {/* Header & Context Toggle */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Overview</h2>
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Overview</h2>
+            {activeBusinessId === "ALL" && (
+              <span className="bg-gray-100 text-gray-600 text-[8px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-full border border-gray-200">
+                All Businesses
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-600 font-medium">Welcome back! Here's what's happening.</p>
         </div>
         <div className="inline-flex bg-white p-1 rounded-lg shadow-sm border border-gray-200">

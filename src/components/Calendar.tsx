@@ -18,12 +18,16 @@ function getLocalDateString(date: Date): string {
 export function Calendar({
   calendarEvents,
   userId,
+  activeBusinessId,
+  businesses,
   initiallyOpenModal,
   onModalClose,
   calendarSecret,
 }: {
   calendarEvents: CalendarEvent[];
   userId: string;
+  activeBusinessId: string;
+  businesses: { id: string; name: string; color?: string }[];
   initiallyOpenModal?: string | null;
   onModalClose?: () => void;
   calendarSecret?: string;
@@ -159,6 +163,17 @@ export function Calendar({
                       {new Date(event.start!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
                       {new Date(event.end!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
+                    {businesses.find(b => b.id === (event as any).business?.id) && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <div
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: businesses.find(b => b.id === (event as any).business?.id)?.color || '#000' }}
+                        ></div>
+                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                          {businesses.find(b => b.id === (event as any).business?.id)?.name}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded ${event.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
@@ -195,9 +210,15 @@ export function Calendar({
                     {dayEvents.map(e => (
                       <div
                         key={e.id}
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded truncate w-full ${e.status === 'confirmed' ? 'bg-gray-900 text-white' : 'bg-blue-100 text-blue-700'
+                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded truncate w-full flex items-center gap-1 ${e.status === 'confirmed' ? 'bg-gray-900 text-white' : 'bg-blue-100 text-blue-700'
                           }`}
                       >
+                        {businesses.find(b => b.id === (e as any).business?.id) && (
+                          <div
+                            className="w-1 h-1 rounded-full shrink-0"
+                            style={{ backgroundColor: businesses.find(b => b.id === (e as any).business?.id)?.color || '#fff' }}
+                          ></div>
+                        )}
                         {e.title}
                       </div>
                     ))}
@@ -242,6 +263,7 @@ export function Calendar({
           date={selectedDate}
           event={editingEvent}
           userId={userId}
+          activeBusinessId={activeBusinessId}
           onClose={() => {
             setIsModalOpen(false);
             if (onModalClose) onModalClose();
@@ -256,11 +278,13 @@ function EventModal({
   date,
   event,
   userId,
+  activeBusinessId,
   onClose,
 }: {
   date: Date;
   event: CalendarEvent | null;
   userId: string;
+  activeBusinessId: string;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(event?.title || "");
@@ -318,6 +342,9 @@ function EventModal({
         db.tx.calendarEvents[eventId].update(eventData),
         db.tx.calendarEvents[eventId].link({ owner: userId })
       ]);
+      if (activeBusinessId !== "ALL") {
+        db.transact(db.tx.calendarEvents[eventId].link({ business: activeBusinessId }));
+      }
     } else {
       db.transact(db.tx.calendarEvents[eventId].update(eventData));
     }

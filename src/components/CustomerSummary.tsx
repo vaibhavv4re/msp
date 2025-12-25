@@ -22,6 +22,7 @@ interface CustomerSummaryProps {
     invoices: Invoice[];
     businesses: Business[];
     userId: string;
+    activeBusinessId: string;
     onBack: () => void;
     onEdit: (client: Client) => void;
     onCreateInvoice: (clientId: string) => void;
@@ -33,6 +34,7 @@ export function CustomerSummary({
     invoices: allInvoices,
     businesses,
     userId,
+    activeBusinessId,
     onBack,
     onEdit,
     onCreateInvoice,
@@ -80,6 +82,24 @@ export function CustomerSummary({
     const invoiceValues = invoices.map(inv => inv.total || 0);
     const minValue = invoiceValues.length > 0 ? Math.min(...invoiceValues) : 0;
     const maxValue = invoiceValues.length > 0 ? Math.max(...invoiceValues) : 0;
+
+    // Per Business Breakdown (only for "All Businesses" mode)
+    const businessMetrics = businesses.map(biz => {
+        const bizInvoices = invoices.filter(inv => inv.business?.id === biz.id);
+        const bizTotal = bizInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+        const bizOutstanding = bizInvoices.reduce((sum, inv) => {
+            if (inv.status === "Paid") return sum;
+            const allowance = (inv as any).isAdvanceReceived ? ((inv as any).advanceAmount || 0) : 0;
+            const tds = (inv as any).tdsDeducted ? ((inv as any).tdsAmount || 0) : 0;
+            return sum + (inv.total || 0) - allowance - tds;
+        }, 0);
+        return {
+            ...biz,
+            totalBilled: bizTotal,
+            outstanding: bizOutstanding,
+            count: bizInvoices.length
+        };
+    }).filter(m => m.count > 0);
 
     // Invoice History Filters
     const [filter, setFilter] = React.useState<"All" | "Paid" | "Unpaid" | "Overdue">("All");

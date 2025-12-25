@@ -8,6 +8,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { CustomerModal } from "./Customers";
 import { APP_CONFIG } from "@/config";
+import { generateNextInvoiceNumber } from "@/lib/invoiceUtils";
 
 export type Client = InstaQLEntity<typeof schema, "clients"> & { invoices?: Invoice[] };
 export type Invoice = InstaQLEntity<typeof schema, "invoices"> & {
@@ -58,6 +59,8 @@ export function Invoices({
   taxes,
   termsTemplates,
   businesses,
+  activeBusinessId,
+  allInvoices,
   initiallyOpenModal,
   onModalClose,
 }: {
@@ -68,6 +71,8 @@ export function Invoices({
   taxes?: Tax[];
   termsTemplates?: TermsTemplate[];
   businesses: Business[];
+  activeBusinessId: string;
+  allInvoices?: Invoice[];
   initiallyOpenModal?: boolean | string;
   onModalClose?: () => void;
 }) {
@@ -250,10 +255,12 @@ export function Invoices({
           clients={clients}
           businesses={businesses}
           userId={userId}
+          activeBusinessId={activeBusinessId}
           services={services || []}
           taxes={taxes || []}
           termsTemplates={termsTemplates || []}
           onClose={closeModal}
+          invoices={allInvoices || invoices}
         />
       )}
 
@@ -939,24 +946,28 @@ function InvoiceTable({
   );
 }
 
-function InvoiceModal({
+export function InvoiceModal({
   invoice,
   clients,
   businesses,
   userId,
+  activeBusinessId,
   services,
   taxes,
   termsTemplates,
   onClose,
+  invoices: allInvoices,
 }: {
   invoice: Invoice | null;
   clients: Client[];
   businesses: Business[];
   userId: string;
+  activeBusinessId: string;
   services: Service[];
   taxes: Tax[];
   termsTemplates: TermsTemplate[];
   onClose: () => void;
+  invoices: Invoice[];
 }) {
   const activeServices = services.filter(s => s.isActive);
   const defaultTerms = termsTemplates.find(t => t.isDefault);
@@ -975,6 +986,10 @@ function InvoiceModal({
       };
     }
 
+    const preSelectedBusinessId = activeBusinessId !== "ALL" ? activeBusinessId : (businesses[0]?.id || "");
+    const preSelectedBusiness = businesses.find(b => b.id === preSelectedBusinessId);
+    const defaultAccount = preSelectedBusiness?.bankAccounts?.find(a => a.isActive) || preSelectedBusiness?.bankAccounts?.[0];
+
     return {
       invoiceNumber: "",
       invoiceDate: new Date().toISOString().split('T')[0],
@@ -984,8 +999,8 @@ function InvoiceModal({
       subject: "",
       status: "Unpaid",
       client: { id: "" },
-      business: { id: businesses[0]?.id || "" },
-      bankAccount: { id: businesses[0]?.bankAccounts?.[0]?.id || "" },
+      business: { id: preSelectedBusinessId },
+      bankAccount: { id: defaultAccount?.id || "" },
       lineItems: [{ itemType: "custom", description: "", sacCode: "", quantity: 1, rate: 0, amount: 0 }],
       subtotal: 0,
       cgst: 0,
@@ -1027,6 +1042,17 @@ function InvoiceModal({
       setFormData((prev: any) => ({ ...prev, dueDate }));
     }
   }, [formData.invoiceDate, formData.paymentTerms, formData.client?.id, clients]);
+
+  // Auto-generate invoice number when business changes (for new invoices)
+  React.useEffect(() => {
+    if (!invoice && formData.business?.id) {
+      const selectedBusiness = businesses.find(b => b.id === formData.business.id);
+      if (selectedBusiness) {
+        const nextNumber = generateNextInvoiceNumber(selectedBusiness as any, allInvoices as any);
+        setFormData((prev: any) => ({ ...prev, invoiceNumber: nextNumber }));
+      }
+    }
+  }, [formData.business?.id, invoice, businesses, allInvoices]);
 
   // Calculate totals
   React.useEffect(() => {
@@ -1184,6 +1210,7 @@ function InvoiceModal({
         }),
         db.tx.invoices[invoiceId].link({ client: formData.client.id }),
         db.tx.invoices[invoiceId].link({ business: formData.business.id }),
+        db.tx.clients[formData.client.id].link({ business: formData.business.id }),
         ...(formData.bankAccount?.id ? [db.tx.invoices[invoiceId].link({ bankAccount: formData.bankAccount.id })] : []),
         ...(lineItems as any[]).map((li: any, i: number) =>
           db.tx.lineItems[lineItemIds[i]].update({
@@ -1302,9 +1329,26 @@ function InvoiceModal({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black mb-2 uppercase text-gray-400 tracking-[0.2em]">
-                      Invoice # <span className="text-red-500">*</span>
-                    </label>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">
+                        Invoice # <span className="text-red-500">*</span>
+                      </label>
+                      {!invoice && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const biz = businesses.find(b => b.id === formData.business?.id);
+                            if (biz) {
+                              const nextNum = generateNextInvoiceNumber(biz as any, allInvoices as any);
+                              setFormData((prev: any) => ({ ...prev, invoiceNumber: nextNum }));
+                            }
+                          }}
+                          className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-700"
+                        >
+                          Auto-Generate
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="text"
                       name="invoiceNumber"
@@ -1905,6 +1949,7 @@ function InvoiceModal({
             <CustomerModal
               client={null}
               userId={userId}
+              activeBusinessId={formData.business?.id || activeBusinessId}
               onClose={() => setIsCustomerModalOpen(false)}
               onSuccess={(clientId) => {
                 handleClientChange(clientId);

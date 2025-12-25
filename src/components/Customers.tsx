@@ -20,6 +20,7 @@ export function Customers({
   invoices,
   businesses,
   userId,
+  activeBusinessId,
   initiallyOpenModal,
   onModalClose,
   onNavigate,
@@ -28,6 +29,7 @@ export function Customers({
   invoices: Invoice[];
   businesses: Business[];
   userId: string;
+  activeBusinessId: string;
   initiallyOpenModal?: boolean;
   onModalClose?: () => void;
   onNavigate?: (view: any, modal?: string) => void;
@@ -55,6 +57,7 @@ export function Customers({
         invoices={invoices}
         businesses={businesses}
         userId={userId}
+        activeBusinessId={activeBusinessId}
         onBack={() => setView("list")}
         onEdit={(client) => openModal(client)}
         onCreateInvoice={(clientId) => {
@@ -316,7 +319,7 @@ export function Customers({
       </div>
 
       {isModalOpen && (
-        <CustomerModal client={editingClient} userId={userId} onClose={closeModal} />
+        <CustomerModal client={editingClient} userId={userId} activeBusinessId={activeBusinessId} onClose={closeModal} />
       )}
     </div>
   );
@@ -325,11 +328,13 @@ export function Customers({
 export function CustomerModal({
   client,
   userId,
+  activeBusinessId,
   onClose,
   onSuccess,
 }: {
   client: Client | null;
   userId: string;
+  activeBusinessId: string;
   onClose: () => void;
   onSuccess?: (clientId: string) => void;
 }) {
@@ -390,7 +395,6 @@ export function CustomerModal({
       currency: currency || undefined,
       paymentTerms: paymentTerms || undefined,
       customTermDays: paymentTerms === "custom" && customTermDays ? parseInt(customTermDays) : undefined,
-      isTdsDeducting: isTdsDeducting || undefined,
     };
 
     const isNew = !client;
@@ -400,6 +404,9 @@ export function CustomerModal({
         db.tx.clients[clientId].update(clientData),
         db.tx.clients[clientId].link({ owner: userId })
       ]);
+      if (activeBusinessId !== "ALL") {
+        db.transact(db.tx.clients[clientId].link({ business: activeBusinessId }));
+      }
     } else {
       // Updating existing customer - no need to relink owner
       db.transact(db.tx.clients[clientId].update(clientData));

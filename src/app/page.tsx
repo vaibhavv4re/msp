@@ -90,8 +90,10 @@ function LoginPage() {
 
 function App() {
   const [view, setView] = useState<View>("dashboard");
+  const [activeBusinessId, setActiveBusinessId] = useState<string>("ALL");
   const [modalToOpen, setModalToOpen] = useState<string | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const { isLoading, user, error: authError } = db.useAuth();
 
   // Handle OAuth callback and extract Google access token
@@ -155,17 +157,18 @@ function App() {
   const { isLoading: dataLoading, error, data } = db.useQuery(user ? {
     $users: {
       $: { where: { id: user.id } },
-      clients: { invoices: { attachment: {} } },
+      clients: { invoices: { attachment: {} }, business: {} },
       invoices: { lineItems: {}, client: {}, business: {}, attachment: {}, bankAccount: {} },
-      calendarEvents: {},
-      services: {},
-      taxes: {},
-      termsTemplates: {},
+      calendarEvents: { business: {} },
+      services: { business: {} },
+      taxes: { business: {} },
+      termsTemplates: { business: {} },
       businesses: { bankAccounts: {} },
       bankAccounts: {},
-      expenses: { attachment: {} },
+      expenses: { attachment: {}, business: {} },
       tdsEntries: {
-        client: {}
+        client: {},
+        business: {}
       }
     }
   } : null);
@@ -182,6 +185,45 @@ function App() {
   const bankAccounts = currentUser?.bankAccounts || [];
   const expenses = currentUser?.expenses || [];
   const tdsEntries = currentUser?.tdsEntries || [];
+
+  // Filter logic based on active business context
+  const filteredInvoices = activeBusinessId === "ALL"
+    ? invoices
+    : invoices.filter(inv => inv.business?.id === activeBusinessId);
+
+  const filteredExpenses = activeBusinessId === "ALL"
+    ? expenses
+    : expenses.filter(exp => (exp as any).business?.id === activeBusinessId);
+
+  const filteredTdsEntries = activeBusinessId === "ALL"
+    ? tdsEntries
+    : tdsEntries.filter(tds => (tds as any).business?.id === activeBusinessId);
+
+  const filteredCalendarEvents = activeBusinessId === "ALL"
+    ? calendarEvents
+    : calendarEvents.filter(ev => (ev as any).business?.id === activeBusinessId);
+
+  // Taxes and Terms are profile independent in settings, but we keep the filters for other potential uses
+  const filteredTaxes = activeBusinessId === "ALL"
+    ? taxes
+    : taxes.filter(t => (t as any).business?.id === activeBusinessId);
+
+  const filteredTermsTemplates = activeBusinessId === "ALL"
+    ? termsTemplates
+    : termsTemplates.filter(t => (t as any).business?.id === activeBusinessId);
+
+  const filteredServices = activeBusinessId === "ALL"
+    ? services
+    : services.filter(s => (s as any).business?.id === activeBusinessId);
+
+  const filteredClients = activeBusinessId === "ALL"
+    ? clients
+    : clients.filter(client =>
+      (client as any).business?.id === activeBusinessId ||
+      invoices.some(inv => inv.client?.id === client.id && inv.business?.id === activeBusinessId)
+    );
+
+  const activeBusiness = businesses.find(b => b.id === activeBusinessId);
 
   // Generate calendar secret if missing
   useEffect(() => {
@@ -244,12 +286,13 @@ function App() {
       <nav className="hidden md:block bg-white shadow-sm w-full sticky top-0 z-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
+            <div className="flex items-center gap-6">
               <div className="flex-shrink-0 flex items-center pr-4">
                 <h1 className="text-xl font-black text-gray-900 uppercase tracking-tighter truncate max-w-[200px] lg:max-w-[300px]" title={APP_CONFIG.NAME}>
                   {APP_CONFIG.NAME}
                 </h1>
               </div>
+
             </div>
             <div className="flex items-center gap-4">
               <button
@@ -324,6 +367,54 @@ function App() {
               >
                 Settings
               </button>
+
+              {/* Desktop Workspace Switcher */}
+              {businesses.length > 1 && (
+                <div className="relative ml-2">
+                  <button
+                    onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border-2 ${isSwitcherOpen ? 'border-gray-900 bg-gray-50' : 'border-transparent hover:bg-gray-50'}`}
+                  >
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: activeBusinessId === "ALL" ? "#9ca3af" : activeBusiness?.color }}
+                    ></div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">
+                      {activeBusinessId === "ALL" ? "All Profiles" : activeBusiness?.name}
+                    </span>
+                    <svg className={`w-3 h-3 transition-transform ${isSwitcherOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {isSwitcherOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-[100] animate-in fade-in zoom-in-95 duration-200">
+                      <div className="px-4 py-2 border-b border-gray-50 mb-1">
+                        <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-400">Switch Profile</p>
+                      </div>
+                      <button
+                        onClick={() => { setActiveBusinessId("ALL"); setIsSwitcherOpen(false); }}
+                        className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors ${activeBusinessId === "ALL" ? 'bg-gray-50' : ''}`}
+                      >
+                        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-600">All Businesses</span>
+                      </button>
+                      {businesses.map(b => (
+                        <button
+                          key={b.id}
+                          onClick={() => { setActiveBusinessId(b.id); setIsSwitcherOpen(false); }}
+                          className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors ${activeBusinessId === b.id ? 'bg-gray-50 shadow-inner' : ''}`}
+                        >
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: b.color || '#000' }}></div>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">{b.name}</span>
+                          {activeBusinessId === b.id && <div className="ml-auto w-1 h-1 bg-gray-900 rounded-full"></div>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="border-l border-gray-300 h-8 mx-2"></div>
               {user.email && (
                 <span className="text-sm text-gray-600 hidden lg:inline">{user.email}</span>
@@ -345,7 +436,7 @@ function App() {
         <h1 className="text-base font-black text-gray-900 uppercase tracking-tighter truncate pr-4" title={APP_CONFIG.NAME}>
           {APP_CONFIG.NAME}
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-[10px] font-black text-white uppercase shrink-0">
             {user.email?.[0] || user.id[0]}
           </div>
@@ -390,6 +481,54 @@ function App() {
           <span className="text-[10px] font-black uppercase tracking-tighter">More</span>
         </button>
       </div >
+
+      {/* Mobile Floating Profile Switcher */}
+      {businesses.length > 1 && (
+        <div className="md:hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] flex flex-col items-center">
+          {isSwitcherOpen && (
+            <div className="mb-4 w-64 bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 p-2 animate-in slide-in-from-bottom-4 duration-300">
+              <div className="px-4 py-3 border-b border-gray-100/50 flex justify-between items-center mb-1">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Switch Workspace</p>
+                <button onClick={() => setIsSwitcherOpen(false)} className="text-gray-400 hover:text-gray-900">✕</button>
+              </div>
+              <div className="max-h-[30vh] overflow-y-auto no-scrollbar space-y-1">
+                <button
+                  onClick={() => { setActiveBusinessId("ALL"); setIsSwitcherOpen(false); }}
+                  className={`w-full px-5 py-4 text-left flex items-center gap-4 rounded-2xl transition-all ${activeBusinessId === "ALL" ? 'bg-gray-900 text-white shadow-lg' : 'hover:bg-gray-100 text-gray-600'}`}
+                >
+                  <div className={`w-2 h-2 rounded-full ${activeBusinessId === "ALL" ? 'bg-white' : 'bg-gray-400'}`}></div>
+                  <span className="text-xs font-black uppercase tracking-widest text-inherit">All Businesses</span>
+                </button>
+                {businesses.map(b => (
+                  <button
+                    key={b.id}
+                    onClick={() => { setActiveBusinessId(b.id); setIsSwitcherOpen(false); }}
+                    className={`w-full px-5 py-4 text-left flex items-center gap-4 rounded-2xl transition-all ${activeBusinessId === b.id ? 'bg-gray-900 text-white shadow-lg' : 'hover:bg-gray-100 text-gray-900'}`}
+                  >
+                    <div className={`w-2 h-2 rounded-full shadow-sm`} style={{ backgroundColor: b.color || '#000' }}></div>
+                    <span className="text-xs font-black uppercase tracking-widest text-inherit">{b.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <button
+            onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
+            className={`shadow-2xl backdrop-blur-md rounded-full px-5 py-3 flex items-center gap-2.5 transition-all active:scale-90 border-2 ${isSwitcherOpen ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-white text-gray-900'}`}
+          >
+            <div
+              className={`w-1.5 h-1.5 rounded-full animate-pulse`}
+              style={{ backgroundColor: activeBusinessId === "ALL" ? "#9ca3af" : activeBusiness?.color }}
+            ></div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-inherit">
+              {activeBusinessId === "ALL" ? "All Profiles" : activeBusiness?.name}
+            </span>
+            <svg className={`w-3.5 h-3.5 transition-transform duration-300 ${isSwitcherOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Fullscreen Mobile More Menu */}
       {
@@ -438,9 +577,10 @@ function App() {
       <main className="flex-1 w-full max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
         {view === "dashboard" && (
           <Dashboard
-            invoices={invoices as any}
+            invoices={filteredInvoices as any}
             clients={clients as any}
             calendarEvents={calendarEvents as any}
+            activeBusinessId={activeBusinessId}
             onNavigate={(newView: View, modal?: string) => {
               setView(newView);
               if (modal) setModalToOpen(modal);
@@ -449,10 +589,11 @@ function App() {
         )}
         {view === "customers" && (
           <Customers
-            clients={clients as any}
-            invoices={invoices as any}
+            clients={filteredClients as any}
+            invoices={filteredInvoices as any}
             businesses={businesses as any}
             userId={user.id}
+            activeBusinessId={activeBusinessId}
             initiallyOpenModal={modalToOpen === "create-client"}
             onModalClose={() => setModalToOpen(null)}
             onNavigate={(newView: View, modal?: string) => {
@@ -463,12 +604,14 @@ function App() {
         )}
         {view === "invoices" && (
           <Invoices
-            invoices={invoices as any}
+            invoices={filteredInvoices as any}
+            allInvoices={invoices as any} // Might need for customer logic
             clients={clients as any}
             services={services as any}
             taxes={taxes as any}
             termsTemplates={termsTemplates as any}
             businesses={businesses as any}
+            activeBusinessId={activeBusinessId}
             userId={user.id}
             initiallyOpenModal={modalToOpen || undefined}
             onModalClose={() => setModalToOpen(null)}
@@ -483,31 +626,35 @@ function App() {
         )}
         {view === "calendar" && (
           <Calendar
-            calendarEvents={calendarEvents as any}
+            calendarEvents={filteredCalendarEvents as any}
             userId={user.id}
+            activeBusinessId={activeBusinessId}
+            businesses={businesses as any}
             calendarSecret={currentUser?.calendarSecret}
             initiallyOpenModal={modalToOpen}
             onModalClose={() => setModalToOpen(null)}
           />
         )}
-        {view === "services" && <Services services={services} userId={user.id} />}
+        {view === "services" && <Services services={filteredServices as any} userId={user.id} activeBusinessId={activeBusinessId} />}
         {view === "settings" && (
           <Settings
-            taxes={taxes}
-            termsTemplates={termsTemplates}
+            taxes={taxes as any}
+            termsTemplates={termsTemplates as any}
             userId={user.id}
-            invoices={invoices}
-            clients={clients}
-            businesses={businesses}
+            activeBusinessId={activeBusinessId}
+            invoices={invoices as any}
+            clients={clients as any}
+            businesses={businesses as any}
           />
         )}
         {view === "taxzone" && (
           <TaxZone
-            invoices={invoices as any}
+            invoices={filteredInvoices as any}
             clients={clients as any}
-            expenses={expenses as any}
-            tdsEntries={tdsEntries as any}
+            expenses={filteredExpenses as any}
+            tdsEntries={filteredTdsEntries as any}
             userId={user.id}
+            activeBusinessId={activeBusinessId}
             initiallyOpenModal={modalToOpen === "capture-expense" ? "capture-expense" : undefined}
             onModalClose={() => setModalToOpen(null)}
           />

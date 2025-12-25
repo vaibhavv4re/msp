@@ -11,7 +11,7 @@ type Service = {
   isActive: boolean;
 };
 
-export function Services({ services, userId }: { services: Service[]; userId: string }) {
+export function Services({ services, userId, activeBusinessId }: { services: Service[]; userId: string; activeBusinessId: string }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -240,7 +240,7 @@ export function Services({ services, userId }: { services: Service[]; userId: st
       </div>
 
       {isModalOpen && (
-        <ServiceModal service={editingService} userId={userId} onClose={closeModal} />
+        <ServiceModal service={editingService} userId={userId} activeBusinessId={activeBusinessId} onClose={closeModal} />
       )}
     </div>
   );
@@ -249,10 +249,12 @@ export function Services({ services, userId }: { services: Service[]; userId: st
 function ServiceModal({
   service,
   userId,
+  activeBusinessId,
   onClose,
 }: {
   service: Service | null;
   userId: string;
+  activeBusinessId: string;
   onClose: () => void;
 }) {
   const [name, setName] = useState(service?.name || "");
@@ -284,11 +286,15 @@ function ServiceModal({
 
     const isNew = !service;
     if (isNew) {
-      // Creating new service - link owner
-      db.transact([
+      // Creating new service - link owner and business
+      const txs = [
         db.tx.services[serviceId].update(serviceData),
         db.tx.services[serviceId].link({ owner: userId })
-      ]);
+      ];
+      if (activeBusinessId !== "ALL") {
+        txs.push(db.tx.services[serviceId].link({ business: activeBusinessId }));
+      }
+      db.transact(txs);
     } else {
       // Updating existing service - no need to relink owner
       db.transact(db.tx.services[serviceId].update(serviceData));

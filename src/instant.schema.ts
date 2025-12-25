@@ -66,6 +66,12 @@ const _schema = i.schema({
       taxBehavior: i.string().optional(), // inclusive, exclusive
       color: i.string().optional(), // HEX color for business
       signatureUrl: i.string().optional(),
+      invoicePrefix: i.string().optional(),
+      invoiceSeparator: i.string().optional(),
+      invoiceIncludeFY: i.boolean().optional(),
+      invoiceFYFormat: i.string().optional(), // "FY25" or "25"
+      invoiceStartNumber: i.number().optional(),
+      invoicePadding: i.number().optional(),
     }),
     bankAccounts: i.entity({
       label: i.string(), // Primary / Secondary
@@ -397,6 +403,42 @@ const _schema = i.schema({
         label: "bankAccounts",
       },
     },
+    expensesBusiness: {
+      forward: {
+        on: "expenses",
+        has: "one",
+        label: "business",
+      },
+      reverse: {
+        on: "businesses",
+        has: "many",
+        label: "expenses",
+      },
+    },
+    tdsEntriesBusiness: {
+      forward: {
+        on: "tdsEntries",
+        has: "one",
+        label: "business",
+      },
+      reverse: {
+        on: "businesses",
+        has: "many",
+        label: "tdsEntries",
+      },
+    },
+    servicesBusiness: {
+      forward: {
+        on: "services",
+        has: "one",
+        label: "business",
+      },
+      reverse: {
+        on: "businesses",
+        has: "many",
+        label: "services",
+      },
+    },
     bankAccountsBusiness: {
       forward: {
         on: "bankAccounts",
@@ -407,6 +449,54 @@ const _schema = i.schema({
         on: "businesses",
         has: "many",
         label: "bankAccounts",
+      },
+    },
+    calendarEventsBusiness: {
+      forward: {
+        on: "calendarEvents",
+        has: "one",
+        label: "business",
+      },
+      reverse: {
+        on: "businesses",
+        has: "many",
+        label: "calendarEvents",
+      },
+    },
+    clientsBusiness: {
+      forward: {
+        on: "clients",
+        has: "one",
+        label: "business",
+      },
+      reverse: {
+        on: "businesses",
+        has: "many",
+        label: "clients",
+      },
+    },
+    taxesBusiness: {
+      forward: {
+        on: "taxes",
+        has: "one",
+        label: "business",
+      },
+      reverse: {
+        on: "businesses",
+        has: "many",
+        label: "taxes",
+      },
+    },
+    termsTemplatesBusiness: {
+      forward: {
+        on: "termsTemplates",
+        has: "one",
+        label: "business",
+      },
+      reverse: {
+        on: "businesses",
+        has: "many",
+        label: "termsTemplates",
       },
     },
   },

@@ -67,6 +67,7 @@ export function TaxZone({
     expenses,
     tdsEntries,
     userId,
+    activeBusinessId,
     initiallyOpenModal,
     onModalClose
 }: {
@@ -75,6 +76,7 @@ export function TaxZone({
     expenses: Expense[];
     tdsEntries: TDSEntry[];
     userId: string;
+    activeBusinessId: string;
     initiallyOpenModal?: string;
     onModalClose?: () => void;
 }) {
@@ -749,6 +751,7 @@ export function TaxZone({
                     userId={userId}
                     expenses={expenses}
                     initialExpense={selectedExpense}
+                    activeBusinessId={activeBusinessId}
                 />
             )}
 
@@ -758,13 +761,14 @@ export function TaxZone({
                     userId={userId}
                     clients={clients}
                     currentFY={selectedFY}
+                    activeBusinessId={activeBusinessId}
                 />
             )}
         </div>
     );
 }
 
-function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: () => void, userId: string, expenses: Expense[], initialExpense?: Expense | null }) {
+function ExpenseModal({ onClose, userId, expenses, initialExpense, activeBusinessId }: { onClose: () => void, userId: string, expenses: Expense[], initialExpense?: Expense | null, activeBusinessId: string }) {
     const [formData, setFormData] = useState({
         amount: initialExpense?.amount.toString() || "",
         date: initialExpense?.date || new Date().toISOString().slice(0, 10),
@@ -832,6 +836,9 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
 
             if (!isDraftCreated) {
                 trans.push(db.tx.expenses[currentExpenseId].link({ owner: userId }));
+                if (activeBusinessId !== "ALL") {
+                    trans.push(db.tx.expenses[currentExpenseId].link({ business: activeBusinessId }));
+                }
                 setIsDraftCreated(true);
             }
             db.transact(trans);
@@ -927,6 +934,10 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
 
             if (attachmentId) {
                 trans.push(db.tx.expenses[expenseId].link({ attachment: attachmentId }));
+            }
+
+            if (activeBusinessId !== "ALL") {
+                trans.push(db.tx.expenses[expenseId].link({ business: activeBusinessId }));
             }
 
             db.transact(trans);
@@ -1126,7 +1137,7 @@ function ExpenseModal({ onClose, userId, expenses, initialExpense }: { onClose: 
     );
 }
 
-function TDSModal({ onClose, userId, clients, currentFY }: { onClose: () => void, userId: string, clients: Client[], currentFY: string }) {
+function TDSModal({ onClose, userId, clients, currentFY, activeBusinessId }: { onClose: () => void, userId: string, clients: Client[], currentFY: string, activeBusinessId: string }) {
     const [formData, setFormData] = useState({
         amount: "",
         clientId: "",
@@ -1140,7 +1151,7 @@ function TDSModal({ onClose, userId, clients, currentFY }: { onClose: () => void
         if (!formData.amount || !formData.clientId) return;
 
         const tdsId = id();
-        db.transact([
+        const txs = [
             db.tx.tdsEntries[tdsId].update({
                 amount: parseFloat(formData.amount),
                 fy: formData.fy,
@@ -1148,7 +1159,11 @@ function TDSModal({ onClose, userId, clients, currentFY }: { onClose: () => void
                 notes: formData.notes,
             }),
             db.tx.tdsEntries[tdsId].link({ owner: userId, client: formData.clientId })
-        ]);
+        ];
+        if (activeBusinessId !== "ALL") {
+            txs.push(db.tx.tdsEntries[tdsId].link({ business: activeBusinessId }));
+        }
+        db.transact(txs);
         onClose();
     };
 
