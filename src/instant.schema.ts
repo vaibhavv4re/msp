@@ -58,6 +58,7 @@ const _schema = i.schema({
       country: i.string().optional(),
       contact: i.string().optional(), // Business Phone
       email: i.string().optional(), // Business Email
+      whatsappNumber: i.string().optional(),
       pan: i.string().optional(),
       gst: i.string().optional(),
       gstType: i.string().optional(), // Regular, Composition, etc.
@@ -109,6 +110,7 @@ const _schema = i.schema({
       tdsDeducted: i.boolean().optional(),
       tdsAmount: i.number().optional(),
       paidAt: i.string().optional(), // ISO timestamp
+      lastReminderSentAt: i.string().optional(),
     }),
     lineItems: i.entity({
       itemType: i.string().optional(), // 'service' or 'custom'

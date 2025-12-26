@@ -248,6 +248,7 @@ export function BusinessModal({
     pan: business?.pan || "",
     gst: business?.gst || "",
     gstType: business?.gstType || "Regular",
+    whatsappNumber: (business as any)?.whatsappNumber || "",
     stateCode: business?.stateCode || "",
     isComposition: business?.isComposition || false,
     taxBehavior: business?.taxBehavior || "exclusive",
@@ -544,6 +545,16 @@ export function BusinessModal({
                   className="w-full bg-gray-50 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-gray-900 transition-all"
                   value={formData.contact}
                   onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                  placeholder="+91 XXXXX XXXXX"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">WhatsApp Number (For Reminders)</label>
+                <input
+                  type="text"
+                  className="w-full bg-gray-50 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-gray-900 transition-all border-2 border-blue-100 focus:border-blue-600"
+                  value={formData.whatsappNumber}
+                  onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
                   placeholder="+91 XXXXX XXXXX"
                 />
               </div>
