@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { db } from "@/lib/db";
 import { AppSchema } from "@/instant.schema";
@@ -91,7 +91,7 @@ function LoginPage() {
   );
 }
 
-function App() {
+function AppContent() {
   const [view, setView] = useState<View>("dashboard");
   const [activeBusinessId, setActiveBusinessId] = useState<string>("ALL");
   const [modalToOpen, setModalToOpen] = useState<string | null>(null);
@@ -745,4 +745,17 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <AppContent />
+    </Suspense>
+  );
+}
