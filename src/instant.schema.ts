@@ -13,6 +13,7 @@ const _schema = i.schema({
       imageURL: i.string().optional(),
       type: i.string().optional(),
       calendarSecret: i.string().optional(), // Secret key for iCal feed
+      role: i.string().optional(), // "admin" | "user"
     }),
     calendarEvents: i.entity({
       title: i.string().optional(),
@@ -46,6 +47,7 @@ const _schema = i.schema({
       paymentTerms: i.string().optional(), // Due on receipt, net 15, net 30, net 45, net 60, custom
       customTermDays: i.number().optional(),
       isTdsDeducting: i.boolean().optional(),
+      source: i.string().optional(), // "manual" | "imported" | "concierge"
     }),
     businesses: i.entity({
       name: i.string(), // Brand Name
@@ -73,6 +75,8 @@ const _schema = i.schema({
       invoiceFYFormat: i.string().optional(), // "FY25" or "25"
       invoiceStartNumber: i.number().optional(),
       invoicePadding: i.number().optional(),
+      status: i.string().optional(), // "pending_claim" | "active" | "disabled"
+      createdBy: i.string().optional(), // "admin" | "self"
     }),
     bankAccounts: i.entity({
       label: i.string(), // Primary / Secondary
@@ -111,6 +115,7 @@ const _schema = i.schema({
       tdsAmount: i.number().optional(),
       paidAt: i.string().optional(), // ISO timestamp
       lastReminderSentAt: i.string().optional(),
+      source: i.string().optional(), // "manual" | "imported" | "concierge"
     }),
     lineItems: i.entity({
       itemType: i.string().optional(), // 'service' or 'custom'
@@ -160,6 +165,7 @@ const _schema = i.schema({
       ocrStatus: i.string().optional(), // "pending" | "processing" | "done" | "failed"
       ocrSuggestions: i.any().optional(), // Stores suggested amount, date, vendor, etc.
       status: i.string().optional(), // "draft" | "confirmed"
+      source: i.string().optional(), // "manual" | "imported" | "concierge"
     }),
     tdsEntries: i.entity({
       amount: i.number(),

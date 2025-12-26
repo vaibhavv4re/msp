@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { db } from "@/lib/db";
 import { AppSchema } from "@/instant.schema";
 import { id, InstaQLEntity } from "@instantdb/react";
@@ -15,6 +16,7 @@ import { GoogleCalendarAPI } from "@/lib/googleCalendar";
 import { GoogleCalendarAuth } from "@/lib/googleOAuth";
 import { APP_CONFIG } from "@/config";
 import { Onboarding } from "@/components/Onboarding";
+import { AdminPortal } from "@/components/AdminPortal";
 
 export type Client = InstaQLEntity<AppSchema, "clients"> & { invoices: Invoice[] };
 export type Invoice = InstaQLEntity<AppSchema, "invoices"> & {
@@ -27,7 +29,7 @@ export type CalendarEvent = InstaQLEntity<AppSchema, "calendarEvents">;
 export type Business = InstaQLEntity<AppSchema, "businesses"> & { bankAccounts: BankAccount[] };
 export type BankAccount = InstaQLEntity<AppSchema, "bankAccounts">;
 
-type View = "dashboard" | "invoices" | "calendar" | "customers" | "services" | "taxzone" | "settings" | "data";
+type View = "dashboard" | "invoices" | "calendar" | "customers" | "services" | "taxzone" | "settings" | "data" | "admin";
 
 function LoginPage() {
   const handleGoogleLogin = () => {
@@ -57,7 +59,7 @@ function LoginPage() {
         <div className="space-y-4">
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 rounded-lg px-6 py-3 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm"
+            className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-900 rounded-2xl px-6 py-4 text-gray-900 text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all duration-300 shadow-xl shadow-gray-100"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -96,7 +98,10 @@ function App() {
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [hasDismissedOnboarding, setHasDismissedOnboarding] = useState(false);
-  const { isLoading, user, error: authError } = db.useAuth();
+  const searchParams = useSearchParams();
+  const isDevBootstrap = searchParams.get("dev_bootstrap") === "true";
+
+  const { isLoading: authLoading, user, error: authError } = db.useAuth();
 
   // Load onboarding dismissal state from localStorage
   useEffect(() => {
@@ -163,11 +168,11 @@ function App() {
   // Update document title based on current view
   useEffect(() => {
     const viewTitle = view === "taxzone" ? "Tax Zone" : view.charAt(0).toUpperCase() + view.slice(1);
-    document.title = `${APP_CONFIG.NAME} | ${viewTitle}`;
+    document.title = `${APP_CONFIG.NAME} | ${viewTitle} `;
   }, [view]);
 
 
-  const { isLoading: dataLoading, error, data } = db.useQuery(user ? {
+  const { isLoading: dataLoading, error, data } = db.useQuery(user ? ({
     $users: {
       $: { where: { id: user.id } },
       clients: { invoices: { attachment: {} }, business: {} },
@@ -183,11 +188,21 @@ function App() {
         client: {},
         business: {}
       }
+    },
+    businesses: {
+      $: {
+        where: {
+          email: user.email,
+          status: "pending_claim"
+        }
+      },
+      clients: { invoices: {} },
+      invoices: { lineItems: {} }
     }
-  } : null);
+  } as any) : null);
 
   // Extract data safely
-  const currentUser = data?.$users?.[0];
+  const currentUser = (data as any)?.$users?.[0] as any;
   const clients = currentUser?.clients || [];
   const invoices = currentUser?.invoices || [];
   const calendarEvents = currentUser?.calendarEvents || [];
@@ -202,41 +217,41 @@ function App() {
   // Filter logic based on active business context
   const filteredInvoices = activeBusinessId === "ALL"
     ? invoices
-    : invoices.filter(inv => inv.business?.id === activeBusinessId);
+    : invoices.filter((inv: any) => inv.business?.id === activeBusinessId);
 
   const filteredExpenses = activeBusinessId === "ALL"
     ? expenses
-    : expenses.filter(exp => (exp as any).business?.id === activeBusinessId);
+    : expenses.filter((exp: any) => (exp as any).business?.id === activeBusinessId);
 
   const filteredTdsEntries = activeBusinessId === "ALL"
     ? tdsEntries
-    : tdsEntries.filter(tds => (tds as any).business?.id === activeBusinessId);
+    : tdsEntries.filter((tds: any) => (tds as any).business?.id === activeBusinessId);
 
   const filteredCalendarEvents = activeBusinessId === "ALL"
     ? calendarEvents
-    : calendarEvents.filter(ev => (ev as any).business?.id === activeBusinessId);
+    : calendarEvents.filter((ev: any) => (ev as any).business?.id === activeBusinessId);
 
   // Taxes and Terms are profile independent in settings, but we keep the filters for other potential uses
   const filteredTaxes = activeBusinessId === "ALL"
     ? taxes
-    : taxes.filter(t => (t as any).business?.id === activeBusinessId);
+    : taxes.filter((t: any) => (t as any).business?.id === activeBusinessId);
 
   const filteredTermsTemplates = activeBusinessId === "ALL"
     ? termsTemplates
-    : termsTemplates.filter(t => (t as any).business?.id === activeBusinessId);
+    : termsTemplates.filter((t: any) => (t as any).business?.id === activeBusinessId);
 
   const filteredServices = activeBusinessId === "ALL"
     ? services
-    : services.filter(s => (s as any).business?.id === activeBusinessId);
+    : services.filter((s: any) => (s as any).business?.id === activeBusinessId);
 
   const filteredClients = activeBusinessId === "ALL"
     ? clients
-    : clients.filter(client =>
+    : clients.filter((client: any) =>
       (client as any).business?.id === activeBusinessId ||
-      invoices.some(inv => inv.client?.id === client.id && inv.business?.id === activeBusinessId)
+      invoices.some((inv: any) => inv.client?.id === client.id && inv.business?.id === activeBusinessId)
     );
 
-  const activeBusiness = businesses.find(b => b.id === activeBusinessId);
+  const activeBusiness = (businesses as any[]).find((b: any) => b.id === activeBusinessId);
 
   // Generate calendar secret if missing
   useEffect(() => {
@@ -245,8 +260,37 @@ function App() {
     }
   }, [currentUser, user?.id]);
 
+  // Handle Concierge Profile Claiming
+  useEffect(() => {
+    if (user && businesses.length === 0 && (data as any)?.businesses?.length) {
+      const claimable = (data as any).businesses[0]; // Take the first matching profile
+      console.log('🎁 Found a concierge profile to claim:', claimable.name);
+
+      const txs: any[] = [
+        db.tx.businesses[claimable.id].update({
+          status: "active",
+        }),
+        db.tx.businesses[claimable.id].link({ owner: user.id })
+      ];
+
+      // Link related data imported by admin to the user
+      claimable.clients?.forEach((client: any) => {
+        txs.push(db.tx.clients[client.id].link({ owner: user.id }));
+        client.invoices?.forEach((inv: any) => {
+          txs.push(db.tx.invoices[inv.id].link({ owner: user.id }));
+        });
+      });
+
+      db.transact(txs as any[]).then(() => {
+        console.log('✅ Concierge profile claimed successfully!');
+      });
+    }
+  }, [user, businesses, data]);
+
+  const isAdmin = currentUser?.role === "admin";
+
   // Show loading state while checking auth
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
@@ -316,83 +360,67 @@ function App() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setView("dashboard")}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${view === "dashboard"
-                  ? "text-white bg-gray-900"
-                  : "text-gray-700 hover:bg-gray-200"
-                  }`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "dashboard" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
                 Dashboard
               </button>
               <button
                 onClick={() => setView("customers")}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${view === "customers"
-                  ? "text-white bg-gray-900"
-                  : "text-gray-700 hover:bg-gray-200"
-                  }`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "customers" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
                 Customers
               </button>
               <button
                 onClick={() => setView("invoices")}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${view === "invoices"
-                  ? "text-white bg-gray-900"
-                  : "text-gray-700 hover:bg-gray-200"
-                  }`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "invoices" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
                 Invoices
               </button>
               <button
                 onClick={() => setView("calendar")}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${view === "calendar"
-                  ? "text-white bg-gray-900"
-                  : "text-gray-700 hover:bg-gray-200"
-                  }`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "calendar" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
                 Calendar
               </button>
               <button
                 onClick={() => setView("services")}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${view === "services"
-                  ? "text-white bg-gray-900"
-                  : "text-gray-700 hover:bg-gray-200"
-                  }`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "services" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
                 Services
               </button>
               <button
                 onClick={() => setView("taxzone")}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${view === "taxzone"
-                  ? "text-white bg-gray-900"
-                  : "text-gray-700 hover:bg-gray-200"
-                  }`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "taxzone" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
                 Tax Zone
               </button>
               <button
                 onClick={() => setView("data")}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${view === "data"
-                  ? "text-white bg-gray-900"
-                  : "text-gray-700 hover:bg-gray-200"
-                  }`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "data" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
                 Data
               </button>
               <button
                 onClick={() => setView("settings")}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${view === "settings"
-                  ? "text-white bg-gray-900"
-                  : "text-gray-700 hover:bg-gray-200"
-                  }`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "settings" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
                 Settings
               </button>
+              {isAdmin && (
+                <button
+                  onClick={() => setView("admin")}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "admin" ? "bg-red-600 text-white shadow-lg shadow-red-100" : "text-red-500 hover:bg-red-50"} transition-all`}
+                >
+                  Admin
+                </button>
+              )}
 
               {/* Desktop Workspace Switcher */}
               {businesses.length > 1 && (
                 <div className="relative ml-2">
                   <button
                     onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border-2 ${isSwitcherOpen ? 'border-gray-900 bg-gray-50' : 'border-transparent hover:bg-gray-50'}`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border-2 ${isSwitcherOpen ? 'border-gray-900 bg-gray-50' : 'border-transparent hover:bg-gray-50'} `}
                   >
                     <div
                       className="w-2 h-2 rounded-full"
@@ -401,7 +429,7 @@ function App() {
                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">
                       {activeBusinessId === "ALL" ? "All Profiles" : activeBusiness?.name}
                     </span>
-                    <svg className={`w-3 h-3 transition-transform ${isSwitcherOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-3 h-3 transition-transform ${isSwitcherOpen ? 'rotate-180' : ''} `} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
@@ -413,16 +441,16 @@ function App() {
                       </div>
                       <button
                         onClick={() => { setActiveBusinessId("ALL"); setIsSwitcherOpen(false); }}
-                        className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors ${activeBusinessId === "ALL" ? 'bg-gray-50' : ''}`}
+                        className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors ${activeBusinessId === "ALL" ? 'bg-gray-50' : ''} `}
                       >
                         <div className="w-2 h-2 rounded-full bg-gray-400"></div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-600">All Businesses</span>
                       </button>
-                      {businesses.map(b => (
+                      {businesses.map((b: any) => (
                         <button
                           key={b.id}
                           onClick={() => { setActiveBusinessId(b.id); setIsSwitcherOpen(false); }}
-                          className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors ${activeBusinessId === b.id ? 'bg-gray-50 shadow-inner' : ''}`}
+                          className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors ${activeBusinessId === b.id ? 'bg-gray-50 shadow-inner' : ''} `}
                         >
                           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: b.color || '#000' }}></div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">{b.name}</span>
@@ -434,6 +462,15 @@ function App() {
                 </div>
               )}
 
+              {!isAdmin && isDevBootstrap && (
+                <button
+                  onClick={() => db.transact(db.tx.$users[user.id].update({ role: "admin" }))}
+                  className="mr-4 px-3 py-1 bg-red-50 text-red-600 text-[8px] font-black uppercase rounded-full border border-red-100 hover:bg-red-600 hover:text-white transition-all underline decoration-dotted"
+                  title="Developer Bootstrap Trigger"
+                >
+                  Bootstrap Admin
+                </button>
+              )}
               <div className="flex items-center gap-3 pr-2">
                 <div className="border-l border-gray-300 h-8 mx-2"></div>
                 {(user as any)?.google?.picture || (user as any)?.picture ? (
@@ -487,35 +524,35 @@ function App() {
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center z-[60] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <button
           onClick={() => { setView("dashboard"); setIsMoreMenuOpen(false); }}
-          className={`flex flex-col items-center gap-1 ${view === "dashboard" ? "text-gray-900" : "text-gray-400"}`}
+          className={`flex flex-col items-center gap-1 ${view === "dashboard" ? "text-gray-900" : "text-gray-400"} `}
         >
           <svg className="w-6 h-6" fill={view === "dashboard" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
           <span className="text-[10px] font-black uppercase tracking-tighter">Home</span>
         </button>
         <button
           onClick={() => { setView("invoices"); setIsMoreMenuOpen(false); }}
-          className={`flex flex-col items-center gap-1 ${view === "invoices" ? "text-gray-900" : "text-gray-400"}`}
+          className={`flex flex-col items-center gap-1 ${view === "invoices" ? "text-gray-900" : "text-gray-400"} `}
         >
           <svg className="w-6 h-6" fill={view === "invoices" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
           <span className="text-[10px] font-black uppercase tracking-tighter">Invoices</span>
         </button>
         <button
           onClick={() => { setView("calendar"); setIsMoreMenuOpen(false); }}
-          className={`flex flex-col items-center gap-1 ${view === "calendar" ? "text-gray-900" : "text-gray-400"}`}
+          className={`flex flex-col items-center gap-1 ${view === "calendar" ? "text-gray-900" : "text-gray-400"} `}
         >
           <svg className="w-6 h-6" fill={view === "calendar" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
           <span className="text-[10px] font-black uppercase tracking-tighter">Calendar</span>
         </button>
         <button
           onClick={() => { setView("taxzone"); setIsMoreMenuOpen(false); }}
-          className={`flex flex-col items-center gap-1 ${view === "taxzone" ? "text-gray-900" : "text-gray-400"}`}
+          className={`flex flex-col items-center gap-1 ${view === "taxzone" ? "text-gray-900" : "text-gray-400"} `}
         >
           <svg className="w-6 h-6" fill={view === "taxzone" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m3 2h12a3 3 0 003-3v-2a3 3 0 00-3-3H9a3 3 0 00-3 3v2a3 3 0 003 3z" /></svg>
           <span className="text-[10px] font-black uppercase tracking-tighter">Tax Zone</span>
         </button>
         <button
           onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-          className={`flex flex-col items-center gap-1 ${isMoreMenuOpen ? "text-gray-900" : "text-gray-400"}`}
+          className={`flex flex-col items-center gap-1 ${isMoreMenuOpen ? "text-gray-900" : "text-gray-400"} `}
         >
           <svg className="w-6 h-6" fill={isMoreMenuOpen ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
           <span className="text-[10px] font-black uppercase tracking-tighter">More</span>
@@ -534,16 +571,16 @@ function App() {
               <div className="max-h-[30vh] overflow-y-auto no-scrollbar space-y-1">
                 <button
                   onClick={() => { setActiveBusinessId("ALL"); setIsSwitcherOpen(false); }}
-                  className={`w-full px-5 py-4 text-left flex items-center gap-4 rounded-2xl transition-all ${activeBusinessId === "ALL" ? 'bg-gray-900 text-white shadow-lg' : 'hover:bg-gray-100 text-gray-600'}`}
+                  className={`w-full px-5 py-4 text-left flex items-center gap-4 rounded-2xl transition-all ${activeBusinessId === "ALL" ? 'bg-gray-900 text-white shadow-lg' : 'hover:bg-gray-100 text-gray-600'} `}
                 >
-                  <div className={`w-2 h-2 rounded-full ${activeBusinessId === "ALL" ? 'bg-white' : 'bg-gray-400'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${activeBusinessId === "ALL" ? 'bg-white' : 'bg-gray-400'} `}></div>
                   <span className="text-xs font-black uppercase tracking-widest text-inherit">All Businesses</span>
                 </button>
-                {businesses.map(b => (
+                {businesses.map((b: any) => (
                   <button
                     key={b.id}
                     onClick={() => { setActiveBusinessId(b.id); setIsSwitcherOpen(false); }}
-                    className={`w-full px-5 py-4 text-left flex items-center gap-4 rounded-2xl transition-all ${activeBusinessId === b.id ? 'bg-gray-900 text-white shadow-lg' : 'hover:bg-gray-100 text-gray-900'}`}
+                    className={`w-full px-5 py-4 text-left flex items-center gap-4 rounded-2xl transition-all ${activeBusinessId === b.id ? 'bg-gray-900 text-white shadow-lg' : 'hover:bg-gray-100 text-gray-900'} `}
                   >
                     <div className={`w-2 h-2 rounded-full shadow-sm`} style={{ backgroundColor: b.color || '#000' }}></div>
                     <span className="text-xs font-black uppercase tracking-widest text-inherit">{b.name}</span>
@@ -554,7 +591,7 @@ function App() {
           )}
           <button
             onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
-            className={`shadow-2xl backdrop-blur-md rounded-full px-5 py-3 flex items-center gap-2.5 transition-all active:scale-90 border-2 ${isSwitcherOpen ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-white text-gray-900'}`}
+            className={`shadow-2xl backdrop-blur-md rounded-full px-5 py-3 flex items-center gap-2.5 transition-all active:scale-90 border-2 ${isSwitcherOpen ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-white text-gray-900'} `}
           >
             <div
               className={`w-1.5 h-1.5 rounded-full animate-pulse`}
@@ -563,7 +600,7 @@ function App() {
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-inherit">
               {activeBusinessId === "ALL" ? "All Profiles" : activeBusiness?.name}
             </span>
-            <svg className={`w-3.5 h-3.5 transition-transform duration-300 ${isSwitcherOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-3.5 h-3.5 transition-transform duration-300 ${isSwitcherOpen ? 'rotate-180' : ''} `} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -587,11 +624,12 @@ function App() {
                 { id: 'services', label: 'Services', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 00-2-2m0 0V5a2 2 0 012-2h6.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V7n" /> },
                 { id: 'data', label: 'Data Mgmt', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3zm0 4h16m-16 4h16" /> },
                 { id: 'settings', label: 'Settings', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /> },
+                ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /> }] : []),
               ].map((item) => (
                 <button
                   key={item.id}
                   onClick={() => { setView(item.id as any); setIsMoreMenuOpen(false); }}
-                  className={`flex items-center gap-4 p-5 rounded-2xl border transition-all ${view === item.id ? "bg-gray-900 text-white border-gray-900" : "bg-gray-50 text-gray-700 border-gray-100 hover:border-gray-300"}`}
+                  className={`flex items-center gap-4 p-5 rounded-2xl border transition-all ${view === item.id ? "bg-gray-900 text-white border-gray-900" : "bg-gray-50 text-gray-700 border-gray-100 hover:border-gray-300"} `}
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">{item.icon}</svg>
                   <span className="text-sm font-black uppercase tracking-widest">{item.label}</span>
@@ -698,6 +736,9 @@ function App() {
             initiallyOpenModal={modalToOpen === "capture-expense" ? "capture-expense" : undefined}
             onModalClose={() => setModalToOpen(null)}
           />
+        )}
+        {view === "admin" && isAdmin && (
+          <AdminPortal userId={user.id} />
         )}
       </main>
     </div >

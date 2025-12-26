@@ -165,16 +165,16 @@ export function Dashboard({
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-600 font-medium">Welcome back! Here's what's happening.</p>
+          <p className="text-sm text-gray-500 font-bold uppercase tracking-tight">Welcome back! Here's what's happening.</p>
         </div>
-        <div className="inline-flex bg-white p-1 rounded-lg shadow-sm border border-gray-200">
+        <div className="inline-flex bg-gray-100 p-1 rounded-xl shadow-inner border border-gray-200">
           {(["this_month", "last_month", "all_time"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setContext(t)}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase transition-all ${context === t
-                ? "bg-gray-900 text-white shadow-md"
-                : "text-gray-600 hover:text-gray-900"
+              className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${context === t
+                ? "bg-white text-gray-900 shadow-lg"
+                : "text-gray-500 hover:text-gray-900"
                 }`}
             >
               {t.replace("_", " ")}
@@ -188,32 +188,32 @@ export function Dashboard({
         <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-blue-600 hover:shadow-md transition-shadow">
           <h2 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-1">Billed</h2>
           <div className="flex flex-col xl:flex-row xl:items-baseline xl:gap-2 overflow-hidden">
-            <span className="text-xl xl:text-2xl font-bold text-gray-600 shrink-0">₹</span>
+            <span className="text-xl xl:text-2xl font-black text-gray-600 shrink-0">₹</span>
             <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 truncate">
               {billed.toLocaleString("en-IN")}
             </p>
           </div>
-          <div className="mt-2 text-[10px] font-bold text-blue-600 bg-blue-50 inline-block px-2 py-0.5 rounded uppercase">Total Invoiced</div>
+          <div className="mt-2 text-[10px] font-black text-blue-600 bg-blue-50 inline-block px-2 py-0.5 rounded uppercase tracking-widest">Total Invoiced</div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-green-500 hover:shadow-md transition-shadow">
           <h2 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-1">Received</h2>
           <div className="flex flex-col xl:flex-row xl:items-baseline xl:gap-2 overflow-hidden">
-            <span className="text-xl xl:text-2xl font-bold text-gray-600 shrink-0">₹</span>
+            <span className="text-xl xl:text-2xl font-black text-gray-600 shrink-0">₹</span>
             <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 truncate">
               {received.toLocaleString("en-IN")}
             </p>
           </div>
-          <div className="mt-2 text-[10px] font-bold text-green-600 bg-green-50 inline-block px-2 py-0.5 rounded uppercase">Cash in Hand</div>
+          <div className="mt-2 text-[10px] font-black text-green-600 bg-green-50 inline-block px-2 py-0.5 rounded uppercase tracking-widest">Cash in Hand</div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-yellow-500 hover:shadow-md transition-shadow">
           <h2 className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-1">Receivable</h2>
           <div className="flex flex-col xl:flex-row xl:items-baseline xl:gap-2 overflow-hidden">
-            <span className="text-xl xl:text-2xl font-bold text-gray-600 shrink-0">₹</span>
+            <span className="text-xl xl:text-2xl font-black text-gray-600 shrink-0">₹</span>
             <p className="text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 truncate">
               {receivable.toLocaleString("en-IN")}
             </p>
           </div>
-          <div className="mt-2 text-[10px] font-bold text-yellow-700 bg-yellow-50 inline-block px-2 py-0.5 rounded uppercase">Awaiting Payment</div>
+          <div className="mt-2 text-[10px] font-black text-yellow-700 bg-yellow-50 inline-block px-2 py-0.5 rounded uppercase tracking-widest">Awaiting Payment</div>
         </div>
       </div>
 
@@ -265,16 +265,16 @@ export function Dashboard({
                       <div className="flex justify-between items-start">
                         <div className="min-w-0">
                           <p className="text-2xl font-black text-gray-900 leading-none">₹{inv.total?.toLocaleString("en-IN")}</p>
-                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2 truncate">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 truncate">
                             #{inv.invoiceNumber} • {client?.displayName || client?.firstName || "Unknown"}
                           </p>
                           {inv.subject && (
-                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tight mt-1 truncate">{inv.subject}</p>
+                            <p className="text-[9px] font-black text-gray-300 uppercase tracking-tight mt-1 truncate">{inv.subject}</p>
                           )}
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-[10px] font-black text-red-600 uppercase">Overdue by {diffDays} days</p>
-                          <p className="text-[9px] font-bold text-gray-400 uppercase mt-1">(Due on {dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })})</p>
+                          <p className="text-[9px] font-black text-gray-400 uppercase mt-1">(Due on {dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })})</p>
                         </div>
                       </div>
 
