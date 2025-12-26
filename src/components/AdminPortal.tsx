@@ -44,7 +44,8 @@ export function AdminPortal({ userId }: AdminPortalProps) {
                 status: "pending_claim",
                 createdBy: "admin",
                 color: "#" + Math.floor(Math.random() * 16777215).toString(16)
-            })
+            }),
+            db.tx.businesses[bId].link({ owner: userId })
         ];
 
         if (provisionForm.clientName) {
@@ -52,7 +53,7 @@ export function AdminPortal({ userId }: AdminPortalProps) {
                 displayName: provisionForm.clientName,
                 source: "concierge"
             }));
-            txs.push(db.tx.clients[cId].link({ business: bId }));
+            txs.push(db.tx.clients[cId].link({ business: bId, owner: userId }));
 
             if (provisionForm.totalAmount) {
                 txs.push(db.tx.invoices[iId].update({
@@ -65,7 +66,7 @@ export function AdminPortal({ userId }: AdminPortalProps) {
                     subject: provisionForm.subject || "Historical Record",
                     source: "concierge"
                 }));
-                txs.push(db.tx.invoices[iId].link({ business: bId, client: cId }));
+                txs.push(db.tx.invoices[iId].link({ business: bId, client: cId, owner: userId }));
             }
         }
 
