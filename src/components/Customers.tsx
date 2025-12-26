@@ -42,6 +42,12 @@ export function Customers({
   const [currentPage, setCurrentPage] = useState(1);
   const [mobileLimit, setMobileLimit] = useState(15);
 
+  // Reset pagination when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+    setMobileLimit(15);
+  }, [searchTerm]);
+
   React.useEffect(() => {
     if (initiallyOpenModal) {
       setIsModalOpen(true);
@@ -88,11 +94,7 @@ export function Customers({
     );
   });
 
-  // Reset pagination when search changes
-  React.useEffect(() => {
-    setCurrentPage(1);
-    setMobileLimit(15);
-  }, [searchTerm]);
+
 
   const itemsPerPage = 25;
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
