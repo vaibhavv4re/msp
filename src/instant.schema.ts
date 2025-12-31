@@ -14,6 +14,9 @@ const _schema = i.schema({
       type: i.string().optional(),
       calendarSecret: i.string().optional(), // Secret key for iCal feed
       role: i.string().optional(), // "admin" | "user"
+      status: i.string().optional(), // "active" | "disabled"
+      lastLoginAt: i.string().optional(), // ISO string
+      createdAt: i.string().optional(), // ISO string
     }),
     calendarEvents: i.entity({
       title: i.string().optional(),
@@ -77,6 +80,7 @@ const _schema = i.schema({
       invoicePadding: i.number().optional(),
       status: i.string().optional(), // "pending_claim" | "active" | "disabled"
       createdBy: i.string().optional(), // "admin" | "self"
+      isConfirmed: i.boolean().optional(),
     }),
     bankAccounts: i.entity({
       label: i.string(), // Primary / Secondary
@@ -178,6 +182,16 @@ const _schema = i.schema({
       url: i.string(),
       type: i.string(), // "expense_bill" | "invoice_pdf" | "ca_export"
       createdAt: i.string(), // ISO string
+    }),
+    auditLogs: i.entity({
+      adminId: i.string(),
+      adminEmail: i.string(),
+      action: i.string(), // "delete_user", "create_concierge", etc.
+      targetType: i.string(), // "user", "business"
+      targetId: i.string(),
+      targetName: i.string().optional(),
+      timestamp: i.string(), // ISO string
+      details: i.string().optional(),
     }),
   },
   links: {

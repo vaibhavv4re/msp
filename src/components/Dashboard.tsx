@@ -93,16 +93,26 @@ export function Dashboard({
   clients,
   calendarEvents,
   activeBusinessId,
+  activeBusiness,
   onNavigate
 }: {
   invoices: Invoice[];
   clients: Client[];
   calendarEvents: CalendarEvent[];
   activeBusinessId: string;
+  activeBusiness?: any;
   onNavigate: (view: any, modal?: string) => void;
 }) {
-  const [context, setContext] = useState<TimeContext>("this_month");
+  const [timeContext, setTimeContext] = useState<TimeContext>("this_month");
   const [showRecordPayment, setShowRecordPayment] = useState(false);
+  const [selectedFY, setSelectedFY] = useState("2024-2025"); // This seems to be a new state variable, distinct from selectedGSTFY
+
+  const showConciergeBanner = activeBusiness?.createdBy === "admin" && !activeBusiness?.isConfirmed && activeBusinessId !== "ALL";
+
+  const handleConfirmConcierge = () => {
+    if (!activeBusiness) return;
+    db.transact(db.tx.businesses[activeBusiness.id].update({ isConfirmed: true }));
+  };
   const [paymentSearch, setPaymentSearch] = useState("");
   const [selectedGSTFY, setSelectedGSTFY] = useState(() => {
     const now = new Date();
@@ -110,7 +120,7 @@ export function Dashboard({
     return now.getMonth() >= 3 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
   });
 
-  const { receivable, received, billed } = calculateTotals(invoices, context);
+  const { receivable, received, billed } = calculateTotals(invoices, timeContext);
   const { totalReceived, gstCollected, usableIncome, timeline } = calculateGSTMetrics(invoices, selectedGSTFY);
 
   const upcomingEvents = calendarEvents
@@ -154,6 +164,28 @@ export function Dashboard({
 
   return (
     <div className="space-y-8">
+      {showConciergeBanner && (
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2rem] p-8 text-white shadow-2xl relative overflow-hidden animate-in slide-in-from-top-8 duration-700">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-3xl flex items-center justify-center border border-white/20">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tighter italic">Foundations Ready</h3>
+                <p className="text-sm font-medium text-blue-50/80 mt-1 max-w-md uppercase tracking-tight">An admin has pre-populated your profile with historical data, clients, and services. Review and confirm to make it yours.</p>
+              </div>
+            </div>
+            <button
+              onClick={handleConfirmConcierge}
+              className="bg-white text-blue-700 px-10 py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-blue-50 transition-all shadow-xl active:scale-95"
+            >
+              Confirm & Make Permanent
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header & Context Toggle */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="space-y-1">
@@ -171,8 +203,8 @@ export function Dashboard({
           {(["this_month", "last_month", "all_time"] as const).map((t) => (
             <button
               key={t}
-              onClick={() => setContext(t)}
-              className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${context === t
+              onClick={() => setTimeContext(t)}
+              className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${timeContext === t
                 ? "bg-white text-gray-900 shadow-lg"
                 : "text-gray-500 hover:text-gray-900"
                 }`}

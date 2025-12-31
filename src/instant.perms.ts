@@ -96,10 +96,19 @@ const rules = {
   // User profiles - allow role management and profile viewing
   $users: {
     allow: {
-      view: "auth.id != null",
+      view: "auth.id != null || root.$users[auth.id].role == 'admin'",
       create: "false", // Handled by InstantDB auth
-      update: "auth.id == data.id || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "root.ref('$users')[auth.id].role == 'admin'",
+      update: "auth.id == data.id || root.$users[auth.id].role == 'admin'",
+      delete: "root.$users[auth.id].role == 'admin'",
+    },
+  },
+  // Audit Logs - admin only
+  auditLogs: {
+    allow: {
+      view: "root.ref('$users')[auth.id].role == 'admin'",
+      create: "root.ref('$users')[auth.id].role == 'admin'", // Admin performing the action writes the log
+      update: "false",
+      delete: "false",
     },
   },
 } satisfies InstantRules;

@@ -16,7 +16,6 @@ import { GoogleCalendarAPI } from "@/lib/googleCalendar";
 import { GoogleCalendarAuth } from "@/lib/googleOAuth";
 import { APP_CONFIG } from "@/config";
 import { Onboarding } from "@/components/Onboarding";
-import { AdminPortal } from "@/components/AdminPortal";
 
 export type Client = InstaQLEntity<AppSchema, "clients"> & { invoices: Invoice[] };
 export type Invoice = InstaQLEntity<AppSchema, "invoices"> & {
@@ -29,7 +28,7 @@ export type CalendarEvent = InstaQLEntity<AppSchema, "calendarEvents">;
 export type Business = InstaQLEntity<AppSchema, "businesses"> & { bankAccounts: BankAccount[] };
 export type BankAccount = InstaQLEntity<AppSchema, "bankAccounts">;
 
-type View = "dashboard" | "invoices" | "calendar" | "customers" | "services" | "taxzone" | "settings" | "data" | "admin";
+type View = "dashboard" | "invoices" | "calendar" | "customers" | "services" | "taxzone" | "settings" | "data";
 
 function LoginPage() {
   const handleGoogleLogin = () => {
@@ -44,47 +43,92 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-black text-gray-900 mb-2 uppercase tracking-tighter">
-            {APP_CONFIG.NAME}
-          </h1>
-          <div className="h-1 w-12 bg-gray-900 mx-auto rounded-full mb-4"></div>
-          <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.2em]">
-            Business Suite v1.0
-          </p>
+    <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-[#0a0a0a]">
+      {/* Background Orbs for Depth */}
+      <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[100px] rounded-full animate-pulse pointer-events-none" style={{ animationDelay: '2s' }}></div>
+
+      {/* Grid Pattern Overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+          backgroundSize: '40px 40px'
+        }}
+      ></div>
+
+      <div className="relative z-10 w-full max-w-[480px] px-6">
+        <div className="bg-white/[0.02] backdrop-blur-3xl rounded-[3rem] p-10 md:p-14 border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] transition-all duration-700 hover:bg-white/[0.04] group/card">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center justify-center mb-10 transition-transform duration-700 group-hover/card:scale-110">
+              <div className="relative">
+                <span className="text-8xl font-[1000] text-white leading-none tracking-tighter">B</span>
+                <span className="text-8xl font-[1000] text-blue-600 leading-none absolute -bottom-1 -right-4 drop-shadow-[0_0_15px_rgba(37,99,235,0.5)]">.</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">
+                {APP_CONFIG.NAME}
+              </h1>
+              <div className="h-1 w-16 bg-blue-600 mx-auto rounded-full transition-all duration-500 group-hover/card:w-24"></div>
+              <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.4em] leading-relaxed">
+                Premium Business <br /> Management Suite
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <button
+              onClick={handleGoogleLogin}
+              className="group relative w-full flex items-center justify-center gap-4 bg-white text-black rounded-2xl px-8 py-5 text-xs font-black uppercase tracking-widest hover:text-white transition-all duration-500 active:scale-[0.98] overflow-hidden shadow-[0_20px_40px_-10px_rgba(255,255,255,0.1)]"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+              <span className="relative z-10 flex items-center gap-3">
+                <svg className="w-5 h-5 transition-transform duration-500 group-hover:rotate-[360deg]" viewBox="0 0 24 24">
+                  <path
+                    fill="currentColor"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
+                </svg>
+                Enter Workspace
+              </span>
+            </button>
+
+            <div className="flex items-center gap-4 py-2">
+              <div className="h-[1px] flex-1 bg-white/10"></div>
+              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest shrink-0">
+                Authorized Access Only
+              </p>
+              <div className="h-[1px] flex-1 bg-white/10"></div>
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-4">
-          <button
-            onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-900 rounded-2xl px-6 py-4 text-gray-900 text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all duration-300 shadow-xl shadow-gray-100"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            Sign in with Google
-          </button>
-        </div>
-
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Secure authentication powered by Google</p>
+        {/* Elegant Footer */}
+        <div className="mt-16 text-center space-y-8">
+          <div className="flex justify-center gap-8">
+            <a href="/privacy" className="text-[10px] font-bold text-gray-500 uppercase tracking-widest hover:text-white transition-colors">Privacy Policy</a>
+            <a href="/terms" className="text-[10px] font-bold text-gray-500 uppercase tracking-widest hover:text-white transition-colors">Terms of Service</a>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <span className="w-1 h-1 bg-blue-600 rounded-full animate-ping"></span>
+            <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">
+              {APP_CONFIG.NAME} Business v1.0.4
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -196,8 +240,13 @@ function AppContent() {
           status: "pending_claim"
         }
       },
-      clients: { invoices: {} },
-      invoices: { lineItems: {} }
+      clients: { invoices: { lineItems: {} } },
+      invoices: { lineItems: {} },
+      services: {},
+      bankAccounts: {},
+      expenses: { attachment: {} },
+      taxes: {},
+      termsTemplates: {}
     }
   } as any) : null);
 
@@ -274,11 +323,42 @@ function AppContent() {
       ];
 
       // Link related data imported by admin to the user
+      // 1. Clients & their invoices
       claimable.clients?.forEach((client: any) => {
         txs.push(db.tx.clients[client.id].link({ owner: user.id }));
         client.invoices?.forEach((inv: any) => {
           txs.push(db.tx.invoices[inv.id].link({ owner: user.id }));
         });
+      });
+
+      // 2. Direct Invoices
+      claimable.invoices?.forEach((inv: any) => {
+        txs.push(db.tx.invoices[inv.id].link({ owner: user.id }));
+      });
+
+      // 3. Services
+      claimable.services?.forEach((s: any) => {
+        txs.push(db.tx.services[s.id].link({ owner: user.id }));
+      });
+
+      // 4. Bank Accounts
+      claimable.bankAccounts?.forEach((ba: any) => {
+        txs.push(db.tx.bankAccounts[ba.id].link({ owner: user.id }));
+      });
+
+      // 5. Taxes
+      claimable.taxes?.forEach((t: any) => {
+        txs.push(db.tx.taxes[t.id].link({ owner: user.id }));
+      });
+
+      // 6. Expenses
+      claimable.expenses?.forEach((e: any) => {
+        txs.push(db.tx.expenses[e.id].link({ owner: user.id }));
+      });
+
+      // 7. Terms Templates
+      claimable.termsTemplates?.forEach((tt: any) => {
+        txs.push(db.tx.termsTemplates[tt.id].link({ owner: user.id }));
       });
 
       db.transact(txs as any[]).then(() => {
@@ -406,15 +486,6 @@ function AppContent() {
               >
                 Settings
               </button>
-              {isAdmin && (
-                <button
-                  onClick={() => setView("admin")}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "admin" ? "bg-red-600 text-white shadow-lg shadow-red-100" : "text-red-500 hover:bg-red-50"} transition-all`}
-                >
-                  Admin
-                </button>
-              )}
-
               {/* Desktop Workspace Switcher */}
               {businesses.length > 1 && (
                 <div className="relative ml-2">
@@ -659,6 +730,7 @@ function AppContent() {
             clients={clients as any}
             calendarEvents={calendarEvents as any}
             activeBusinessId={activeBusinessId}
+            activeBusiness={activeBusiness as any}
             onNavigate={(newView: View, modal?: string) => {
               setView(newView);
               if (modal) setModalToOpen(modal);
@@ -736,9 +808,6 @@ function AppContent() {
             initiallyOpenModal={modalToOpen === "capture-expense" ? "capture-expense" : undefined}
             onModalClose={() => setModalToOpen(null)}
           />
-        )}
-        {view === "admin" && isAdmin && (
-          <AdminPortal userId={user.id} />
         )}
       </main>
     </div >
