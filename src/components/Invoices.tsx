@@ -9,6 +9,7 @@ import autoTable from "jspdf-autotable";
 import { CustomerModal } from "./Customers";
 import { APP_CONFIG } from "@/config";
 import { generateNextInvoiceNumber } from "@/lib/invoiceUtils";
+import { RecordPaymentModal } from "./RecordPaymentModal";
 
 export type Client = InstaQLEntity<typeof schema, "clients"> & { invoices?: Invoice[] };
 export type Invoice = InstaQLEntity<typeof schema, "invoices"> & {
@@ -39,7 +40,7 @@ function calculateInvoiceTotal(invoice: Invoice) {
 function calculatePendingBalance(invoice: Invoice) {
   const total = calculateInvoiceTotal(invoice);
   const advance = invoice.isAdvanceReceived ? (invoice.advanceAmount || 0) : 0;
-  const tds = (invoice as any).tdsDeducted ? ((invoice as any).tdsAmount || 0) : 0;
+  const tds = (invoice as any).tdsAmount || 0;
   return total - advance - tds;
 }
 
@@ -83,6 +84,8 @@ export function Invoices({
   const [currentPage, setCurrentPage] = useState(1);
   const [mobileLimit, setMobileLimit] = useState(15);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRecordPaymentModalOpen, setIsRecordPaymentModalOpen] = useState(false);
+  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<Invoice | null>(null);
 
   React.useEffect(() => {
     if (initiallyOpenModal === true || initiallyOpenModal === "create-invoice") {
@@ -247,6 +250,10 @@ export function Invoices({
         onLoadMore={() => setMobileLimit(prev => prev + 15)}
         hasMore={mobileLimit < sortedInvoices.length}
         totalCount={sortedInvoices.length}
+        onRecordPayment={(inv) => {
+          setSelectedInvoiceForPayment(inv);
+          setIsRecordPaymentModalOpen(true);
+        }}
       />
 
       {isModalOpen && (
@@ -261,6 +268,18 @@ export function Invoices({
           termsTemplates={termsTemplates || []}
           onClose={closeModal}
           invoices={allInvoices || invoices}
+        />
+      )}
+
+      {isRecordPaymentModalOpen && selectedInvoiceForPayment && (
+        <RecordPaymentModal
+          isOpen={isRecordPaymentModalOpen}
+          onClose={() => {
+            setIsRecordPaymentModalOpen(false);
+            setSelectedInvoiceForPayment(null);
+          }}
+          invoice={selectedInvoiceForPayment}
+          userId={userId}
         />
       )}
 
@@ -283,6 +302,7 @@ function InvoiceTable({
   onLoadMore,
   hasMore,
   totalCount,
+  onRecordPayment,
 }: {
   invoices: any[];
   mobileInvoices: any[];
@@ -297,6 +317,7 @@ function InvoiceTable({
   onLoadMore: () => void;
   hasMore: boolean;
   totalCount: number;
+  onRecordPayment: (invoice: Invoice) => void;
 }) {
   async function deleteInvoice(invoice: Invoice) {
     if (confirm("Are you sure you want to delete this invoice?")) {
@@ -323,32 +344,7 @@ function InvoiceTable({
   }
 
   function recordPayment(invoice: Invoice) {
-    const currentPaid = (invoice as any).advanceAmount || 0;
-    const balance = (invoice.total || 0) - currentPaid;
-    const amount = prompt(`Enter payment amount received (Balance: ₹${balance.toLocaleString()}):`, balance.toString());
-
-    if (amount !== null) {
-      const val = parseFloat(amount);
-      if (!isNaN(val)) {
-        const newTotalPaid = currentPaid + val;
-        let newStatus = invoice.status;
-
-        if (newTotalPaid >= (invoice.total || 0)) {
-          newStatus = "Paid";
-        } else if (newTotalPaid > 0) {
-          newStatus = "Partially Paid";
-        }
-
-        db.transact(
-          db.tx.invoices[invoice.id].update({
-            advanceAmount: newTotalPaid,
-            isAdvanceReceived: true,
-            status: newStatus,
-            paidAt: newStatus === "Paid" ? new Date().toISOString() : undefined,
-          })
-        );
-      }
-    }
+    onRecordPayment(invoice);
   }
 
   function downloadPDF(invoice: Invoice) {
@@ -1686,33 +1682,11 @@ export function InvoiceModal({
                     </div>
 
                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                      <h4 className="text-sm font-bold mb-2 uppercase text-blue-800">Recording TDS</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            id="tdsDeducted"
-                            name="tdsDeducted"
-                            checked={formData.tdsDeducted}
-                            onChange={handleChange}
-                            className="w-4 h-4"
-                          />
-                          <label htmlFor="tdsDeducted" className="text-sm font-bold text-blue-900">TDS Deducted by Client?</label>
-                        </div>
-                        {formData.tdsDeducted && (
-                          <div>
-                            <label className="block text-xs font-bold mb-1 text-blue-700">TDS Amount (INR)</label>
-                            <input
-                              type="number"
-                              name="tdsAmount"
-                              value={formData.tdsAmount}
-                              onChange={handleChange}
-                              className="border-2 border-blue-300 p-2 rounded-md w-full bg-white font-bold"
-                              placeholder="0.00"
-                            />
-                          </div>
-                        )}
-                      </div>
+                      <h4 className="text-sm font-bold mb-2 uppercase text-blue-800 italic">Taxation Note</h4>
+                      <p className="text-xs font-bold text-blue-900 leading-relaxed uppercase tabular-nums">
+                        TDS may be deducted by client as applicable at the time of payment.
+                        This does not reduce your invoice value or income.
+                      </p>
                     </div>
                   </div>
 
@@ -1742,33 +1716,58 @@ export function InvoiceModal({
                       )}
 
                       <div className="flex justify-between font-black text-xl pt-3 border-t-2 border-gray-200">
-                        <span className="uppercase tracking-tighter">Total</span>
+                        <span className="uppercase tracking-tighter">Gross Total</span>
                         <span className="text-gray-900">₹{formData.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
 
-                      {formData.isAdvanceReceived && (
-                        <div className="space-y-2 pt-3 border-t border-dashed border-gray-300">
-                          <div className="flex justify-between text-yellow-700 font-bold">
-                            <span className="uppercase text-[11px]">Advance Received</span>
-                            <span>- ₹{Number(formData.advanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                          </div>
-                          <div className="flex justify-between text-red-600 font-black text-lg">
-                            <span className="uppercase text-[12px] tracking-tight">Pending Balance</span>
-                            <span>₹{(formData.total - Number(formData.advanceAmount)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                          </div>
-                        </div>
-                      )}
+                      {((Number(formData.advanceAmount) > 0) || ((invoice as any)?.tdsAmount > 0)) && (
+                        <div className="mt-4 pt-4 border-t border-gray-300 space-y-3">
+                          <h5 className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">Settlement Details</h5>
 
-                      {formData.tdsDeducted && (
-                        <div className="space-y-2 pt-3 border-t border-dashed border-gray-300 italic">
-                          <div className="flex justify-between text-blue-700 font-bold">
-                            <span className="uppercase text-[11px]">TDS Deduction</span>
-                            <span>- ₹{Number(formData.tdsAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                          </div>
-                          <div className="flex justify-between text-gray-900 font-black text-lg">
-                            <span className="uppercase text-[12px] tracking-tight">Net Receivable</span>
-                            <span>₹{(formData.total - Number(formData.advanceAmount) - Number(formData.tdsAmount)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                          </div>
+                          {Number(formData.advanceAmount) > 0 && (
+                            <div className="flex justify-between text-green-800 font-bold">
+                              <span className="uppercase text-[11px]">
+                                {formData.status === "Paid" ? "Cash Received" : "Advance Received"}
+                                {(invoice as any)?.paidAt && (
+                                  <span className="text-[9px] text-gray-400 lowercase ml-1 font-normal italic">
+                                    (Settled {new Date((invoice as any).paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })})
+                                  </span>
+                                )}
+                              </span>
+                              <span className="font-mono">
+                                - ₹{Number(formData.advanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          )}
+
+                          {((invoice as any).tdsAmount > 0) && (
+                            <div className="flex justify-between text-blue-700 font-bold italic">
+                              <span className="uppercase text-[11px]">Tax Withheld (TDS)</span>
+                              <span className="font-mono">
+                                - ₹{Number((invoice as any).tdsAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          )}
+
+                          {(() => {
+                            const netBalance = formData.total - Number(formData.advanceAmount) - Number((invoice as any).tdsAmount);
+                            if (netBalance > 1) { // ₹1 margin for rounding
+                              return (
+                                <div className="flex justify-between text-red-600 font-black text-lg pt-3 border-t border-dashed border-gray-200 mt-2">
+                                  <span className="uppercase text-[12px] tracking-tight">Net Balance Due</span>
+                                  <span className="font-mono">₹{netBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                              );
+                            } else if (formData.status === "Paid") {
+                              return (
+                                <div className="flex justify-center items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-200 mt-2">
+                                  <div className="w-2 h-2 rounded-full bg-green-600"></div>
+                                  <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Fully Settled</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       )}
                     </div>

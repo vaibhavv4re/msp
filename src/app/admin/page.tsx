@@ -18,6 +18,8 @@ export default function AdminConsole() {
         businesses: {
             owner: {},
             clients: {},
+            services: {},
+            bankAccounts: {},
             invoices: {},
             expenses: {}
         },
@@ -154,7 +156,7 @@ export default function AdminConsole() {
                 {activeSection === "overview" && <OverviewView users={allUsers} businesses={allBusinesses} auditLogs={auditLogs} />}
                 {activeSection === "users" && <UsersView users={allUsers} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSelect={setSelectedUser} />}
                 {activeSection === "businesses" && <BusinessesView businesses={allBusinesses} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSelect={setSelectedBusiness} />}
-                {activeSection === "concierge" && <ConciergeView businesses={allBusinesses} logAction={logAction} adminId={user.id} />}
+                {activeSection === "concierge" && <ConciergeView businesses={allBusinesses} logAction={logAction} adminId={user.id} onSelectBusiness={setSelectedBusiness} />}
                 {activeSection === "audit" && <AuditView auditLogs={auditLogs} />}
                 {activeSection === "system" && <SystemView />}
             </main>
@@ -311,14 +313,30 @@ function BusinessesView({ businesses, searchQuery, setSearchQuery, onSelect }: {
             <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-gray-50/50 border-b border-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        <tr><th className="px-8 py-6">Business Name / Email</th><th className="px-8 py-6 text-center">Status</th><th className="px-8 py-6 text-center">Claimed?</th><th className="px-8 py-6 text-right pr-12">Actions</th></tr>
+                        <tr><th className="px-8 py-6">Business Name / Email</th><th className="px-8 py-6 text-center">Status</th><th className="px-8 py-6 text-center">Claimant / Owner</th><th className="px-8 py-6 text-right pr-12">Actions</th></tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {filteredBusinesses.map(b => (
                             <tr key={b.id} className="group hover:bg-gray-50/30 cursor-pointer" onClick={() => onSelect(b)}>
-                                <td className="px-8 py-6"><p className="text-sm font-black text-gray-900">{b.name}</p><p className="text-[10px] font-medium text-gray-400">{b.email || "No email"}</p></td>
-                                <td className="px-8 py-6 text-center"><span className={`text-[10px] font-black uppercase tracking-tighter ${b.status === "active" ? "text-green-500" : b.status === "disabled" ? "text-red-400" : "text-orange-400"}`}>{b.status || "active"}</span></td>
-                                <td className="px-8 py-6 text-center"><span className={`text-[10px] font-black uppercase ${b.owner ? "text-gray-900" : "text-gray-300"}`}>{b.owner ? "Yes" : "No"}</span></td>
+                                <td className="px-8 py-6">
+                                    <p className="text-sm font-black text-gray-900">{b.name}</p>
+                                    <p className="text-[10px] font-medium text-gray-400">{b.email || "No business email"}</p>
+                                </td>
+                                <td className="px-8 py-6 text-center">
+                                    <span className={`text-[10px] font-black uppercase tracking-tighter ${b.status === "active" ? "text-green-500" : b.status === "disabled" ? "text-red-400" : "text-orange-400"}`}>
+                                        {b.status || "active"}
+                                    </span>
+                                </td>
+                                <td className="px-8 py-6 text-center whitespace-nowrap">
+                                    {b.status === "pending_claim" ? (
+                                        <span className="text-[10px] font-black uppercase text-gray-300">No (Awaiting User)</span>
+                                    ) : (
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-[10px] font-black uppercase text-blue-600">Yes</span>
+                                            <span className="text-[9px] font-medium text-gray-500 lowercase">{b.owner?.email}</span>
+                                        </div>
+                                    )}
+                                </td>
                                 <td className="px-8 py-6 text-right pr-12"><button className="text-[9px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition-all">View Detail</button></td>
                             </tr>
                         ))}
@@ -329,7 +347,7 @@ function BusinessesView({ businesses, searchQuery, setSearchQuery, onSelect }: {
     );
 }
 
-function ConciergeView({ businesses, logAction, adminId }: { businesses: any[], logAction: any, adminId: string }) {
+function ConciergeView({ businesses, logAction, adminId, onSelectBusiness }: { businesses: any[], logAction: any, adminId: string, onSelectBusiness: (b: any) => void }) {
     const [step, setStep] = useState(1);
     const [onboardingTab, setOnboardingTab] = useState<"business" | "clients" | "services" | "finance">("business");
     const [form, setForm] = useState({
@@ -340,6 +358,8 @@ function ConciergeView({ businesses, logAction, adminId }: { businesses: any[], 
         invoices: [{ id: id(), clientIdx: 0, amount: "", subject: "" }],
         expenses: [{ id: id(), description: "", amount: "", category: "Miscellaneous" }]
     });
+
+    const [editingBusinessId, setEditingBusinessId] = useState<string | null>(null);
 
     const pendingProfiles = businesses.filter(b => b.status === "pending_claim");
 
@@ -373,46 +393,40 @@ function ConciergeView({ businesses, logAction, adminId }: { businesses: any[], 
             alert("Business Name and Email are required");
             return;
         }
-
-        const bId = id();
+        const bId = editingBusinessId || id();
         const txs: any[] = [
             db.tx.businesses[bId].update({
                 ...form.business,
                 status: "pending_claim",
                 createdBy: "admin",
-                color: "#" + Math.floor(Math.random() * 16777215).toString(16)
+                color: businessToEdit?.color || ("#" + Math.floor(Math.random() * 16777215).toString(16))
             } as any),
             db.tx.businesses[bId].link({ owner: adminId })
         ];
 
-        // Provision Clients
-        const clientMap = form.clients.filter(c => c.displayName).map(c => {
+        form.clients.filter(c => c.displayName).forEach(c => {
             txs.push(db.tx.clients[c.id].update({ displayName: c.displayName, email: c.email, source: "concierge" } as any));
             txs.push(db.tx.clients[c.id].link({ business: bId, owner: adminId }));
-            return c.id;
         });
 
-        // Provision Services
         form.services.filter(s => s.name).forEach(s => {
             txs.push(db.tx.services[s.id].update({ name: s.name, rate: parseFloat(s.rate) || 0, isActive: true, source: "concierge" } as any));
             txs.push(db.tx.services[s.id].link({ business: bId, owner: adminId }));
         });
 
-        // Provision Bank Accounts
         form.bankAccounts.filter(ba => ba.bankName).forEach(ba => {
-            txs.push(db.tx.bankAccounts[ba.id].update({ ...ba, isActive: true, label: "Primary" } as any));
+            txs.push(db.tx.bankAccounts[ba.id].update({ ...ba, isActive: true, label: "Primary", source: "concierge" } as any));
             txs.push(db.tx.bankAccounts[ba.id].link({ business: bId, owner: adminId }));
         });
 
-        // Provision Invoices
         form.invoices.filter(inv => inv.amount).forEach(inv => {
             const clientId = form.clients[inv.clientIdx]?.id;
             txs.push(db.tx.invoices[inv.id].update({
                 invoiceNumber: "H-" + Math.floor(Math.random() * 1000),
                 invoiceDate: new Date().toISOString().split('T')[0],
                 dueDate: new Date().toISOString().split('T')[0],
-                subtotal: parseFloat(inv.amount),
-                total: parseFloat(inv.amount),
+                subtotal: parseFloat(inv.amount) || 0,
+                total: parseFloat(inv.amount) || 0,
                 status: "draft",
                 subject: inv.subject || "Historical Record",
                 source: "concierge"
@@ -421,11 +435,10 @@ function ConciergeView({ businesses, logAction, adminId }: { businesses: any[], 
             if (clientId) txs.push(db.tx.invoices[inv.id].link({ client: clientId }));
         });
 
-        // Provision Expenses
         form.expenses.filter(e => e.amount).forEach(e => {
             txs.push(db.tx.expenses[e.id].update({
                 description: e.description,
-                amount: parseFloat(e.amount),
+                amount: parseFloat(e.amount) || 0,
                 category: e.category,
                 date: new Date().toISOString().split('T')[0],
                 status: "confirmed",
@@ -435,10 +448,13 @@ function ConciergeView({ businesses, logAction, adminId }: { businesses: any[], 
         });
 
         db.transact(txs);
-        logAction("comprehensive_concierge_setup", "business", bId, form.business.name, `Email: ${form.business.email}`);
+        logAction(editingBusinessId ? "update_concierge_profile" : "comprehensive_concierge_setup", "business", bId, form.business.name, `Email: ${form.business.email}`);
         setStep(1);
-        alert("Comprehensive concierge profile created!");
+        setEditingBusinessId(null);
+        alert(editingBusinessId ? "Concierge profile updated!" : "Comprehensive concierge profile created!");
     };
+
+    const businessToEdit = editingBusinessId ? businesses.find(b => b.id === editingBusinessId) : null;
 
     return (
         <div className="space-y-12 animate-in fade-in duration-700">
@@ -448,11 +464,24 @@ function ConciergeView({ businesses, logAction, adminId }: { businesses: any[], 
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Full Environment Pre-provisioning</p>
                 </div>
                 {step === 1 ? (
-                    <button onClick={() => setStep(2)} className="px-8 py-4 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200">Start New Setup</button>
+                    <button onClick={() => {
+                        setEditingBusinessId(null);
+                        setForm({
+                            business: { name: "", email: "", legalName: "", pan: "", gst: "" },
+                            clients: [{ id: id(), displayName: "", email: "" }],
+                            services: [{ id: id(), name: "", rate: "" }],
+                            bankAccounts: [{ id: id(), bankName: "", holderName: "", accountNumber: "", ifsc: "" }],
+                            invoices: [{ id: id(), clientIdx: 0, amount: "", subject: "" }],
+                            expenses: [{ id: id(), description: "", amount: "", category: "Miscellaneous" }]
+                        });
+                        setStep(2);
+                    }} className="px-8 py-4 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200">Start New Setup</button>
                 ) : (
                     <div className="flex gap-4">
-                        <button onClick={() => setStep(1)} className="px-8 py-4 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">Cancel</button>
-                        <button onClick={handleCreate} className="px-8 py-4 bg-green-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-xl shadow-green-100">Provision Everything</button>
+                        <button onClick={() => { setStep(1); setEditingBusinessId(null); }} className="px-8 py-4 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">Cancel</button>
+                        <button onClick={handleCreate} className="px-8 py-4 bg-green-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-xl shadow-green-100">
+                            {editingBusinessId ? "Update & Save" : "Provision Everything"}
+                        </button>
                     </div>
                 )}
             </div>
@@ -462,9 +491,55 @@ function ConciergeView({ businesses, logAction, adminId }: { businesses: any[], 
                     <h3 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 ml-2 italic">Pending Claims</h3>
                     <div className="bg-white p-6 rounded-[3rem] border border-gray-100 shadow-sm space-y-4 max-h-[40rem] overflow-y-auto">
                         {pendingProfiles.map(b => (
-                            <div key={b.id} className="p-5 bg-gray-50 rounded-3xl border border-transparent hover:border-gray-900 transition-all cursor-pointer group">
-                                <p className="text-sm font-black text-gray-900 group-hover:text-red-600 transition-colors uppercase">{b.name}</p>
-                                <p className="text-[9px] font-medium text-gray-400 mt-1 truncate">{b.email}</p>
+                            <div
+                                key={b.id}
+                                onClick={() => onSelectBusiness(b)}
+                                className="p-5 bg-gray-50 rounded-3xl border border-transparent hover:border-gray-900 transition-all cursor-pointer group flex justify-between items-center"
+                            >
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors uppercase truncate">{b.name}</p>
+                                    <p className="text-[9px] font-medium text-gray-400 mt-1 truncate">{b.email}</p>
+                                </div>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingBusinessId(b.id);
+                                            setForm({
+                                                business: {
+                                                    name: b.name || "",
+                                                    email: b.email || "",
+                                                    legalName: b.legalName || "",
+                                                    pan: b.pan || "",
+                                                    gst: b.gst || ""
+                                                },
+                                                clients: b.clients?.length ? b.clients.map((c: any) => ({ id: c.id, displayName: c.displayName, email: c.email })) : [{ id: id(), displayName: "", email: "" }],
+                                                services: b.services?.length ? b.services.map((s: any) => ({ id: s.id, name: s.name, rate: s.rate?.toString() || "" })) : [{ id: id(), name: "", rate: "" }],
+                                                bankAccounts: b.bankAccounts?.length ? b.bankAccounts.map((ba: any) => ({ id: ba.id, bankName: ba.bankName, holderName: ba.holderName, accountNumber: ba.accountNumber, ifsc: ba.ifsc })) : [{ id: id(), bankName: "", holderName: "", accountNumber: "", ifsc: "" }],
+                                                invoices: b.invoices?.length ? b.invoices.map((inv: any) => ({ id: inv.id, clientIdx: b.clients?.findIndex((c: any) => c.id === inv.client?.id) ?? 0, amount: inv.total?.toString() || "", subject: inv.subject || "" })) : [{ id: id(), clientIdx: 0, amount: "", subject: "" }],
+                                                expenses: b.expenses?.length ? b.expenses.map((e: any) => ({ id: e.id, description: e.description, amount: e.amount?.toString() || "", category: e.category })) : [{ id: id(), description: "", amount: "", category: "Miscellaneous" }]
+                                            });
+                                            setStep(2);
+                                        }}
+                                        className="p-3 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-xl transition-all"
+                                        title="Resume Setup / Edit"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (confirm(`Discard provisioned profile for "${b.name}"? This will remove the business and all linked concierge data.`)) {
+                                                db.transact(db.tx.businesses[b.id].delete());
+                                                logAction("discard_concierge_profile", "business", b.id, b.name);
+                                            }
+                                        }}
+                                        className="p-3 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-xl transition-all"
+                                        title="Discard Profile"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    </button>
+                                </div>
                             </div>
                         ))}
                         {pendingProfiles.length === 0 && <p className="text-center py-10 text-[9px] font-black text-gray-300 uppercase">No active concierges</p>}
@@ -711,33 +786,106 @@ function UserDetailView({ user, onClose, logAction }: { user: any, onClose: () =
 function BusinessDetailView({ business, onClose, logAction }: { business: any, onClose: () => void, logAction: any }) {
     const [confirmingDelete, setConfirmingDelete] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
+    // Form state for editing
+    const [form, setForm] = useState({
+        name: business.name || "",
+        email: business.email || "",
+        legalName: business.legalName || "",
+        pan: business.pan || "",
+        gst: business.gst || ""
+    });
+
+    const isDirty = form.name !== (business.name || "") ||
+        form.email !== (business.email || "") ||
+        form.legalName !== (business.legalName || "") ||
+        form.pan !== (business.pan || "") ||
+        form.gst !== (business.gst || "");
+
+    const handleSave = () => {
+        db.transact(db.tx.businesses[business.id].update(form));
+        logAction("update_business_details", "business", business.id, business.name, JSON.stringify(form));
+    };
+
     const handleToggleStatus = () => {
         const newStatus = business.status === "disabled" ? "active" : "disabled";
         db.transact(db.tx.businesses[business.id].update({ status: newStatus } as any));
         logAction(newStatus === "disabled" ? "disable_business" : "enable_business", "business", business.id, business.name);
         onClose();
     };
+
     const handleDelete = () => {
         if (deleteConfirmText !== "DELETE") return;
         db.transact(db.tx.businesses[business.id].delete());
         logAction("hard_delete_business", "business", business.id, business.name);
         onClose();
     };
+
     return (
         <div className="fixed inset-0 z-50 flex justify-end animate-in fade-in duration-300">
             <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose}></div>
             <div className="relative w-[32rem] bg-white h-full shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col">
                 <div className="p-8 border-b border-gray-100 flex justify-between items-center">
-                    <div><p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Business Identity card</p><h2 className="text-xl font-black text-gray-900 uppercase tracking-tighter">{business.name}</h2></div>
-                    <button onClick={onClose} className="w-10 h-10 bg-gray-50 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-12 space-y-12">
-                    <div className="grid grid-cols-2 gap-8">
-                        <div><p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Status</p><span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${business.status === "active" ? "bg-green-50 text-green-600" : "bg-orange-50 text-orange-600"}`}>{business.status || "active"}</span></div>
-                        <div><p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Legal Owner</p><p className="text-[10px] font-bold text-gray-900 truncate">{business.owner?.email || "Unclaimed"}</p></div>
+                    <div>
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Business Identity card</p>
+                        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tighter">{business.name}</h2>
                     </div>
+                    <button onClick={onClose} className="w-10 h-10 bg-gray-50 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-12 space-y-12 no-scrollbar">
+                    {/* Core Info Inputs */}
+                    <div className="space-y-6">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50 pb-2 italic">Profile Details</p>
+                        <div className="space-y-4">
+                            <FormInput label="Brand Name" placeholder="Acme Studio" value={form.name} onChange={(v) => setForm(f => ({ ...f, name: v }))} />
+                            <FormInput label="Email" placeholder="contact@acme.com" value={form.email} onChange={(v) => setForm(f => ({ ...f, email: v }))} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormInput label="Legal Name" placeholder="Acme Pvt Ltd" value={form.legalName} onChange={(v) => setForm(f => ({ ...f, legalName: v }))} />
+                                <FormInput label="PAN" placeholder="ABCDE1234F" value={form.pan} onChange={(v) => setForm(f => ({ ...f, pan: v }))} />
+                            </div>
+                            <FormInput label="GST Number" placeholder="27AAAC..." value={form.gst} onChange={(v) => setForm(f => ({ ...f, gst: v }))} />
+                        </div>
+                        {isDirty && (
+                            <button
+                                onClick={handleSave}
+                                className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all animate-in fade-in"
+                            >
+                                Save Changes
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8 pt-8 border-t border-gray-100">
+                        <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Status</p>
+                            <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${business.status === "active" ? "bg-green-50 text-green-600" : business.status === "pending_claim" ? "bg-orange-50 text-orange-600" : "bg-gray-100 text-gray-500"}`}>
+                                {business.status?.replace("_", " ") || "active"}
+                            </span>
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Legal Owner</p>
+                            <p className="text-[10px] font-bold text-gray-900 truncate">
+                                {business.status === "pending_claim" ? "Unclaimed (Pending)" : (business.owner?.email || "Unknown User")}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Stats or Assets */}
+                    <div className="bg-gray-50 rounded-[2rem] p-6 space-y-4">
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Provisioned Assets</p>
+                        <div className="grid grid-cols-5 gap-2 text-center">
+                            <div className="bg-white p-2 rounded-xl"><p className="text-sm font-black text-gray-900">{business.clients?.length || 0}</p><p className="text-[7px] font-black text-gray-400 uppercase">Clients</p></div>
+                            <div className="bg-white p-2 rounded-xl"><p className="text-sm font-black text-gray-900">{business.services?.length || 0}</p><p className="text-[7px] font-black text-gray-400 uppercase">Services</p></div>
+                            <div className="bg-white p-2 rounded-xl"><p className="text-sm font-black text-gray-900">{business.bankAccounts?.length || 0}</p><p className="text-[7px] font-black text-gray-400 uppercase">Banks</p></div>
+                            <div className="bg-white p-2 rounded-xl"><p className="text-sm font-black text-gray-900">{business.invoices?.length || 0}</p><p className="text-[7px] font-black text-gray-400 uppercase">Invoices</p></div>
+                            <div className="bg-white p-2 rounded-xl"><p className="text-sm font-black text-gray-900">{business.expenses?.length || 0}</p><p className="text-[7px] font-black text-gray-400 uppercase">Expenses</p></div>
+                        </div>
+                    </div>
+
                     <div className="pt-8 space-y-4 border-t border-gray-100">
-                        <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] border-b border-red-50 pb-2">Destructive Operations</p>
+                        <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] border-b border-red-50 pb-2">Admin Overrides</p>
                         <button onClick={handleToggleStatus} className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase transition-all ${business.status === "disabled" ? "bg-green-50 text-green-600" : "bg-orange-50 text-orange-600"}`}>{business.status === "disabled" ? "Enable Profile" : "Disable Profile"}</button>
                         {!confirmingDelete ? <button onClick={() => setConfirmingDelete(true)} className="w-full py-4 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase transition-all">Delete Profile</button> : <div className="p-6 bg-red-600 rounded-3xl animate-in shake"><input placeholder="Type DELETE..." value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} className="w-full bg-white/20 border border-white/30 rounded-xl px-4 py-3 text-white text-xs font-black outline-none mb-4" /><div className="flex gap-2"><button onClick={handleDelete} className="flex-1 bg-white text-red-600 py-3 rounded-xl text-[10px] font-black uppercase">Confirm</button><button onClick={() => setConfirmingDelete(false)} className="px-4 py-3 rounded-xl text-[10px] font-black text-white uppercase">Cancel</button></div></div>}
                     </div>

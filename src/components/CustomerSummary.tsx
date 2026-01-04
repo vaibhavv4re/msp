@@ -48,7 +48,7 @@ export function CustomerSummary({
     const totalReceived = invoices.reduce((sum, inv) => sum + (inv.advanceAmount || 0), 0);
     const outstandingBalance = invoices.reduce((sum, inv) => {
         if (inv.status === "Paid") return sum;
-        const tds = (inv as any).tdsDeducted ? ((inv as any).tdsAmount || 0) : 0;
+        const tds = (inv as any).tdsAmount || 0;
         return sum + (inv.total || 0) - (inv.advanceAmount || 0) - tds;
     }, 0);
     const totalInvoicesCount = invoices.length;
@@ -72,9 +72,9 @@ export function CustomerSummary({
     const reliabilityColor = latePaymentsCount === 0 ? "text-green-600 bg-green-50" : latePaymentsCount < 3 ? "text-yellow-600 bg-yellow-50" : "text-red-600 bg-red-50";
 
     // Financial Context
-    const paidInvoicesForTax = invoices.filter(inv => inv.status === "Paid");
+    const paidInvoicesForTax = invoices.filter(inv => inv.status === "Paid" || (inv as any).tdsAmount > 0);
     const totalGstCollected = paidInvoicesForTax.reduce((sum, inv) => sum + (inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0), 0);
-    const totalTdsDeducted = paidInvoicesForTax.reduce((sum, inv) => sum + ((inv as any).tdsAmount || 0), 0);
+    const totalTdsDeducted = invoices.reduce((sum, inv) => sum + ((inv as any).tdsAmount || 0), 0);
 
     // Usage Context
     const currentYear = new Date().getFullYear().toString();
@@ -90,7 +90,7 @@ export function CustomerSummary({
         const bizOutstanding = bizInvoices.reduce((sum, inv) => {
             if (inv.status === "Paid") return sum;
             const allowance = (inv as any).isAdvanceReceived ? ((inv as any).advanceAmount || 0) : 0;
-            const tds = (inv as any).tdsDeducted ? ((inv as any).tdsAmount || 0) : 0;
+            const tds = (inv as any).tdsAmount || 0;
             return sum + (inv.total || 0) - allowance - tds;
         }, 0);
         return {

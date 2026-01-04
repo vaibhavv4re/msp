@@ -91,6 +91,7 @@ const _schema = i.schema({
       upiId: i.string().optional(),
       chequeName: i.string().optional(),
       isActive: i.boolean(),
+      source: i.string().optional(), // "manual" | "imported" | "concierge"
     }),
     invoices: i.entity({
       invoiceNumber: i.string(),
@@ -135,6 +136,7 @@ const _schema = i.schema({
       sacCode: i.string().optional(),
       rate: i.number(),
       isActive: i.boolean(),
+      source: i.string().optional(), // "manual" | "imported" | "concierge"
     }),
     taxes: i.entity({
       name: i.string(),

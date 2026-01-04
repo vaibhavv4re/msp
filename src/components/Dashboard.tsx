@@ -4,6 +4,7 @@ import { Invoice, Client, CalendarEvent } from "@/app/page";
 import { db } from "@/lib/db";
 import { Edit2, Trash2 } from "lucide-react";
 import { syncToCalendars } from "@/lib/calendarSync";
+import { RecordPaymentModal } from "./RecordPaymentModal";
 
 type TimeContext = "this_month" | "last_month" | "all_time";
 
@@ -31,14 +32,12 @@ function calculateTotals(invoices: Invoice[], context: TimeContext) {
 
   filtered.forEach(inv => {
     const total = inv.total || 0;
-    const advance = (inv as any).isAdvanceReceived ? ((inv as any).advanceAmount || 0) : 0;
+    const cashReceived = (inv as any).advanceAmount || 0;
+    const tdsDeducted = (inv as any).tdsAmount || 0;
 
-    if (inv.status === "Paid") {
-      received += total;
-    } else {
-      received += advance;
-      receivable += (total - advance);
-    }
+    received += cashReceived;
+    // Receivable is what remains after cash and TDS
+    receivable += Math.max(0, total - cashReceived - tdsDeducted);
   });
 
   const billed = filtered.reduce((acc, inv) => acc + (inv.total || 0), 0);
@@ -105,6 +104,7 @@ export function Dashboard({
 }) {
   const [timeContext, setTimeContext] = useState<TimeContext>("this_month");
   const [showRecordPayment, setShowRecordPayment] = useState(false);
+  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<Invoice | null>(null);
   const [selectedFY, setSelectedFY] = useState("2024-2025"); // This seems to be a new state variable, distinct from selectedGSTFY
 
   const showConciergeBanner = activeBusiness?.createdBy === "admin" && !activeBusiness?.isConfirmed && activeBusinessId !== "ALL";
@@ -324,7 +324,10 @@ export function Dashboard({
                             Reminder
                           </button>
                           <button
-                            onClick={() => setShowRecordPayment(true)}
+                            onClick={() => {
+                              setSelectedInvoiceForPayment(inv);
+                              setShowRecordPayment(true);
+                            }}
                             className="py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200"
                           >
                             Record Pay
@@ -613,30 +616,11 @@ export function Dashboard({
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
-                            const currentPaid = (inv as any).advanceAmount || 0;
-                            const balance = (inv.total || 0) - currentPaid;
-                            const amount = prompt(`Enter payment amount (Balance: ₹${balance.toLocaleString()}):`, balance.toString());
-                            if (amount) {
-                              const val = parseFloat(amount);
-                              if (!isNaN(val)) {
-                                const newTotalPaid = currentPaid + val;
-                                let newStatus = inv.status;
-                                if (newTotalPaid >= (inv.total || 0)) {
-                                  newStatus = "Paid";
-                                } else if (newTotalPaid > 0) {
-                                  newStatus = "Partially Paid";
-                                }
-                                db.transact(db.tx.invoices[inv.id].update({
-                                  advanceAmount: newTotalPaid,
-                                  isAdvanceReceived: true,
-                                  status: newStatus
-                                }));
-                              }
-                            }
+                            setSelectedInvoiceForPayment(inv);
                           }}
-                          className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-tight hover:bg-green-700 shadow-md shadow-green-100 transition-colors"
+                          className={`px-4 py-2 ${selectedInvoiceForPayment?.id === inv.id ? 'bg-gray-900' : 'bg-green-600'} text-white rounded-xl text-xs font-black uppercase tracking-tight hover:opacity-90 shadow-md transition-colors`}
                         >
-                          {isAdvanceRec ? "Record Next Payment" : "Record Payment"}
+                          {selectedInvoiceForPayment?.id === inv.id ? "Selected" : (isAdvanceRec ? "Record Next Payment" : "Record Payment")}
                         </button>
                       </div>
                     </div>
@@ -644,8 +628,32 @@ export function Dashboard({
                 })
               )}
             </div>
+
+            {selectedInvoiceForPayment && (
+              <div className="p-6 bg-white border-t border-gray-100">
+                <button
+                  onClick={() => setShowRecordPayment(true)}
+                  className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all active:scale-95"
+                >
+                  Continue to Record Payment
+                </button>
+              </div>
+            )}
           </div>
         </div>
+      )}
+
+      {showRecordPayment && selectedInvoiceForPayment && (
+        <RecordPaymentModal
+          isOpen={showRecordPayment}
+          onClose={() => {
+            setShowRecordPayment(false);
+            setSelectedInvoiceForPayment(null);
+            setPaymentSearch("");
+          }}
+          invoice={selectedInvoiceForPayment}
+          userId={(selectedInvoiceForPayment as any).owner?.id || (selectedInvoiceForPayment as any).owner || ""}
+        />
       )}
     </div>
   );

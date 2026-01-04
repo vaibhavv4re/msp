@@ -164,6 +164,8 @@ export function TaxZone({
     }, [expenses]);
 
     const totalTDS = useMemo(() => {
+        // We auto-create tdsEntries when recording payments now, 
+        // so tdsEntries should be the primary source.
         return tdsEntries
             .filter(t => t.fy === selectedFY)
             .reduce((sum, t) => sum + t.amount, 0);
