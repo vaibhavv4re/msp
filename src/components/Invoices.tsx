@@ -10,6 +10,11 @@ import { CustomerModal } from "./Customers";
 import { APP_CONFIG } from "@/config";
 import { generateNextInvoiceNumber } from "@/lib/invoiceUtils";
 import { RecordPaymentModal } from "./RecordPaymentModal";
+import { pdf } from "@react-pdf/renderer";
+import { saveAs } from "file-saver";
+import { normalizeInvoiceData } from "@/lib/pdf/utils";
+import { renderInvoiceTemplate } from "@/lib/pdf/renderInvoice";
+import { InvoiceTemplate } from "@/lib/pdf/types";
 
 export type Client = InstaQLEntity<typeof schema, "clients"> & { invoices?: Invoice[] };
 export type Invoice = InstaQLEntity<typeof schema, "invoices"> & {
@@ -347,7 +352,29 @@ function InvoiceTable({
     onRecordPayment(invoice);
   }
 
-  function downloadPDF(invoice: Invoice) {
+  async function downloadPDF(invoice: Invoice) {
+    const useNewPDFEngine = true; // Feature flag for rollout
+
+    if (useNewPDFEngine) {
+      try {
+        const client = clients.find(c => c.id === invoice.client?.id);
+        const business = businesses.find(b => b.id === (invoice as any).business?.id);
+
+        console.log(`[PDF] Starting generation for Inv: ${invoice.invoiceNumber}`);
+
+        const normalizedData = normalizeInvoiceData(invoice, business, client);
+        const template = (business?.invoiceTemplate as InvoiceTemplate) || "classic";
+
+        const blob = await pdf(renderInvoiceTemplate(template, normalizedData)).toBlob();
+        saveAs(blob, `Invoice_${invoice.invoiceNumber}.pdf`);
+        return;
+      } catch (error) {
+        console.error("[PDF] Generation failed, falling back to legacy engine", error);
+        // Fallback to legacy engine
+      }
+    }
+
+    // Legacy jsPDF logic
     const client = clients.find(c => c.id === invoice.client?.id);
     const business = businesses.find(b => b.id === (invoice as any).business?.id);
     const bankAccount = (invoice as any).bankAccount;
@@ -1226,6 +1253,15 @@ export function InvoiceModal({
         txs.push(db.tx.invoices[invoiceId].link({ owner: userId }));
       }
 
+      // Handle removed line items
+      if (invoice) {
+        const currentItemIds = new Set(lineItemIds);
+        const removedItems = invoice.lineItems.filter(li => !currentItemIds.has(li.id));
+        removedItems.forEach(li => {
+          txs.push(db.tx.lineItems[li.id].delete());
+        });
+      }
+
       db.transact(txs);
       onClose();
     } catch (error) {
@@ -1527,35 +1563,46 @@ export function InvoiceModal({
                   </div>
 
                   <div className="space-y-4">
+                    {/* Desktop Header */}
+                    <div className="hidden md:grid md:grid-cols-12 gap-2 px-4 pb-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 mb-2">
+                      <div className="col-span-6">Description & Details</div>
+                      <div className="col-span-1 text-right">Qty</div>
+                      <div className="col-span-2 text-right">Rate</div>
+                      <div className="col-span-2 text-right">Total</div>
+                      <div className="col-span-1"></div>
+                    </div>
+
                     {formData.lineItems.map((item: any, index: number) => (
-                      <div key={index} className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm md:grid md:grid-cols-12 md:items-center md:p-2 md:gap-2">
-                        <div className="md:col-span-4">
+                      <div key={index} className="flex flex-col gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm md:grid md:grid-cols-12 md:items-center md:p-3 md:gap-4 md:border-0 md:bg-transparent md:shadow-none md:rounded-none md:border-b md:border-gray-50 last:border-0 group transition-all">
+                        <div className="md:col-span-6">
                           <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Description</label>
-                          <input
-                            type="text"
-                            className="border p-2 rounded-md w-full text-sm md:text-sm"
-                            value={item.description}
-                            onChange={(e) => handleLineItemChange(index, 'description', e.target.value)}
-                            placeholder="e.g. Headshot Session"
-                            required
-                          />
-                        </div>
-                        <div className="flex gap-2 md:contents">
-                          <div className="flex-1 md:col-span-2">
-                            <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">SAC</label>
+                          <div className="flex flex-col gap-1.5">
                             <input
                               type="text"
-                              className="border p-2 rounded-md w-full text-sm"
-                              value={item.sacCode || ""}
-                              onChange={(e) => handleLineItemChange(index, 'sacCode', e.target.value)}
-                              placeholder="998311"
+                              className="border-0 p-0 w-full text-sm font-bold focus:ring-0 outline-none bg-transparent placeholder-gray-300"
+                              value={item.description}
+                              onChange={(e) => handleLineItemChange(index, 'description', e.target.value)}
+                              placeholder="Service Description"
+                              required
                             />
+                            <div className="flex items-center gap-2 group/sac">
+                              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">SAC</span>
+                              <input
+                                type="text"
+                                className="border-0 p-0 text-[11px] font-medium text-gray-500 focus:ring-0 outline-none bg-transparent w-24 border-b border-transparent group-hover/sac:border-gray-200 focus:border-gray-900 transition-all"
+                                value={item.sacCode || ""}
+                                onChange={(e) => handleLineItemChange(index, 'sacCode', e.target.value)}
+                                placeholder="998311"
+                              />
+                            </div>
                           </div>
-                          <div className="flex-1 md:col-span-2">
+                        </div>
+                        <div className="flex gap-4 items-center md:contents">
+                          <div className="flex-1 md:col-span-1">
                             <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Qty</label>
                             <input
                               type="number"
-                              className="border p-2 rounded-md w-full text-sm text-right"
+                              className="w-full text-sm text-right bg-gray-50 md:bg-white border-0 p-2 md:p-1 rounded-lg focus:ring-0 outline-none font-medium"
                               value={item.quantity}
                               onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
                               min="0"
@@ -1563,23 +1610,24 @@ export function InvoiceModal({
                               required
                             />
                           </div>
-                        </div>
-                        <div className="flex items-end gap-2 md:contents">
                           <div className="flex-1 md:col-span-2">
                             <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Rate</label>
-                            <input
-                              type="number"
-                              className="border p-2 rounded-md w-full text-sm text-right font-bold"
-                              value={item.rate}
-                              onChange={(e) => handleLineItemChange(index, 'rate', e.target.value)}
-                              min="0"
-                              step="0.01"
-                              required
-                            />
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                              <input
+                                type="number"
+                                className="w-full text-sm text-right bg-gray-50 md:bg-white border-0 pl-6 p-2 md:p-1 rounded-lg focus:ring-0 outline-none font-bold"
+                                value={item.rate}
+                                onChange={(e) => handleLineItemChange(index, 'rate', e.target.value)}
+                                min="0"
+                                step="0.01"
+                                required
+                              />
+                            </div>
                           </div>
-                          <div className="flex-1 md:col-span-1 text-right md:text-center flex flex-col justify-center">
+                          <div className="flex-1 md:col-span-2 text-right">
                             <label className="md:hidden block text-[9px] font-black text-gray-600 uppercase mb-1">Total</label>
-                            <div className="text-sm font-black text-gray-900 md:font-bold">
+                            <div className="text-sm font-black text-gray-900">
                               ₹{item.amount?.toLocaleString('en-IN') || '0'}
                             </div>
                           </div>
@@ -1587,10 +1635,10 @@ export function InvoiceModal({
                             <button
                               type="button"
                               onClick={() => removeLineItem(index)}
-                              className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 md:bg-transparent md:text-red-400 md:p-0 md:hover:text-red-600"
+                              className="p-2 text-gray-300 hover:text-red-500 transition-colors md:opacity-0 group-hover:opacity-100"
                             >
-                              <span className="md:hidden text-[10px] font-black uppercase">Remove</span>
-                              <span className="hidden md:inline text-xl">✕</span>
+                              <span className="md:hidden text-[10px] font-black uppercase bg-red-50 text-red-600 px-3 py-1.5 rounded-full">Remove</span>
+                              <span className="hidden md:inline text-lg">✕</span>
                             </button>
                           </div>
                         </div>

@@ -260,6 +260,7 @@ export function BusinessModal({
     invoiceFYFormat: (business as any)?.invoiceFYFormat || "FY25",
     invoiceStartNumber: (business as any)?.invoiceStartNumber || 1,
     invoicePadding: (business as any)?.invoicePadding || 4,
+    invoiceTemplate: business?.invoiceTemplate || "classic",
   });
 
   const [bankAccounts, setBankAccounts] = useState<Partial<BankAccount>[]>(
@@ -757,10 +758,55 @@ export function BusinessModal({
           </div>
 
 
-          {/* Section 5: Payment Accounts */}
+          {/* Section 5: PDF Template Selection */}
+          <div>
+            <SectionHeader number="05" title="Invoice PDF Template" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { id: 'classic', name: 'Classic', desc: 'Conservative & CA-Safe', icon: '🏛️' },
+                { id: 'compact', name: 'Compact', desc: 'Space-Optimized (1 Page)', icon: '📄' },
+                { id: 'creative', name: 'Creative', desc: 'Brand-Forward & Bold', icon: '🎨' }
+              ].map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, invoiceTemplate: template.id })}
+                  className={`relative flex flex-col items-center p-6 rounded-[32px] border-2 transition-all group ${formData.invoiceTemplate === template.id
+                    ? 'border-gray-900 bg-gray-900 text-white shadow-xl scale-[1.02]'
+                    : 'border-gray-100 bg-white hover:border-gray-200 text-gray-500 hover:scale-[1.01]'
+                    }`}
+                >
+                  <div className={`text-4xl mb-4 transition-transform group-hover:scale-110 ${formData.invoiceTemplate === template.id ? 'opacity-100' : 'opacity-40'}`}>
+                    {template.icon}
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest mb-1">{template.name}</span>
+                  <span className={`text-[9px] font-bold uppercase tracking-tight ${formData.invoiceTemplate === template.id ? 'text-gray-400' : 'text-gray-300'}`}>
+                    {template.desc}
+                  </span>
+
+                  {formData.invoiceTemplate === template.id && (
+                    <div className="absolute top-4 right-4 text-blue-400">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center gap-2 bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <p className="text-[9px] font-bold text-blue-800 uppercase tracking-tight">
+                This template will be used for all future exports for this business profile.
+              </p>
+            </div>
+          </div>
+
+
+          {/* Section 6: Payment Accounts */}
           <div>
             <div className="flex justify-between items-center mb-6">
-              <SectionHeader number="05" title="Payment Accounts" />
+              <SectionHeader number="06" title="Payment Accounts" />
               <button
                 type="button"
                 onClick={addBankAccount}

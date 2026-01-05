@@ -78,6 +78,7 @@ const _schema = i.schema({
       invoiceFYFormat: i.string().optional(), // "FY25" or "25"
       invoiceStartNumber: i.number().optional(),
       invoicePadding: i.number().optional(),
+      invoiceTemplate: i.string().optional(), // "classic" | "compact" | "creative"
       status: i.string().optional(), // "pending_claim" | "active" | "disabled"
       createdBy: i.string().optional(), // "admin" | "self"
       isConfirmed: i.boolean().optional(),
