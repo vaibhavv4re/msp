@@ -14,10 +14,17 @@ export async function GET(
 ) {
     const { userId, secret } = await params;
 
-    // 1. Verify user and secret
+    // 1. Verify user and fetch their events in one query
     const userData = await db.query({
         $users: {
-            $: { where: { id: userId, calendarSecret: secret } }
+            $: { where: { id: userId, calendarSecret: secret } },
+            calendarEvents: {
+                $: {
+                    where: {
+                        status: { $in: ["confirmed", "tentative"] }
+                    }
+                }
+            }
         }
     });
 
@@ -26,51 +33,50 @@ export async function GET(
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // 2. Fetch events
-    const eventData = await db.query({
-        calendarEvents: {
-            $: {
-                where: {
-                    "owner.id": userId,
-                    status: { $in: ["confirmed", "tentative"] }
-                }
-            }
-        }
-    });
-
     const appName = process.env.NEXT_PUBLIC_APP_NAME || "MSP";
+    const events = user.calendarEvents || [];
 
-    // 3. Generate iCal string
+    // 2. Generate iCal string
     let ical = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
         `PRODID:-//${appName} Business Suite//Calendar Sync//EN`,
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
-        `X-WR-CALNAME:${appName} events (${user.email || "User"})`,
+        `X-WR-CALNAME:${appName} | Work Schedule`,
+        `X-WR-CALDESC:Business shoots and events from ${appName}`,
         "X-WR-TIMEZONE:UTC",
+        "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+        "X-PUBLISHED-TTL:PT1H",
     ];
 
-    eventData.calendarEvents.forEach((event: any) => {
+    events.forEach((event: any) => {
         const startStr = event.start.replace(/[-:]/g, "").split(".")[0] + "Z";
         const endStr = event.end.replace(/[-:]/g, "").split(".")[0] + "Z";
+        const stampStr = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 
         ical.push("BEGIN:VEVENT");
-        ical.push(`UID:${event.icalUid}`);
-        ical.push(`DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`);
+        ical.push(`UID:${event.icalUid || event.id}`);
+        ical.push(`DTSTAMP:${stampStr}`);
         ical.push(`DTSTART:${startStr}`);
         ical.push(`DTEND:${endStr}`);
         ical.push(`SUMMARY:${event.title || appName + " Shoot"}`);
         ical.push(`STATUS:${event.status === "confirmed" ? "CONFIRMED" : "TENTATIVE"}`);
+        if (event.notes) {
+            ical.push(`DESCRIPTION:${event.notes.replace(/\n/g, "\\n")}`);
+        }
         ical.push("END:VEVENT");
     });
 
     ical.push("END:VCALENDAR");
 
-    return new NextResponse(ical.join("\r\n"), {
+    // Joining with CRLF as per iCal spec
+    const body = ical.join("\r\n");
+
+    return new NextResponse(body, {
         headers: {
             "Content-Type": "text/calendar; charset=utf-8",
-            "Content-Disposition": `attachment; filename="${appName.toLowerCase()}-events-${userId}.ics"`,
+            "Cache-Control": "public, s-maxage=3600",
         },
     });
 }

@@ -1,5 +1,6 @@
 
 import { useState, useMemo, useEffect } from "react";
+import { Copy, Check, Calendar as CalendarIcon, ExternalLink } from "lucide-react";
 import { db } from "@/lib/db";
 import { id } from "@instantdb/react";
 import { CalendarEvent } from "@/app/page";
@@ -235,28 +236,57 @@ export function Calendar({
       {/* Sync Footer */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {icalUrl && (
-          <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100 flex flex-col justify-between">
-            <div className="mb-4">
-              <h4 className="text-sm font-black text-blue-900 uppercase">iCal Subscription</h4>
-              <p className="text-[10px] font-bold text-blue-700 uppercase mt-1">Sync your {APP_CONFIG.NAME} events directly to your iPhone or Mac calendar.</p>
+          <div className="bg-blue-50 rounded-3xl p-8 border border-blue-100 flex flex-col justify-between group overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100/50 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+            <div className="relative z-10">
+              <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-200">
+                <CalendarIcon className="w-6 h-6" />
+              </div>
+              <h4 className="text-xl font-black text-blue-900 uppercase tracking-tight">Apple & iCal Sync</h4>
+              <p className="text-[10px] font-bold text-blue-700 uppercase mt-2 leading-relaxed opacity-80">Subscribe to your live work schedule directly on iPhone, Mac, or Outlook.</p>
             </div>
-            <button
-              onClick={() => {
-                window.location.href = icalUrl.replace('http', 'webcal');
-              }}
-              className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
-            >
-              Add to My Calendar
-            </button>
+
+            <div className="flex gap-3 mt-8 relative z-10">
+              <a
+                href={icalUrl.replace('http', 'webcal')}
+                className="flex-3 bg-blue-600 text-white px-6 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Subscribe Now
+              </a>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(icalUrl);
+                  const btn = document.getElementById('copy-ical-btn');
+                  if (btn) btn.innerText = "COPIED!";
+                  setTimeout(() => { if (btn) btn.innerText = "COPY LINK"; }, 2000);
+                }}
+                className="flex-1 bg-white text-blue-600 border-2 border-blue-100 px-6 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all whitespace-nowrap"
+              >
+                <span id="copy-ical-btn">Copy Link</span>
+              </button>
+            </div>
           </div>
         )}
 
-        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex flex-col justify-between">
-          <div className="mb-4">
-            <h4 className="text-sm font-black text-gray-900 uppercase">Google Calendar</h4>
-            <p className="text-[10px] font-bold text-gray-600 uppercase mt-1">Mirror your shoots to Google Calendar for cross-device visibility.</p>
+        <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100 flex flex-col justify-between group overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gray-200/50 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+          <div className="relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-gray-900 flex items-center justify-center text-white mb-6 shadow-lg shadow-gray-200">
+              <svg className="w-6 h-6" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+            </div>
+            <h4 className="text-xl font-black text-gray-900 uppercase tracking-tight">Google Calendar</h4>
+            <p className="text-[10px] font-bold text-gray-600 uppercase mt-2 leading-relaxed opacity-80">Mirror your shoots to Google Calendar for cross-device visibility and team sharing.</p>
           </div>
-          <CalendarSyncStatus />
+
+          <div className="mt-8 relative z-10">
+            <CalendarSyncStatus />
+          </div>
         </div>
       </div>
 

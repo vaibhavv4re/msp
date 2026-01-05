@@ -27,7 +27,7 @@ export function CalendarSyncStatus() {
         return (
             <button
                 onClick={handleClearToken}
-                className="w-full bg-green-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-200 hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-green-600 text-white px-6 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-200 hover:bg-green-700 transition-all flex items-center justify-center gap-2"
             >
                 <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
                 Google Sync Active (Click to Disable)
@@ -38,7 +38,7 @@ export function CalendarSyncStatus() {
     return (
         <button
             onClick={handleConnectGoogleCalendar}
-            className="w-full bg-gray-900 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-gray-200 hover:bg-black transition-all flex items-center justify-center gap-2"
+            className="w-full bg-gray-900 text-white px-6 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-gray-200 hover:bg-black transition-all flex items-center justify-center gap-2"
         >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
