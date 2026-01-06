@@ -151,13 +151,13 @@ Generated on: ${new Date().toLocaleString()}
         // Group by month
         const monthlySummary: any[] = [];
         const months = new Set([
-            ...data.invoices.map(i => i.invoiceDate.slice(0, 7)),
-            ...data.expenses.map(e => e.date.slice(0, 7))
+            ...data.invoices.map(i => (i.invoiceDate || "").slice(0, 7)),
+            ...data.expenses.map(e => (e.date || "").slice(0, 7))
         ]);
 
         Array.from(months).sort().forEach(month => {
-            const monthInvoices = data.invoices.filter(i => i.invoiceDate.startsWith(month));
-            const monthExpenses = data.expenses.filter(e => e.date.startsWith(month));
+            const monthInvoices = data.invoices.filter(i => (i.invoiceDate || "").startsWith(month));
+            const monthExpenses = data.expenses.filter(e => (e.date || "").startsWith(month));
 
             const gstCollected = monthInvoices.reduce((sum, i) => sum + (i.cgst || 0) + (i.sgst || 0) + (i.igst || 0), 0);
             const gstPaid = monthExpenses.reduce((sum, e) => sum + (e.gstAmount || 0), 0);

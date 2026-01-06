@@ -116,7 +116,7 @@ export function TaxZone({
     // GST Calculations (Monthly)
     const gstMetrics = useMemo(() => {
         const monthFiltered = invoices.filter(inv =>
-            inv.invoiceDate.startsWith(selectedMonth) && inv.status === "Paid"
+            (inv.invoiceDate || "").startsWith(selectedMonth) && inv.status === "Paid"
         );
 
         const totals = monthFiltered.reduce((acc, inv) => {
@@ -137,7 +137,7 @@ export function TaxZone({
         const endYear = parseInt(endYearStr);
 
         const fyFiltered = invoices.filter(inv => {
-            const d = new Date(inv.invoiceDate);
+            const d = new Date(inv.invoiceDate || "");
             const m = d.getMonth();
             const y = d.getFullYear();
 
@@ -158,7 +158,7 @@ export function TaxZone({
         return EXPENSE_CATEGORIES.reduce((acc, cat) => {
             acc[cat] = expenses
                 .filter(e => e.category === cat && (e as any).status === "confirmed")
-                .reduce((sum, e) => sum + e.amount, 0);
+                .reduce((sum, e) => sum + (e.amount || 0), 0);
             return acc;
         }, {} as Record<string, number>);
     }, [expenses]);
@@ -168,22 +168,22 @@ export function TaxZone({
         // so tdsEntries should be the primary source.
         return tdsEntries
             .filter(t => t.fy === selectedFY)
-            .reduce((sum, t) => sum + t.amount, 0);
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
     }, [tdsEntries, selectedFY]);
 
     const [isExporting, setIsExporting] = useState(false);
 
     const filteredExpenses = useMemo(() => {
-        let list = [...expenses].sort((a, b) => b.date.localeCompare(a.date));
+        let list = [...expenses].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
         if (expenseDateFilter === "90days") {
             const ninetyDaysAgo = new Date();
             ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-            list = list.filter(e => new Date(e.date) >= ninetyDaysAgo);
+            list = list.filter(e => new Date(e.date || "") >= ninetyDaysAgo);
         } else if (expenseDateFilter === "thisMonth") {
             const now = new Date();
             const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            list = list.filter(e => new Date(e.date) >= firstDay);
+            list = list.filter(e => new Date(e.date || "") >= firstDay);
         }
 
         return list;
@@ -232,11 +232,11 @@ export function TaxZone({
             };
 
             const filteredInvoices = invoices.filter(inv =>
-                filterByRange(inv.invoiceDate) && inv.status === "Paid"
+                filterByRange(inv.invoiceDate || "") && inv.status === "Paid"
             );
 
             const filteredExpenses = expenses.filter(exp =>
-                filterByRange(exp.date) && (exp as any).status === "confirmed"
+                filterByRange(exp.date || "") && (exp as any).status === "confirmed"
             );
 
             await generateAuditPack({
@@ -457,7 +457,7 @@ export function TaxZone({
                                     ) : (
                                         pagedExpenses.map(exp => (
                                             <tr key={exp.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 text-sm font-bold text-gray-900 whitespace-nowrap">{new Date(exp.date).toLocaleDateString("en-IN", { day: '2-digit', month: 'short' })}</td>
+                                                <td className="px-6 py-4 text-sm font-bold text-gray-900 whitespace-nowrap">{new Date(exp.date || "").toLocaleDateString("en-IN", { day: '2-digit', month: 'short' })}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col">
                                                         <span className="text-xs font-black text-gray-900 uppercase tracking-widest leading-none mb-1 flex items-center gap-2">
@@ -475,7 +475,7 @@ export function TaxZone({
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-3">
                                                         <div className="flex flex-col items-end">
-                                                            <span className="text-sm font-black text-gray-900">₹{exp.amount.toLocaleString()}</span>
+                                                            <span className="text-sm font-black text-gray-900">₹{(exp.amount || 0).toLocaleString()}</span>
                                                             {(exp as any).attachment && (
                                                                 <a
                                                                     href={(exp as any).attachment.url}
@@ -594,7 +594,7 @@ export function TaxZone({
                                                         {client?.displayName || client?.firstName || "Unknown Client"}
                                                     </p>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="text-xl font-black text-gray-900">₹{tds.amount.toLocaleString()}</p>
+                                                        <p className="text-xl font-black text-gray-900">₹{(tds.amount || 0).toLocaleString()}</p>
                                                         {tds.hasCertificate && (
                                                             <span className="bg-green-100 text-green-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase">Verified ✔</span>
                                                         )}
@@ -772,7 +772,7 @@ export function TaxZone({
 
 function ExpenseModal({ onClose, userId, expenses, initialExpense, activeBusinessId }: { onClose: () => void, userId: string, expenses: Expense[], initialExpense?: Expense | null, activeBusinessId: string }) {
     const [formData, setFormData] = useState({
-        amount: initialExpense?.amount.toString() || "",
+        amount: initialExpense?.amount?.toString() || "",
         date: initialExpense?.date || new Date().toISOString().slice(0, 10),
         category: initialExpense?.category || EXPENSE_CATEGORIES[0],
         description: initialExpense?.description || "",
