@@ -240,7 +240,8 @@ function AppContent() {
       bankAccounts: {},
       expenses: { attachment: {}, business: {} },
       tdsEntries: {
-        business: {}
+        business: {},
+        client: {}
       },
       lineItems: { estimate: { $: { fields: ["id"] } } }
     },

@@ -82,11 +82,17 @@ export function TaxZone({
 }) {
     const [activeTab, setActiveTab] = useState<"gst" | "income" | "expenses" | "tds" | "export">("gst");
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const [gstFY, setGstFY] = useState(() => {
+        const now = new Date();
+        const year = now.getFullYear();
+        return now.getMonth() >= 3 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+    });
     const [selectedFY, setSelectedFY] = useState(() => {
         const now = new Date();
         const year = now.getFullYear();
         return now.getMonth() >= 3 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
     });
+    const [incomeMonth, setIncomeMonth] = useState(new Date().toISOString().slice(0, 7));
 
     // Export States
     const [exportScope, setExportScope] = useState<"fy" | "period" | "custom">("fy");
@@ -130,6 +136,28 @@ export function TaxZone({
         return { ...totals, count: monthFiltered.length };
     }, [invoices, selectedMonth]);
 
+    const gstFYMetrics = useMemo(() => {
+        const [startYearStr, endYearStr] = gstFY.split("-");
+        const startYear = parseInt(startYearStr);
+        const endYear = parseInt(endYearStr);
+
+        const fyFiltered = invoices.filter(inv => {
+            const d = new Date(inv.invoiceDate || "");
+            const m = d.getMonth();
+            const y = d.getFullYear();
+
+            const isAfterAprilStart = (y === startYear && m >= 3) || y > startYear;
+            const isBeforeMarchEnd = (y === endYear && m <= 2) || y < endYear;
+
+            return isAfterAprilStart && isBeforeMarchEnd && inv.status === "Paid";
+        });
+
+        const billed = fyFiltered.reduce((acc, inv) => acc + (inv.total || 0), 0);
+        const gst = fyFiltered.reduce((acc, inv) => acc + (inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0), 0);
+
+        return { billed, gst };
+    }, [invoices, gstFY]);
+
     // Annual Income Calculations
     const annualMetrics = useMemo(() => {
         const [startYearStr, endYearStr] = selectedFY.split("-");
@@ -152,6 +180,17 @@ export function TaxZone({
 
         return { gross: income, net: income - gst, gst };
     }, [invoices, selectedFY]);
+
+    const monthlyIncomeMetrics = useMemo(() => {
+        const monthFiltered = invoices.filter(inv =>
+            (inv.invoiceDate || "").startsWith(incomeMonth) && inv.status === "Paid"
+        );
+
+        const gross = monthFiltered.reduce((acc, inv) => acc + (inv.total || 0), 0);
+        const gst = monthFiltered.reduce((acc, inv) => acc + (inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0), 0);
+
+        return { gross, net: gross - gst, gst, count: monthFiltered.length };
+    }, [invoices, incomeMonth]);
 
     // Expense Calculations
     const categoryTotals = useMemo(() => {
@@ -310,14 +349,31 @@ export function TaxZone({
             <main className="min-h-[50vh]">
                 {activeTab === "gst" && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block">Select Month</label>
-                            <input
-                                type="month"
-                                className="text-2xl font-black text-gray-900 bg-transparent focus:outline-none cursor-pointer"
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(e.target.value)}
-                            />
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block">Financial Year</label>
+                                <select
+                                    className="text-2xl font-black text-gray-900 bg-transparent focus:outline-none cursor-pointer appearance-none"
+                                    value={gstFY}
+                                    onChange={(e) => setGstFY(e.target.value)}
+                                >
+                                    <option value="2023-2024">FY 2023-24</option>
+                                    <option value="2024-2025">FY 2024-25</option>
+                                    <option value="2025-2026">FY 2025-26</option>
+                                </select>
+                                <div className="mt-2 text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                                    FY Total: ₹{gstFYMetrics.billed.toLocaleString()}
+                                </div>
+                            </div>
+                            <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block">Select Month</label>
+                                <input
+                                    type="month"
+                                    className="text-2xl font-black text-gray-900 bg-transparent focus:outline-none cursor-pointer"
+                                    value={selectedMonth}
+                                    onChange={(e) => setSelectedMonth(e.target.value)}
+                                />
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -347,17 +403,31 @@ export function TaxZone({
 
                 {activeTab === "income" && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block">Financial Year</label>
-                            <select
-                                className="text-2xl font-black text-gray-900 bg-transparent focus:outline-none cursor-pointer appearance-none"
-                                value={selectedFY}
-                                onChange={(e) => setSelectedFY(e.target.value)}
-                            >
-                                <option value="2023-2024">FY 2023-24</option>
-                                <option value="2024-2025">FY 2024-25</option>
-                                <option value="2025-2026">FY 2025-26</option>
-                            </select>
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block">Financial Year</label>
+                                <select
+                                    className="text-2xl font-black text-gray-900 bg-transparent focus:outline-none cursor-pointer appearance-none"
+                                    value={selectedFY}
+                                    onChange={(e) => setSelectedFY(e.target.value)}
+                                >
+                                    <option value="2023-2024">FY 2023-24</option>
+                                    <option value="2024-2025">FY 2024-25</option>
+                                    <option value="2025-2026">FY 2025-26</option>
+                                </select>
+                            </div>
+                            <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block">Month Wise</label>
+                                <input
+                                    type="month"
+                                    className="text-2xl font-black text-gray-900 bg-transparent focus:outline-none cursor-pointer"
+                                    value={incomeMonth}
+                                    onChange={(e) => setIncomeMonth(e.target.value)}
+                                />
+                                <div className="mt-2 text-[10px] font-black text-green-600 uppercase tracking-widest">
+                                    Month Total: ₹{monthlyIncomeMetrics.gross.toLocaleString()}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -572,29 +642,29 @@ export function TaxZone({
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-white p-12 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-center items-center text-center">
+                        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.5fr] gap-6 items-start">
+                            <div className="bg-white p-12 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-center items-center text-center h-fit">
                                 <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Total Deductions (FY {selectedFY})</h4>
                                 <p className="text-5xl font-black text-orange-600 tracking-tighter">₹{totalTDS.toLocaleString()}</p>
                                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-4">For CA reconciliation</p>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="grid grid-cols-1 gap-3">
                                 {tdsEntries.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center p-12 border-2 border-dashed border-gray-100 rounded-3xl">
+                                    <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-gray-100 rounded-3xl">
                                         <p className="font-bold text-gray-500 uppercase text-xs">No records found</p>
                                     </div>
                                 ) : (
                                     tdsEntries.filter(t => t.fy === selectedFY).map(tds => {
-                                        const client = clients.find(c => c.id === (tds as any).client?.id);
+                                        const client = (tds as any).client || clients.find(c => c.id === (tds as any).client?.id);
                                         return (
-                                            <div key={tds.id} className="p-5 bg-white border border-gray-100 rounded-2xl flex justify-between items-center shadow-sm hover:border-gray-900 transition-all">
+                                            <div key={tds.id} className="p-4 bg-white border border-gray-100 rounded-2xl flex justify-between items-center shadow-sm hover:border-gray-900 transition-all">
                                                 <div>
                                                     <p className="text-[9px] font-black text-gray-500 uppercase tracking-tight mb-1">
                                                         {client?.displayName || client?.firstName || "Unknown Client"}
                                                     </p>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="text-xl font-black text-gray-900">₹{(tds.amount || 0).toLocaleString()}</p>
+                                                        <p className="text-lg font-black text-gray-900">₹{(tds.amount || 0).toLocaleString()}</p>
                                                         {tds.hasCertificate && (
                                                             <span className="bg-green-100 text-green-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase">Verified ✔</span>
                                                         )}
