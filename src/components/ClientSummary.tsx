@@ -17,7 +17,7 @@ import {
     ChevronRight,
 } from "lucide-react";
 
-interface CustomerSummaryProps {
+interface ClientSummaryProps {
     client: Client;
     invoices: Invoice[];
     businesses: Business[];
@@ -29,7 +29,7 @@ interface CustomerSummaryProps {
     onViewInvoice: (invoiceId: string) => void;
 }
 
-export function CustomerSummary({
+export function ClientSummary({
     client,
     invoices: allInvoices,
     businesses,
@@ -39,7 +39,7 @@ export function CustomerSummary({
     onEdit,
     onCreateInvoice,
     onViewInvoice
-}: CustomerSummaryProps) {
+}: ClientSummaryProps) {
     // Filter invoices for this client
     const invoices = allInvoices.filter(inv => inv.client?.id === client.id);
 
@@ -65,7 +65,7 @@ export function CustomerSummary({
 
     const latePaymentsCount = invoices.filter(inv => {
         const today = new Date().toISOString().split('T')[0];
-        return inv.status !== "Paid" && inv.dueDate < today;
+        return inv.status !== "Paid" && (inv.dueDate || "") < today;
     }).length;
 
     const reliability = latePaymentsCount === 0 ? "Reliable" : latePaymentsCount < 3 ? "Sometimes late" : "Frequently late";
@@ -78,7 +78,7 @@ export function CustomerSummary({
 
     // Usage Context
     const currentYear = new Date().getFullYear().toString();
-    const yearlyShootFrequency = invoices.filter(inv => inv.invoiceDate.startsWith(currentYear)).length;
+    const yearlyShootFrequency = invoices.filter(inv => (inv.invoiceDate || "").startsWith(currentYear)).length;
     const invoiceValues = invoices.map(inv => inv.total || 0);
     const minValue = invoiceValues.length > 0 ? Math.min(...invoiceValues) : 0;
     const maxValue = invoiceValues.length > 0 ? Math.max(...invoiceValues) : 0;
@@ -107,10 +107,10 @@ export function CustomerSummary({
         if (filter === "All") return true;
         if (filter === "Overdue") {
             const today = new Date().toISOString().split('T')[0];
-            return inv.status !== "Paid" && inv.dueDate < today;
+            return inv.status !== "Paid" && (inv.dueDate || "") < today;
         }
         return inv.status === filter;
-    }).sort((a, b) => b.invoiceDate.localeCompare(a.invoiceDate));
+    }).sort((a, b) => (b.invoiceDate || "").localeCompare(a.invoiceDate || ""));
 
     return (
         <div className="min-h-screen bg-gray-50/50 pb-20">
@@ -124,8 +124,8 @@ export function CustomerSummary({
                             </button>
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
-                                    {client.customerType === "Business" ? <Briefcase className="w-4 h-4 text-blue-500" /> : <User className="w-4 h-4 text-green-500" />}
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">{client.customerType || "Individual"}</span>
+                                    {client.clientType === "Business" ? <Briefcase className="w-4 h-4 text-blue-500" /> : <User className="w-4 h-4 text-green-500" />}
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">{client.clientType || "Individual"}</span>
                                 </div>
                                 <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tighter leading-none">
                                     {client.displayName || client.companyName || "Unnamed client"}
@@ -148,7 +148,7 @@ export function CustomerSummary({
                                 onClick={() => onEdit(client)}
                                 className="flex-1 md:flex-initial flex items-center justify-center gap-2 border-2 border-gray-100 bg-white text-gray-900 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95"
                             >
-                                <Edit className="w-4 h-4" /> Edit Customer
+                                <Edit className="w-4 h-4" /> Edit Client
                             </button>
                         </div>
                     </div>
@@ -231,8 +231,8 @@ export function CustomerSummary({
                                                     onClick={() => onViewInvoice(inv.id)}
                                                     className="hover:bg-gray-50/50 transition-colors cursor-pointer group"
                                                 >
-                                                    <td className="px-6 py-4 text-gray-900 font-mono tracking-tighter uppercase">{inv.invoiceNumber}</td>
-                                                    <td className="px-6 py-4 text-gray-900 font-bold">{new Date(inv.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                                    <td className="px-6 py-4 text-gray-900 font-black">₹{inv.total?.toLocaleString()}</td>
+                                                    <td className="px-6 py-4 text-gray-900 font-bold">{new Date(inv.invoiceDate || "").toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                                                     <td className="px-6 py-4 text-gray-900 font-black">₹{inv.total?.toLocaleString()}</td>
                                                     <td className="px-6 py-4">
                                                         <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${inv.status === "Paid" ? "bg-green-50 text-green-600" :
@@ -266,7 +266,7 @@ export function CustomerSummary({
                                                     <span className={`text-[8px] font-black tracking-widest uppercase px-1.5 py-0.5 rounded ${inv.status === "Paid" ? "bg-green-50 text-green-600" : "bg-yellow-50 text-yellow-600"
                                                         }`}>{inv.status}</span>
                                                 </div>
-                                                <p className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">{new Date(inv.invoiceDate).toLocaleDateString()}</p>
+                                                <p className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">{new Date(inv.invoiceDate || "").toLocaleDateString()}</p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-sm font-black text-gray-900 tracking-tight">₹{inv.total?.toLocaleString()}</p>

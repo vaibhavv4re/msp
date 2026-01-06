@@ -5,9 +5,9 @@ import * as XLSX from "xlsx";
 
 export interface ClientImportSummary {
     totalRows: number;
-    newCustomers: number;
-    updatedCustomers: number;
-    skippedCustomers: number;
+    newClients: number;
+    updatedClients: number;
+    skippedClients: number;
     clientsToImport: any[];
 }
 
@@ -68,7 +68,7 @@ export function preprocessClientData(
 
         const clientData = {
             id: matchedClient ? matchedClient.id : id(),
-            customerType: row["Customer Type"] || "Individual",
+            clientType: row["Client Type"] || row["Customer Type"] || "Individual",
             salutation: row["Salutation"] || "",
             firstName: row["First Name"] || "",
             lastName: row["Last Name"] || "",
@@ -99,9 +99,9 @@ export function preprocessClientData(
 
     return {
         totalRows: rows.length,
-        newCustomers: newCount,
-        updatedCustomers: updatedCount,
-        skippedCustomers: skippedCount,
+        newClients: newCount,
+        updatedClients: updatedCount,
+        skippedClients: skippedCount,
         clientsToImport
     };
 }

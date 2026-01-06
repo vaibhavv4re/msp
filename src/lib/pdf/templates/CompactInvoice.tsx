@@ -169,9 +169,9 @@ export const CompactInvoice: React.FC<Props> = ({ data }) => {
                     </View>
                     <View style={styles.addressCol}>
                         <Text style={[styles.label, { marginBottom: 0 }]}>To</Text>
-                        <Text style={[styles.addressText, { fontFamily: pdfTheme.fonts.bold, fontSize: 9 }]}>{data.customer.name}</Text>
-                        <Text style={[styles.addressText, { lineHeight: 1.1 }]}>{data.customer.address}</Text>
-                        {data.customer.gstin && <Text style={[styles.addressText, { lineHeight: 1.1 }]}>GST: {data.customer.gstin}</Text>}
+                        <Text style={[styles.addressText, { fontFamily: pdfTheme.fonts.bold, fontSize: 9 }]}>{data.client.name}</Text>
+                        <Text style={[styles.addressText, { lineHeight: 1.1 }]}>{data.client.address}</Text>
+                        {data.client.gstin && <Text style={[styles.addressText, { lineHeight: 1.1 }]}>GST: {data.client.gstin}</Text>}
                     </View>
                 </View>
 

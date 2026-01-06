@@ -75,12 +75,12 @@ export const ClassicInvoice: React.FC<Props> = ({ data }) => {
             textTransform: 'uppercase',
             marginBottom: 4,
         },
-        customerName: {
+        clientName: {
             fontSize: 12,
             fontFamily: pdfTheme.fonts.bold,
             marginBottom: 2,
         },
-        customerDetails: {
+        clientDetails: {
             fontSize: 9,
             color: '#374151',
             lineHeight: 1.3,
@@ -274,9 +274,9 @@ export const ClassicInvoice: React.FC<Props> = ({ data }) => {
 
                 <View style={styles.billToBox}>
                     <Text style={styles.billToLabel}>Billed To:</Text>
-                    <Text style={styles.customerName}>{data.customer.name}</Text>
-                    <Text style={styles.customerDetails}>{data.customer.address}</Text>
-                    {data.customer.gstin && <Text style={styles.customerDetails}>GSTIN: {data.customer.gstin}</Text>}
+                    <Text style={styles.clientName}>{data.client.name}</Text>
+                    <Text style={styles.clientDetails}>{data.client.address}</Text>
+                    {data.client.gstin && <Text style={styles.clientDetails}>GSTIN: {data.client.gstin}</Text>}
                 </View>
 
                 <View style={styles.table}>

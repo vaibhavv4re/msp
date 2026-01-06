@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 
 export interface Client {
     id: string;
-    customerType?: string;
+    clientType?: string;
     salutation?: string;
     firstName?: string;
     lastName?: string;
@@ -25,7 +25,7 @@ export interface Client {
 
 export function generateClientCSV(clients: Client[]) {
     const rows = clients.map(client => ({
-        "Customer Type": client.customerType || "Individual",
+        "Client Type": client.clientType || "Individual",
         "Salutation": client.salutation || "",
         "First Name": client.firstName || "",
         "Last Name": client.lastName || "",
@@ -50,11 +50,11 @@ export function generateClientCSV(clients: Client[]) {
 
     // Create Workbook
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Customers");
+    XLSX.utils.book_append_sheet(wb, ws, "Clients");
 
     // Generate filename with timestamp
     const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `customers_export_${timestamp}.csv`;
+    const filename = `clients_export_${timestamp}.csv`;
 
     // Trigger Download
     XLSX.writeFile(wb, filename, { bookType: 'csv' });

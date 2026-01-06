@@ -4,7 +4,7 @@ import { Invoice, Client, LineItem } from "@/app/page";
 
 /**
  * Generates a standardized CSV for invoices, compatible with the import schema.
- * Explodes each line item into its own row, repeating header/customer info.
+ * Explodes each line item into its own row, repeating header/client info.
  */
 export function generateInvoiceCSV(invoices: Invoice[]) {
     const rows: any[] = [];
@@ -39,14 +39,14 @@ export function generateInvoiceCSV(invoices: Invoice[]) {
                 "SGST Rate": Math.round(sgstRate * 100) / 100,
                 "IGST Rate": Math.round(igstRate * 100) / 100,
 
-                // Customer Info
-                "Customer Name": client?.displayName || client?.firstName || "",
-                "Customer Email": client?.email || "",
-                "Customer GSTIN": client?.gst || "",
-                "Customer PAN": client?.pan || "",
-                "Customer Phone": client?.phone || "",
-                "Customer Address": client?.address || "",
-                "Customer Type": client?.customerType || "Individual",
+                // Client Info
+                "Client Name": client?.displayName || client?.firstName || "",
+                "Client Email": client?.email || "",
+                "Client GSTIN": client?.gst || "",
+                "Client PAN": client?.pan || "",
+                "Client Phone": client?.phone || "",
+                "Client Address": client?.address || "",
+                "Client Type": client?.clientType || "Individual",
 
                 // Line Item Info
                 "Item Description": li.description,
@@ -72,7 +72,7 @@ export function generateInvoiceCSV(invoices: Invoice[]) {
 export function getAvailableFinancialYears(invoices: Invoice[]): string[] {
     const years = new Set<string>();
     invoices.forEach(inv => {
-        const date = new Date(inv.invoiceDate);
+        const date = new Date(inv.invoiceDate || "");
         const year = date.getFullYear();
         const month = date.getMonth(); // 0-indexed
 
@@ -95,7 +95,7 @@ export function getAvailableMonthYears(invoices: Invoice[]): { month: number, ye
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
     invoices.forEach(inv => {
-        const date = new Date(inv.invoiceDate);
+        const date = new Date(inv.invoiceDate || "");
         const month = date.getMonth();
         const year = date.getFullYear();
         const key = `${year}-${month}`;
@@ -116,7 +116,7 @@ export function filterInvoicesByFY(invoices: Invoice[], fy: string): Invoice[] {
     const endDate = new Date(startYear + 1, 2, 31, 23, 59, 59); // March 31st next year
 
     return invoices.filter(inv => {
-        const d = new Date(inv.invoiceDate);
+        const d = new Date(inv.invoiceDate || "");
         return d >= startDate && d <= endDate;
     });
 }
@@ -126,7 +126,7 @@ export function filterInvoicesByFY(invoices: Invoice[], fy: string): Invoice[] {
  */
 export function filterInvoicesByMonth(invoices: Invoice[], month: number, year: number): Invoice[] {
     return invoices.filter(inv => {
-        const d = new Date(inv.invoiceDate);
+        const d = new Date(inv.invoiceDate || "");
         return d.getMonth() === month && d.getFullYear() === year;
     });
 }

@@ -553,7 +553,7 @@ function ConciergeView({ businesses, logAction, adminId, onSelectBusiness }: { b
                                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
                             </div>
                             <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Ready for Onboarding</h3>
-                            <p className="text-sm font-medium text-gray-400 mt-3 max-w-sm">Use this section to pre-configure a complete business environment including legal info, customers, and active services.</p>
+                            <p className="text-sm font-medium text-gray-400 mt-3 max-w-sm">Use this section to pre-configure a complete business environment including legal info, clients, and active services.</p>
                         </div>
                     ) : (
                         <div className="bg-white rounded-[4rem] border border-gray-900 shadow-2xl p-12 space-y-12 animate-in slide-in-from-right-12 duration-500 overflow-hidden relative">

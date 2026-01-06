@@ -1419,7 +1419,7 @@ function UsageTrackerTab({ invoices, clients }: { invoices: Invoice[]; clients: 
           <thead>
             <tr className="bg-gray-100">
               <th className="py-2 px-4 text-left">Invoice #</th>
-              <th className="py-2 px-4 text-left">Customer</th>
+              <th className="py-2 px-4 text-left">Client</th>
               <th className="py-2 px-4 text-left">Usage Type</th>
               <th className="py-2 px-4 text-left">Duration</th>
               <th className="py-2 px-4 text-left">Geography</th>

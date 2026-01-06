@@ -113,7 +113,7 @@ export function Onboarding({ userId, onComplete }: { userId: string; onComplete:
                     <div className="space-y-3 md:space-y-4">
                         <h2 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter">Choose your start</h2>
                         <p className="text-gray-500 text-[10px] md:text-xs font-bold uppercase tracking-widest leading-relaxed">
-                            Every invoice you send, every expense you track, and every customer you manage starts with your business profile.
+                            Every invoice you send, every expense you track, and every client you manage starts with your business profile.
                         </p>
                     </div>
 

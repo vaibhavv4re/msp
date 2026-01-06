@@ -21,14 +21,14 @@ export interface ImportRow {
     "SGST Rate"?: number;
     "IGST Rate"?: number;
 
-    // Customer Info
-    "Customer Name": string;
-    "Customer Email"?: string;
-    "Customer GSTIN"?: string;
-    "Customer PAN"?: string;
-    "Customer Phone"?: string;
-    "Customer Address"?: string;
-    "Customer Type"?: "Individual" | "Business" | "Agency";
+    // Client Info
+    "Client Name": string;
+    "Client Email"?: string;
+    "Client GSTIN"?: string;
+    "Client PAN"?: string;
+    "Client Phone"?: string;
+    "Client Address"?: string;
+    "Client Type"?: "Individual" | "Business" | "Agency";
 
     // Line Item Info
     "Item Description": string;
@@ -40,8 +40,8 @@ export interface ImportRow {
 export interface ImportSummary {
     totalRows: number;
     uniqueInvoices: number;
-    newCustomers: number;
-    reusedCustomers: number;
+    newClientsCount: number;
+    reusedClientsCount: number;
     duplicatesSkipped: number;
     invoicesToImport: any[];
     newClients: any[];
@@ -131,14 +131,14 @@ export function preprocessImportData(
                 tdsDeducted: String(row["TDS"]).toLowerCase() === "true" || row["TDS"] === true,
                 tdsAmount: Number(row["TDS Amount"]) || 0,
 
-                // Customer resolution details
-                customerName: String(row["Customer Name"] || "").trim(),
-                customerEmail: String(row["Customer Email"] || "").trim(),
-                customerGst: String(row["Customer GSTIN"] || "").trim(),
-                customerPan: String(row["Customer PAN"] || "").trim(),
-                customerPhone: String(row["Customer Phone"] || "").trim(),
-                customerAddress: String(row["Customer Address"] || "").trim(),
-                customerType: row["Customer Type"] || "Individual",
+                // Client resolution details
+                clientName: String(row["Client Name"] || "").trim(),
+                clientEmail: String(row["Client Email"] || "").trim(),
+                clientGst: String(row["Client GSTIN"] || "").trim(),
+                clientPan: String(row["Client PAN"] || "").trim(),
+                clientPhone: String(row["Client Phone"] || "").trim(),
+                clientAddress: String(row["Client Address"] || "").trim(),
+                clientType: row["Client Type"] || "Individual",
 
                 lineItems: [],
                 subtotal: 0,
@@ -163,15 +163,15 @@ export function preprocessImportData(
 
     const finalInvoices = Array.from(invoicesMap.values());
 
-    let newCustomersCount = 0;
-    let reusedCustomersCount = 0;
+    let newClientsCount = 0;
+    let reusedClientsCount = 0;
 
     finalInvoices.forEach((inv) => {
-        const gst = inv.customerGst;
-        const email = inv.customerEmail;
-        const nameNormalized = inv.customerName.toLowerCase();
+        const gst = inv.clientGst;
+        const email = inv.clientEmail;
+        const nameNormalized = inv.clientName.toLowerCase();
 
-        // Rule 4 — Customer Resolution Priority: GSTIN > Email > Normalized Name
+        // Rule 4 — Client Resolution Priority: GSTIN > Email > Normalized Name
         let matchedClient = existingClients.find((c) => {
             if (gst && c.gst === gst) return true;
             if (email && c.email === email) return true;
@@ -181,7 +181,7 @@ export function preprocessImportData(
 
         if (matchedClient) {
             inv.clientId = matchedClient.id;
-            reusedCustomersCount++;
+            reusedClientsCount++;
             // Mark client as TDS deducting if any of their invoices have TDS
             if (inv.tdsDeducted) {
                 matchedClient.isTdsDeductedInBatch = true;
@@ -191,24 +191,24 @@ export function preprocessImportData(
             const tempKey = gst || email || nameNormalized;
             if (clientMap.has(tempKey)) {
                 inv.clientId = clientMap.get(tempKey).id;
-                reusedCustomersCount++;
+                reusedClientsCount++;
             } else {
                 const newId = id();
                 const newClient = {
                     id: newId,
-                    displayName: inv.customerName,
-                    email: inv.customerEmail,
-                    gst: inv.customerGst,
-                    pan: inv.customerPan,
-                    phone: inv.customerPhone,
-                    address: inv.customerAddress,
-                    customerType: inv.customerType,
+                    displayName: inv.clientName,
+                    email: inv.clientEmail,
+                    gst: inv.clientGst,
+                    pan: inv.clientPan,
+                    phone: inv.clientPhone,
+                    address: inv.clientAddress,
+                    clientType: inv.clientType,
                     isTdsDeducting: inv.tdsDeducted,
                 };
                 clientMap.set(tempKey, newClient);
                 inv.clientId = newId;
                 inv.isNewClient = true;
-                newCustomersCount++;
+                newClientsCount++;
             }
         }
     });
@@ -216,8 +216,8 @@ export function preprocessImportData(
     return {
         totalRows: rows.length,
         uniqueInvoices: finalInvoices.length,
-        newCustomers: newCustomersCount,
-        reusedCustomers: reusedCustomersCount,
+        newClientsCount,
+        reusedClientsCount,
         duplicatesSkipped,
         invoicesToImport: finalInvoices,
         newClients: Array.from(clientMap.values()),

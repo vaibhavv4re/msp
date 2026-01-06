@@ -2,7 +2,7 @@ import { useState } from "react";
 import { db } from "@/lib/db";
 import { id } from "@instantdb/react";
 import { Client, Invoice, Business } from "@/app/page";
-import { CustomerSummary } from "./CustomerSummary";
+import { ClientSummary } from "./ClientSummary";
 
 const PAYMENT_TERMS = [
   { value: "due_on_receipt", label: "Due on Receipt" },
@@ -15,7 +15,7 @@ const PAYMENT_TERMS = [
 
 import React from "react";
 
-export function Customers({
+export function Clients({
   clients,
   invoices,
   businesses,
@@ -36,7 +36,7 @@ export function Customers({
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [view, setView] = useState<"list" | "summary">("list");
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,11 +54,11 @@ export function Customers({
     }
   }, [initiallyOpenModal]);
 
-  const selectedClientForSummary = clients.find(c => c.id === selectedCustomerId);
+  const selectedClientForSummary = clients.find(c => c.id === selectedClientId);
 
   if (view === "summary" && selectedClientForSummary) {
     return (
-      <CustomerSummary
+      <ClientSummary
         client={selectedClientForSummary}
         invoices={invoices}
         businesses={businesses}
@@ -67,10 +67,10 @@ export function Customers({
         onBack={() => setView("list")}
         onEdit={(client) => openModal(client)}
         onCreateInvoice={(clientId) => {
-          if (onNavigate) onNavigate("sales", "create-invoice");
+          if (onNavigate) onNavigate("work", "create-invoice");
         }}
         onViewInvoice={(invoiceId) => {
-          if (onNavigate) onNavigate("sales", `edit-invoice:${invoiceId}`);
+          if (onNavigate) onNavigate("work", `edit-invoice:${invoiceId}`);
         }}
       />
     );
@@ -94,8 +94,6 @@ export function Customers({
     );
   });
 
-
-
   const itemsPerPage = 25;
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
   const pagedClients = filteredClients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -113,7 +111,7 @@ export function Customers({
   }
 
   function deleteClient(client: Client) {
-    const displayName = client.displayName || client.firstName || "this customer";
+    const displayName = client.displayName || client.firstName || "this client";
     if (
       confirm(
         `Are you sure you want to delete ${displayName}? This will also delete all their invoices.`
@@ -126,19 +124,19 @@ export function Customers({
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Customers</h2>
+        <h2 className="text-xl font-bold">Clients</h2>
         <button
           onClick={() => openModal()}
           className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800"
         >
-          Add Customer
+          Add Client
         </button>
       </div>
 
       <div className="mb-4">
         <input
           type="text"
-          placeholder="Search customers..."
+          placeholder="Search clients..."
           className="border p-2 rounded-md w-full"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -149,7 +147,7 @@ export function Customers({
       <div className="md:hidden space-y-4">
         {mobilePagedClients.length === 0 ? (
           <div className="py-12 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-            <p className="text-sm font-black text-gray-600 uppercase tracking-widest">No customers found</p>
+            <p className="text-sm font-black text-gray-600 uppercase tracking-widest">No clients found</p>
           </div>
         ) : (
           <>
@@ -158,7 +156,7 @@ export function Customers({
                 <div className="p-4 border-b border-gray-50 flex justify-between items-start">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`w-2 h-2 rounded-full ${client.customerType === "Business" ? "bg-blue-500" : "bg-green-500"}`}></span>
+                      <span className={`w-2 h-2 rounded-full ${client.clientType === "Business" ? "bg-blue-500" : "bg-green-500"}`}></span>
                       <h3 className="font-black text-gray-900 uppercase tracking-tight truncate">
                         {client.displayName || client.firstName || "Unnamed"}
                       </h3>
@@ -168,9 +166,9 @@ export function Customers({
                     )}
                   </div>
                   <div className="text-right">
-                    <span className={`inline-block px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${client.customerType === "Business" ? "bg-blue-50 text-blue-600" : "bg-green-50 text-green-600"
+                    <span className={`inline-block px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${client.clientType === "Business" ? "bg-blue-50 text-blue-600" : "bg-green-50 text-green-600"
                       }`}>
-                      {client.customerType || "Individual"}
+                      {client.clientType || "Individual"}
                     </span>
                   </div>
                 </div>
@@ -191,7 +189,7 @@ export function Customers({
 
                 <div className="p-3 bg-white flex gap-2 border-t border-gray-100">
                   <button
-                    onClick={() => { setSelectedCustomerId(client.id); setView("summary"); }}
+                    onClick={() => { setSelectedClientId(client.id); setView("summary"); }}
                     className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
                   >
                     View Summary
@@ -229,7 +227,7 @@ export function Customers({
         <table className="min-w-full">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
-              <th className="py-3 px-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">Customer</th>
+              <th className="py-3 px-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">Client</th>
               <th className="py-3 px-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">Status / Type</th>
               <th className="py-3 px-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">Email / Phone</th>
               <th className="py-3 px-4 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">Actions</th>
@@ -238,7 +236,7 @@ export function Customers({
           <tbody className="divide-y divide-gray-50">
             {pagedClients.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-12 text-center text-gray-600 font-bold uppercase text-xs">No customers found</td>
+                <td colSpan={4} className="py-12 text-center text-gray-600 font-bold uppercase text-xs">No clients found</td>
               </tr>
             ) : (
               pagedClients.map((client) => (
@@ -250,11 +248,11 @@ export function Customers({
                     )}
                   </td>
                   <td className="py-2 px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${client.customerType === "Business"
+                    <span className={`px-2 py-1 rounded-full text-xs ${client.clientType === "Business"
                       ? "bg-blue-100 text-blue-800"
                       : "bg-green-100 text-green-800"
                       }`}>
-                      {client.customerType || "Individual"}
+                      {client.clientType || "Individual"}
                     </span>
                   </td>
                   <td className="py-2 px-4">
@@ -265,7 +263,7 @@ export function Customers({
                   </td>
                   <td className="py-2 px-4 text-center">
                     <button
-                      onClick={() => { setSelectedCustomerId(client.id); setView("summary"); }}
+                      onClick={() => { setSelectedClientId(client.id); setView("summary"); }}
                       className="text-gray-900 font-bold hover:underline mr-3"
                     >
                       View
@@ -293,7 +291,7 @@ export function Customers({
         {filteredClients.length > 0 && (
           <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-100 mt-4 rounded-b-lg">
             <div className="text-[10px] font-black text-gray-900 uppercase tracking-widest">
-              Showing {pagedClients.length} of {filteredClients.length} customers
+              Showing {pagedClients.length} of {filteredClients.length} clients
             </div>
             {totalPages > 1 && (
               <div className="flex gap-2">
@@ -321,13 +319,13 @@ export function Customers({
       </div>
 
       {isModalOpen && (
-        <CustomerModal client={editingClient} userId={userId} activeBusinessId={activeBusinessId} onClose={closeModal} />
+        <ClientModal client={editingClient} userId={userId} activeBusinessId={activeBusinessId} onClose={closeModal} />
       )}
     </div>
   );
 }
 
-export function CustomerModal({
+export function ClientModal({
   client,
   userId,
   activeBusinessId,
@@ -348,7 +346,7 @@ export function CustomerModal({
     phone: string;
   }>;
 }) {
-  const [customerType, setCustomerType] = useState(client?.customerType || "Individual");
+  const [clientType, setClientType] = useState(client?.clientType || "Individual");
   const [salutation, setSalutation] = useState(client?.salutation || "");
   const [firstName, setFirstName] = useState(client?.firstName || initialData?.firstName || "");
   const [lastName, setLastName] = useState(client?.lastName || initialData?.lastName || "");
@@ -369,7 +367,7 @@ export function CustomerModal({
 
   // Auto-generate display name
   function generateDisplayName() {
-    if (customerType === "Business" && companyName) {
+    if (clientType === "Business" && companyName) {
       return companyName;
     } else if (firstName) {
       return `${salutation ? salutation + " " : ""}${firstName}${lastName ? " " + lastName : ""}`.trim();
@@ -389,7 +387,7 @@ export function CustomerModal({
 
     const clientId = client?.id || id();
     const clientData = {
-      customerType,
+      clientType,
       salutation: salutation || undefined,
       firstName: firstName || undefined,
       lastName: lastName || undefined,
@@ -409,7 +407,7 @@ export function CustomerModal({
 
     const isNew = !client;
     if (isNew) {
-      // Creating new customer - link owner
+      // Creating new client - link owner
       db.transact([
         db.tx.clients[clientId].update(clientData),
         db.tx.clients[clientId].link({ owner: userId })
@@ -418,7 +416,7 @@ export function CustomerModal({
         db.transact(db.tx.clients[clientId].link({ business: activeBusinessId }));
       }
     } else {
-      // Updating existing customer - no need to relink owner
+      // Updating existing client - no need to relink owner
       db.transact(db.tx.clients[clientId].update(clientData));
     }
     if (onSuccess) onSuccess(clientId);
@@ -429,22 +427,22 @@ export function CustomerModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[95vh] overflow-y-auto">
         <h3 className="text-xl font-bold mb-4">
-          {client ? "Edit Customer" : "Add Customer"}
+          {client ? "Edit Client" : "Add Client"}
         </h3>
 
         <form onSubmit={handleSubmit}>
-          {/* Customer Type */}
+          {/* Client Type */}
           <div className="mb-6">
             <label className="block text-sm font-medium mb-2">
-              Customer Type <span className="text-red-500">*</span>
+              Client Type <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-4">
               <label className="flex items-center">
                 <input
                   type="radio"
                   value="Business"
-                  checked={customerType === "Business"}
-                  onChange={(e) => setCustomerType(e.target.value)}
+                  checked={clientType === "Business"}
+                  onChange={(e) => setClientType(e.target.value)}
                   className="mr-2"
                 />
                 Business
@@ -453,8 +451,8 @@ export function CustomerModal({
                 <input
                   type="radio"
                   value="Individual"
-                  checked={customerType === "Individual"}
-                  onChange={(e) => setCustomerType(e.target.value)}
+                  checked={clientType === "Individual"}
+                  onChange={(e) => setClientType(e.target.value)}
                   className="mr-2"
                 />
                 Individual
@@ -519,7 +517,7 @@ export function CustomerModal({
               </div>
             </div>
 
-            {customerType === "Business" && (
+            {clientType === "Business" && (
               <div className="mt-4">
                 <label className="block text-sm font-medium mb-1">Company Name</label>
                 <input
@@ -708,7 +706,7 @@ export function CustomerModal({
               type="submit"
               className="px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
             >
-              {client ? "Update" : "Add"} Customer
+              {client ? "Update" : "Add"} Client
             </button>
           </div>
         </form>

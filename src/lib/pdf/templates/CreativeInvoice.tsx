@@ -227,10 +227,10 @@ export const CreativeInvoice: React.FC<Props> = ({ data }) => {
                         </View>
                         <View style={styles.narrativeCol}>
                             <Text style={styles.narrativeLabel}>Prepared for</Text>
-                            <Text style={styles.narrativeName}>{data.customer.name}</Text>
+                            <Text style={styles.narrativeName}>{data.client.name}</Text>
                             <Text style={styles.narrativeText}>
-                                {data.customer.address}
-                                {data.customer.gstin && `\nGST: ${data.customer.gstin}`}
+                                {data.client.address}
+                                {data.client.gstin && `\nGST: ${data.client.gstin}`}
                             </Text>
                         </View>
                     </View>

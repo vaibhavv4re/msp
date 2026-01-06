@@ -83,7 +83,7 @@ export function DataManagement({ userId, invoices, clients }: DataManagementProp
                     </div>
                 </div>
 
-                {/* Customers Section */}
+                {/* Clients Section */}
                 <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all group">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -92,7 +92,7 @@ export function DataManagement({ userId, invoices, clients }: DataManagementProp
                             </svg>
                         </div>
                         <div>
-                            <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Customer Database</h3>
+                            <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Client Database</h3>
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Profiles & Contacts</p>
                         </div>
                     </div>
@@ -102,7 +102,7 @@ export function DataManagement({ userId, invoices, clients }: DataManagementProp
                             onClick={() => setIsClientImportModalOpen(true)}
                             className="w-full flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-gray-900 group/btn transition-all"
                         >
-                            <span className="text-sm font-black text-gray-900 uppercase tracking-widest group-hover/btn:text-white">Import Customers</span>
+                            <span className="text-sm font-black text-gray-900 uppercase tracking-widest group-hover/btn:text-white">Import Clients</span>
                             <div className="bg-white p-2 rounded-xl text-gray-900 group-hover/btn:bg-gray-800 group-hover/btn:text-white transition-colors">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -114,7 +114,7 @@ export function DataManagement({ userId, invoices, clients }: DataManagementProp
                             onClick={() => setIsClientExportModalOpen(true)}
                             className="w-full flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-blue-600 group/btn transition-all"
                         >
-                            <span className="text-sm font-black text-gray-900 uppercase tracking-widest group-hover/btn:text-white">Export Customers</span>
+                            <span className="text-sm font-black text-gray-900 uppercase tracking-widest group-hover/btn:text-white">Export Clients</span>
                             <div className="bg-white p-2 rounded-xl text-gray-900 group-hover/btn:bg-blue-700 group-hover/btn:text-white transition-colors">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -165,7 +165,7 @@ export function DataManagement({ userId, invoices, clients }: DataManagementProp
             )}
 
             {isClientImportModalOpen && (
-                <CustomerImportModal
+                <ClientImportModal
                     onClose={() => setIsClientImportModalOpen(false)}
                     userId={userId}
                     existingClients={clients}
@@ -173,7 +173,7 @@ export function DataManagement({ userId, invoices, clients }: DataManagementProp
             )}
 
             {isClientExportModalOpen && (
-                <CustomerExportModal
+                <ClientExportModal
                     onClose={() => setIsClientExportModalOpen(false)}
                     clients={clients}
                 />
@@ -255,11 +255,11 @@ function ImportModal({
                             <div className="bg-blue-50 border-2 border-blue-100 rounded-xl p-4">
                                 <h4 className="text-blue-900 font-bold text-sm mb-2 uppercase tracking-wide">Step 1: Prepare your file</h4>
                                 <p className="text-[10px] font-bold text-blue-800 uppercase leading-tight mb-4">
-                                    Ensure your file contains standard columns like Invoice Number, Customer Name, and Item Details.
+                                    Ensure your file contains standard columns like Invoice Number, Client Name, and Item Details.
                                 </p>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px] font-black uppercase text-blue-700/60">
                                     <div>• Invoice Number</div>
-                                    <div>• Customer Name</div>
+                                    <div>• Client Name</div>
                                     <div>• Item Description</div>
                                     <div>• Item Rate</div>
                                 </div>
@@ -301,7 +301,7 @@ function ImportModal({
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Invoices</p>
                                     </div>
                                     <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                                        <p className="text-2xl font-black text-blue-400">{summary.newCustomers}</p>
+                                        <p className="text-2xl font-black text-blue-400">{summary.newClientsCount}</p>
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">New Clients</p>
                                     </div>
                                 </div>
@@ -457,7 +457,7 @@ function ExportModal({
                         <div>
                             <p className="text-[10px] font-black text-blue-900 uppercase tracking-widest mb-1">Standard Format</p>
                             <p className="text-[11px] font-medium text-blue-700/80 leading-relaxed">
-                                This export generates a CSV that includes all customer details, tax breakdowns, and line items. It can be re-imported back into {APP_CONFIG.NAME} at any time.
+                                This export generates a CSV that includes all Client details, tax breakdowns, and line items. It can be re-imported back into {APP_CONFIG.NAME} at any time.
                             </p>
                         </div>
                     </div>
@@ -482,7 +482,7 @@ function ExportModal({
     );
 }
 
-function CustomerImportModal({
+function ClientImportModal({
     onClose,
     userId,
     existingClients,
@@ -522,7 +522,7 @@ function CustomerImportModal({
         setIsImporting(true);
         try {
             await executeClientImport(summary, userId);
-            alert("Customer import successful!");
+            alert("Client import successful!");
             onClose();
         } catch (err) {
             setError("Failed to execute import. Please try again.");
@@ -537,7 +537,7 @@ function CustomerImportModal({
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
                 <div className="p-6 bg-gray-50 border-b flex justify-between items-center">
                     <div>
-                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Import Customers</h3>
+                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Import Clients</h3>
                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Bulk Client Creation Utility</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -574,7 +574,7 @@ function CustomerImportModal({
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                         </svg>
                                     </div>
-                                    <p className="text-sm font-black text-gray-900 uppercase">Upload Customer List</p>
+                                    <p className="text-sm font-black text-gray-900 uppercase">Upload Client List</p>
                                     <p className="text-[10px] font-bold text-gray-500 uppercase mt-2 tracking-widest">CSV, XLSX supported</p>
                                 </div>
                             </div>
@@ -589,11 +589,11 @@ function CustomerImportModal({
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                                        <p className="text-2xl font-black text-green-400">{summary.newCustomers}</p>
+                                        <p className="text-2xl font-black text-green-400">{summary.newClients}</p>
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">New Profiles</p>
                                     </div>
                                     <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                                        <p className="text-2xl font-black text-blue-400">{summary.updatedCustomers}</p>
+                                        <p className="text-2xl font-black text-blue-400">{summary.updatedClients}</p>
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">To Update</p>
                                     </div>
                                 </div>
@@ -619,7 +619,7 @@ function CustomerImportModal({
                     <button
                         onClick={handleImport}
                         className="flex-[2] py-4 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black active:scale-95 transition-all shadow-lg shadow-gray-200 disabled:opacity-50"
-                        disabled={!summary || isImporting || (summary.newCustomers === 0 && summary.updatedCustomers === 0)}
+                        disabled={!summary || isImporting || (summary.newClients === 0 && summary.updatedClients === 0)}
                     >
                         {isImporting ? "Processing..." : "Finish Import"}
                     </button>
@@ -629,7 +629,7 @@ function CustomerImportModal({
     );
 }
 
-function CustomerExportModal({
+function ClientExportModal({
     onClose,
     clients,
 }: {
@@ -638,7 +638,7 @@ function CustomerExportModal({
 }) {
     function handleExport() {
         if (clients.length === 0) {
-            alert("No customer records found to export.");
+            alert("No Client records found to export.");
             return;
         }
         generateClientCSV(clients);
@@ -650,7 +650,7 @@ function CustomerExportModal({
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
                 <div className="p-6 bg-gray-50 border-b flex justify-between items-center">
                     <div>
-                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Export Customers</h3>
+                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Export Clients</h3>
                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Full Database Extraction</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -663,11 +663,11 @@ function CustomerExportModal({
                 <div className="p-8 space-y-6">
                     <div className="bg-blue-600 rounded-2xl p-6 text-white text-center">
                         <p className="text-4xl font-black mb-1">{clients.length}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Total Customer Records</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Total Client Records</p>
                     </div>
 
                     <p className="text-[11px] font-medium text-gray-500 leading-relaxed text-center px-4">
-                        This will generate a CSV file containing all details for your active customer base, including GSTINs, addresses, and contact profiles.
+                        This will generate a CSV file containing all details for your active client base, including GSTINs, addresses, and contact profiles.
                     </p>
                 </div>
 

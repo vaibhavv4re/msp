@@ -15,7 +15,7 @@ function calculateTotals(invoices: Invoice[], context: TimeContext) {
 
   const filtered = invoices.filter(inv => {
     if (context === "all_time") return true;
-    const invDate = new Date(inv.invoiceDate);
+    const invDate = new Date(inv.invoiceDate || "");
     if (context === "this_month") {
       return invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear;
     }
@@ -61,7 +61,7 @@ function isDateInFY(dateStr: string, fy: string) {
 
 function calculateGSTMetrics(invoices: Invoice[], selectedFY: string) {
   const paidInvoices = invoices.filter(inv =>
-    inv.status === "Paid" && isDateInFY(inv.invoiceDate, selectedFY)
+    inv.status === "Paid" && isDateInFY(inv.invoiceDate || "", selectedFY)
   );
 
   const totalReceived = paidInvoices.reduce((acc, inv) => acc + (inv.total || 0), 0);
@@ -72,7 +72,7 @@ function calculateGSTMetrics(invoices: Invoice[], selectedFY: string) {
   const timelineMap: Record<string, { monthYear: string, gst: number, date: Date }> = {};
 
   paidInvoices.forEach(inv => {
-    const d = new Date(inv.invoiceDate);
+    const d = new Date(inv.invoiceDate || "");
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     const monthYear = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
@@ -140,12 +140,12 @@ export function Dashboard({
     const client = clients.find(c => c.id === (inv as any).client?.id);
     const clientName = client?.displayName || client?.firstName || "";
     const search = paymentSearch.toLowerCase();
-    return inv.invoiceNumber.toLowerCase().includes(search) || clientName.toLowerCase().includes(search);
+    return (inv.invoiceNumber || "").toLowerCase().includes(search) || clientName.toLowerCase().includes(search);
   });
 
   const oldestUnpaid = [...invoices]
     .filter(inv => inv.status !== "Paid")
-    .sort((a, b) => new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime())[0];
+    .sort((a, b) => new Date(a.invoiceDate || "").getTime() - new Date(b.invoiceDate || "").getTime())[0];
 
   const oldestUnpaidClient = oldestUnpaid ? clients.find(c => c.id === (oldestUnpaid as any).client?.id) : null;
 
@@ -254,8 +254,8 @@ export function Dashboard({
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const overdueInvoices = invoices.filter(inv => {
-          return inv.status !== "Paid" && new Date(inv.dueDate) < today;
-        }).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+          return inv.status !== "Paid" && new Date(inv.dueDate || "") < today;
+        }).sort((a, b) => new Date(a.dueDate || "").getTime() - new Date(b.dueDate || "").getTime());
 
         if (overdueInvoices.length === 0) return null;
 
@@ -267,7 +267,7 @@ export function Dashboard({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {overdueInvoices.map((inv) => {
                 const client = clients.find(c => c.id === (inv as any).client?.id);
-                const dueDate = new Date(inv.dueDate);
+                const dueDate = new Date(inv.dueDate || "");
                 const diffDays = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
                 const lastSentAt = (inv as any).lastReminderSentAt;
                 const sentToday = lastSentAt && new Date(lastSentAt).toDateString() === today.toDateString();
@@ -358,7 +358,7 @@ export function Dashboard({
           </h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <button
-              onClick={() => onNavigate("sales", "create-invoice")}
+              onClick={() => onNavigate("work", "create-invoice")}
               className="flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-2xl border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-all min-h-[100px]"
             >
               <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-2">
@@ -367,7 +367,7 @@ export function Dashboard({
               <span className="text-[10px] font-black uppercase tracking-tighter">New Invoice</span>
             </button>
             <button
-              onClick={() => onNavigate("sales", "create-estimate")}
+              onClick={() => onNavigate("work", "create-estimate")}
               className="flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-2xl border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-all min-h-[100px]"
             >
               <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-2">
@@ -404,7 +404,7 @@ export function Dashboard({
               <span className="text-[10px] font-black uppercase tracking-tighter">Mark Busy</span>
             </button>
             <button
-              onClick={() => onNavigate("customers", "create-client")}
+              onClick={() => onNavigate("work", "create-client")}
               className="flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-2xl border border-gray-200 hover:border-green-600 hover:bg-green-50 transition-all min-h-[100px]"
             >
               <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-2">

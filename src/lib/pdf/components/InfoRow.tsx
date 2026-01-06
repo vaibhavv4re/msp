@@ -63,9 +63,9 @@ export const PDFInfoRow: React.FC<Props> = ({ data, theme }) => {
         <View style={styles.container}>
             <View style={styles.column}>
                 <Text style={styles.label}>Bill To</Text>
-                <Text style={styles.value}>{data.customer.name}</Text>
-                {data.customer.gstin && <Text style={styles.text}>GSTIN: {data.customer.gstin}</Text>}
-                {data.customer.address && <Text style={styles.text}>{data.customer.address}</Text>}
+                <Text style={styles.value}>{data.client.name}</Text>
+                {data.client.gstin && <Text style={styles.text}>GSTIN: {data.client.gstin}</Text>}
+                {data.client.address && <Text style={styles.text}>{data.client.address}</Text>}
             </View>
             <View style={[styles.column, { alignItems: 'flex-end' }]}>
                 <View style={styles.infoGrid}>

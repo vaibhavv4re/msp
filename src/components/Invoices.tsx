@@ -6,7 +6,7 @@ import schema from "@/instant.schema";
 import { Business, BankAccount } from "@/app/page";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { CustomerModal } from "./Customers";
+import { ClientModal } from "./Clients";
 import { APP_CONFIG } from "@/config";
 import { generateNextInvoiceNumber } from "@/lib/invoiceUtils";
 import { RecordPaymentModal } from "./RecordPaymentModal";
@@ -699,7 +699,7 @@ function InvoiceTable({
 
   function duplicateInvoice(invoice: Invoice, userId: string) {
     if (!invoice.client?.id) {
-      alert("Cannot duplicate invoice: Customer information is missing");
+      alert("Cannot duplicate invoice: Client information is missing");
       return;
     }
 
@@ -763,7 +763,7 @@ function InvoiceTable({
                 <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Business / Inv #</span>
               </th>
               <th className="py-4 px-6 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onSort('client')}>
-                <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Customer</span>
+                <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Client</span>
               </th>
               <th className="py-4 px-6 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onSort('dueDate')}>
                 <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Due Date</span>
@@ -1068,7 +1068,7 @@ export function InvoiceModal({
   const [isUploading, setIsUploading] = useState(false);
 
   const [modalTab, setModalTab] = useState<"general" | "usage">("general");
-  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
 
   const [taxType, setTaxType] = useState<"intrastate" | "interstate">(
     invoice && invoice.igst && invoice.igst > 0 ? "interstate" : "intrastate"
@@ -1133,7 +1133,7 @@ export function InvoiceModal({
 
   function handleClientChange(clientId: string) {
     if (clientId === "add_new") {
-      setIsCustomerModalOpen(true);
+      setIsClientModalOpen(true);
       return;
     }
     const client = clients.find(c => c.id === clientId);
@@ -1205,7 +1205,7 @@ export function InvoiceModal({
     e.preventDefault();
 
     if (!formData.client?.id) {
-      alert("Please select a customer");
+      alert("Please select a client");
       return;
     }
 
@@ -1520,7 +1520,7 @@ export function InvoiceModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">
-                      Customer Profile <span className="text-red-500">*</span>
+                      Client Profile <span className="text-red-500">*</span>
                     </label>
                     <select
                       className="w-full bg-white border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 outline-none focus:border-gray-900 transition-all appearance-none shadow-sm"
@@ -1528,8 +1528,8 @@ export function InvoiceModal({
                       onChange={(e) => handleClientChange(e.target.value)}
                       required
                     >
-                      <option value="">Select Customer</option>
-                      <option value="add_new" className="font-bold text-blue-600">+ Add New Customer</option>
+                      <option value="">Select Client</option>
+                      <option value="add_new" className="font-bold text-blue-600">+ Add New Client</option>
                       {clients.map((client) => (
                         <option key={client.id} value={client.id}>
                           {client.displayName || client.firstName || "Unnamed"}
@@ -1882,7 +1882,7 @@ export function InvoiceModal({
                     className="border p-2 rounded-md w-full font-mono text-[11px] leading-relaxed"
                     value={formData.termsAndConditions}
                     onChange={handleChange}
-                    placeholder="Visible to customer"
+                    placeholder="Visible to client"
                     rows={4}
                   />
                 </div>
@@ -2013,15 +2013,15 @@ export function InvoiceModal({
         </div>
 
         {
-          isCustomerModalOpen && (
-            <CustomerModal
+          isClientModalOpen && (
+            <ClientModal
               client={null}
               userId={userId}
               activeBusinessId={formData.business?.id || activeBusinessId}
-              onClose={() => setIsCustomerModalOpen(false)}
-              onSuccess={(clientId) => {
+              onClose={() => setIsClientModalOpen(false)}
+              onSuccess={(clientId: string) => {
                 handleClientChange(clientId);
-                setIsCustomerModalOpen(false);
+                setIsClientModalOpen(false);
               }}
             />
           )

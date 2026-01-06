@@ -7,11 +7,11 @@ import { id, InstaQLEntity } from "@instantdb/react";
 import { Dashboard } from "@/components/Dashboard";
 import { Invoices } from "@/components/Invoices";
 import { Calendar } from "@/components/Calendar";
-import { Customers } from "@/components/Customers";
+import { Clients } from "@/components/Clients";
 import { Services } from "@/components/Services";
 import { Settings } from "@/components/Settings";
 import { TaxZone } from "@/components/TaxZone";
-import { Sales } from "@/components/Sales";
+import { Work } from "@/components/Work";
 import { DataManagement } from "@/components/DataManagement";
 import { GoogleCalendarAPI } from "@/lib/googleCalendar";
 import { GoogleCalendarAuth } from "@/lib/googleOAuth";
@@ -35,7 +35,7 @@ export type Estimate = InstaQLEntity<AppSchema, "estimates"> & {
 export type Business = InstaQLEntity<AppSchema, "businesses"> & { bankAccounts: BankAccount[] };
 export type BankAccount = InstaQLEntity<AppSchema, "bankAccounts">;
 
-type View = "dashboard" | "sales" | "calendar" | "customers" | "services" | "taxzone" | "settings" | "data";
+type View = "dashboard" | "work" | "calendar" | "taxzone" | "settings" | "data";
 
 function LoginPage() {
   const handleGoogleLogin = () => {
@@ -491,28 +491,16 @@ function AppContent() {
                 Dashboard
               </button>
               <button
-                onClick={() => setView("customers")}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "customers" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
+                onClick={() => setView("work")}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "work" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
-                Customers
-              </button>
-              <button
-                onClick={() => setView("sales")}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "sales" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
-              >
-                Sales
+                Work
               </button>
               <button
                 onClick={() => setView("calendar")}
                 className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "calendar" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
                 Calendar
-              </button>
-              <button
-                onClick={() => setView("services")}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "services" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
-              >
-                Services
               </button>
               <button
                 onClick={() => setView("taxzone")}
@@ -647,11 +635,11 @@ function AppContent() {
           <span className="text-[10px] font-black uppercase tracking-tighter">Home</span>
         </button>
         <button
-          onClick={() => { setView("sales"); setIsMoreMenuOpen(false); }}
-          className={`flex flex-col items-center gap-1 ${view === "sales" ? "text-gray-900" : "text-gray-400"} `}
+          onClick={() => { setView("work"); setIsMoreMenuOpen(false); }}
+          className={`flex flex-col items-center gap-1 ${view === "work" ? "text-gray-900" : "text-gray-400"} `}
         >
-          <svg className="w-6 h-6" fill={view === "sales" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <span className="text-[10px] font-black uppercase tracking-tighter">Sales</span>
+          <svg className="w-6 h-6" fill={view === "work" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+          <span className="text-[10px] font-black uppercase tracking-tighter">Work</span>
         </button>
         <button
           onClick={() => { setView("calendar"); setIsMoreMenuOpen(false); }}
@@ -737,9 +725,7 @@ function AppContent() {
 
             <div className="grid grid-cols-1 gap-4">
               {[
-                { id: 'customers', label: 'Customers', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /> },
-                { id: 'sales', label: 'Sales', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /> },
-                { id: 'services', label: 'Services', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 00-2-2m0 0V5a2 2 0 012-2h6.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V7n" /> },
+                { id: 'work', label: 'Work', icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745V6c0-1.105.895-2 2-2h14c1.105 0 2 .895 2 2v7.255zM12 8a1 1 0 100-2 1 1 0 000 2z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15c-3.183 0-6.22-.62-9-1.745M12 15c3.183 0 6.22-.62 9-1.745M3 13.255V19a2 2 0 002 2h14a2 2 0 002-2v-5.745M12 15V21" /></> },
                 { id: 'data', label: 'Data Mgmt', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3zm0 4h16m-16 4h16" /> },
                 { id: 'settings', label: 'Settings', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /> },
                 ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /> }] : []),
@@ -784,23 +770,8 @@ function AppContent() {
             }}
           />
         )}
-        {view === "customers" && (
-          <Customers
-            clients={filteredClients as any}
-            invoices={filteredInvoices as any}
-            businesses={businesses as any}
-            userId={user.id}
-            activeBusinessId={activeBusinessId}
-            initiallyOpenModal={modalToOpen === "create-client"}
-            onModalClose={() => setModalToOpen(null)}
-            onNavigate={(newView: View, modal?: string) => {
-              setView(newView);
-              if (modal) setModalToOpen(modal);
-            }}
-          />
-        )}
-        {view === "sales" && (
-          <Sales
+        {view === "work" && (
+          <Work
             invoices={filteredInvoices as any}
             allInvoices={invoices as any}
             estimates={filteredEstimates as any}
@@ -813,6 +784,10 @@ function AppContent() {
             userId={user.id}
             initiallyOpenModal={modalToOpen || undefined}
             onModalClose={() => setModalToOpen(null)}
+            onNavigate={(newView: View, modal?: string) => {
+              setView(newView);
+              if (modal) setModalToOpen(modal);
+            }}
           />
         )}
         {view === "data" && (
@@ -833,7 +808,7 @@ function AppContent() {
             onModalClose={() => setModalToOpen(null)}
           />
         )}
-        {view === "services" && <Services services={filteredServices as any} userId={user.id} activeBusinessId={activeBusinessId} />}
+
         {view === "settings" && (
           <Settings
             taxes={taxes as any}

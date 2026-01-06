@@ -18,7 +18,7 @@ export interface InvoicePDFData {
         signatureUrl?: string;
         brandColor: string;
     };
-    customer: {
+    client: {
         name: string;
         address?: string;
         email?: string;

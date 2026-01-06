@@ -5,7 +5,7 @@ import { id, InstaQLEntity } from "@instantdb/react";
 import schema from "@/instant.schema";
 import { Business, Client, Invoice, LineItem, Estimate } from "@/app/page";
 import { convertToInvoice } from "@/lib/estimateActions";
-import { CustomerModal } from "./Customers";
+import { ClientModal } from "./Clients";
 
 type Service = { id: string; name: string; sacCode?: string; rate: number; isActive: boolean };
 type Tax = { id: string; name: string; rate: number; isDefault: boolean };
@@ -311,7 +311,7 @@ function ConvertResolutionModal({ estimate, clients, userId, businesses, allInvo
             <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
                 <div className="p-8 border-b border-gray-100 flex justify-between items-center">
                     <div>
-                        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Choose Customer</h2>
+                        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Choose Client</h2>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Required for legal invoicing</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -327,7 +327,7 @@ function ConvertResolutionModal({ estimate, clients, userId, businesses, allInvo
                                 <div className="space-y-2 max-h-48 overflow-y-auto pr-2 no-scrollbar">
                                     <input
                                         type="text"
-                                        placeholder="Search customers..."
+                                        placeholder="Search clients..."
                                         className="w-full bg-gray-50 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 ring-gray-900 mb-2 sticky top-0"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -350,19 +350,19 @@ function ConvertResolutionModal({ estimate, clients, userId, businesses, allInvo
                                     onClick={() => setIsCreating(true)}
                                     className="w-full py-4 text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] hover:underline"
                                 >
-                                    + Create New Customer
+                                    + Create New Client
                                 </button>
                             </div>
                         </>
                     ) : (
                         <div className="space-y-6">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">New Customer Details</p>
-                            <CustomerModal
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">New Client Details</p>
+                            <ClientModal
                                 client={null}
                                 userId={userId}
                                 activeBusinessId={estimate.business?.id || ""}
                                 onClose={() => setIsCreating(false)}
-                                onSuccess={(clientId) => handleConvert(clientId)}
+                                onSuccess={(clientId: string) => handleConvert(clientId)}
                                 initialData={{
                                     firstName: estimate.recipientName?.split(" ")[0] || "",
                                     lastName: estimate.recipientName?.split(" ").slice(1).join(" ") || "",
@@ -455,7 +455,7 @@ function EstimateModal({
 
     const [scope, setScope] = useState(parseScope(estimate?.notes || ""));
 
-    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false);
 
     const [lineItems, setLineItems] = useState<any[]>(
         estimate?.lineItems ? [...estimate.lineItems] : []
@@ -605,7 +605,7 @@ function EstimateModal({
 
     const handleClientChange = (val: string) => {
         if (val === "ADD_NEW") {
-            setIsCustomerModalOpen(true);
+            setIsClientModalOpen(true);
         } else {
             setSelectedClientId(val);
         }
@@ -654,7 +654,7 @@ function EstimateModal({
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Link to Customer (Optional)</label>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Link to Client (Optional)</label>
                                 <select
                                     className="w-full bg-gray-50 rounded-2xl px-5 py-4 text-xs font-bold text-gray-900 outline-none focus:ring-2 ring-gray-900 transition-all appearance-none"
                                     value={selectedClientId}
@@ -934,15 +934,15 @@ function EstimateModal({
                 </div>
             </div>
 
-            {isCustomerModalOpen && (
-                <CustomerModal
+            {isClientModalOpen && (
+                <ClientModal
                     client={null}
                     userId={userId}
                     activeBusinessId={selectedBusinessId}
-                    onClose={() => setIsCustomerModalOpen(false)}
-                    onSuccess={(clientId) => {
+                    onClose={() => setIsClientModalOpen(false)}
+                    onSuccess={(clientId: string) => {
                         setSelectedClientId(clientId);
-                        setIsCustomerModalOpen(false);
+                        setIsClientModalOpen(false);
                     }}
                 />
             )}

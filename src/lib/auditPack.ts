@@ -116,7 +116,7 @@ Generated on: ${new Date().toLocaleString()}
             return {
                 "Invoice ID": inv.invoiceNumber,
                 "Date": inv.invoiceDate,
-                "Customer": inv.client?.displayName || inv.client?.firstName || "—",
+                "Client": inv.client?.displayName || inv.client?.firstName || "—",
                 "Total Amount": inv.total,
                 "GST Portion": (inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0),
                 "Status": inv.status,

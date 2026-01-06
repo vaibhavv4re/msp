@@ -32,7 +32,7 @@ const _schema = i.schema({
       syncToGoogle: i.boolean().optional(),
     }),
     clients: i.entity({
-      customerType: i.string().optional(), // Business or Individual
+      clientType: i.string().optional(), // Business or Individual
       salutation: i.string().optional(),
       firstName: i.string().optional(),
       lastName: i.string().optional(),
