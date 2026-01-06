@@ -1,19 +1,12 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { db } from "@/lib/db";
 import { id } from "@instantdb/react";
-import { Client, Invoice, Business } from "@/app/page";
+import { Client, Invoice, Business } from "@/types";
 import { ClientSummary } from "./ClientSummary";
-
-const PAYMENT_TERMS = [
-  { value: "due_on_receipt", label: "Due on Receipt" },
-  { value: "net_15", label: "Net 15" },
-  { value: "net_30", label: "Net 30" },
-  { value: "net_45", label: "Net 45" },
-  { value: "net_60", label: "Net 60" },
-  { value: "custom", label: "Custom" },
-];
-
-import React from "react";
+import { useRouter } from "next/navigation";
+import { useIsMobile } from "@/lib/device";
+import { ClientForm, PAYMENT_TERMS } from "./forms/ClientForm";
+import { DesktopModalLayout } from "./layout/FormLayout";
 
 export function Clients({
   clients,
@@ -24,6 +17,7 @@ export function Clients({
   initiallyOpenModal,
   onModalClose,
   onNavigate,
+  isMobile: _isMobile,
 }: {
   clients: Client[];
   invoices: Invoice[];
@@ -33,7 +27,10 @@ export function Clients({
   initiallyOpenModal?: boolean;
   onModalClose?: () => void;
   onNavigate?: (view: any, modal?: string) => void;
+  isMobile?: boolean;
 }) {
+  const router = useRouter();
+  const isMobile = useIsMobile();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [view, setView] = useState<"list" | "summary">("list");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -100,6 +97,14 @@ export function Clients({
   const mobilePagedClients = filteredClients.slice(0, mobileLimit);
 
   function openModal(client: Client | null = null) {
+    if (isMobile) {
+      if (client) {
+        router.push(`/work/clients/new?id=${client.id}`);
+      } else {
+        router.push('/work/clients/new');
+      }
+      return;
+    }
     setEditingClient(client);
     setIsModalOpen(true);
   }
@@ -319,398 +324,20 @@ export function Clients({
       </div>
 
       {isModalOpen && (
-        <ClientModal client={editingClient} userId={userId} activeBusinessId={activeBusinessId} onClose={closeModal} />
+        <DesktopModalLayout
+          title={editingClient ? "Edit Client" : "Register New Client"}
+          onClose={closeModal}
+        >
+          <ClientForm
+            initialClient={editingClient}
+            userId={userId}
+            activeBusinessId={activeBusinessId}
+            onSuccess={closeModal}
+            onCancel={closeModal}
+          />
+        </DesktopModalLayout>
       )}
     </div>
   );
 }
 
-export function ClientModal({
-  client,
-  userId,
-  activeBusinessId,
-  onClose,
-  onSuccess,
-  initialData,
-}: {
-  client: Client | null;
-  userId: string;
-  activeBusinessId: string;
-  onClose: () => void;
-  onSuccess?: (clientId: string) => void;
-  initialData?: Partial<{
-    firstName: string;
-    lastName: string;
-    displayName: string;
-    email: string;
-    phone: string;
-  }>;
-}) {
-  const [clientType, setClientType] = useState(client?.clientType || "Individual");
-  const [salutation, setSalutation] = useState(client?.salutation || "");
-  const [firstName, setFirstName] = useState(client?.firstName || initialData?.firstName || "");
-  const [lastName, setLastName] = useState(client?.lastName || initialData?.lastName || "");
-  const [companyName, setCompanyName] = useState(client?.companyName || "");
-  const [displayName, setDisplayName] = useState(client?.displayName || initialData?.displayName || "");
-  const [email, setEmail] = useState(client?.email || initialData?.email || "");
-  const [phone, setPhone] = useState(client?.phone || initialData?.phone || "");
-  const [workPhone, setWorkPhone] = useState(client?.workPhone || "");
-  const [mobile, setMobile] = useState(client?.mobile || "");
-  const [address, setAddress] = useState(client?.address || "");
-  const [pan, setPan] = useState(client?.pan || "");
-  const [tan, setTan] = useState(client?.tan || "");
-  const [gst, setGst] = useState(client?.gst || "");
-  const [currency, setCurrency] = useState(client?.currency || "INR");
-  const [paymentTerms, setPaymentTerms] = useState(client?.paymentTerms || "net_30");
-  const [customTermDays, setCustomTermDays] = useState(client?.customTermDays?.toString() || "");
-  const [isTdsDeducting, setIsTdsDeducting] = useState((client as any)?.isTdsDeducting || false);
-
-  // Auto-generate display name
-  function generateDisplayName() {
-    if (clientType === "Business" && companyName) {
-      return companyName;
-    } else if (firstName) {
-      return `${salutation ? salutation + " " : ""}${firstName}${lastName ? " " + lastName : ""}`.trim();
-    }
-    return "";
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    const finalDisplayName = displayName || generateDisplayName();
-
-    if (!finalDisplayName) {
-      alert("Please provide enough information to generate a display name");
-      return;
-    }
-
-    const clientId = client?.id || id();
-    const clientData = {
-      clientType,
-      salutation: salutation || undefined,
-      firstName: firstName || undefined,
-      lastName: lastName || undefined,
-      companyName: companyName || undefined,
-      displayName: finalDisplayName,
-      email: email || undefined,
-      phone: phone || undefined,
-      workPhone: workPhone || undefined,
-      mobile: mobile || undefined,
-      address: address || undefined,
-      pan: pan || undefined,
-      tan: tan || undefined,
-      currency: currency || undefined,
-      paymentTerms: paymentTerms || undefined,
-      customTermDays: paymentTerms === "custom" && customTermDays ? parseInt(customTermDays) : undefined,
-    };
-
-    const isNew = !client;
-    if (isNew) {
-      // Creating new client - link owner
-      db.transact([
-        db.tx.clients[clientId].update(clientData),
-        db.tx.clients[clientId].link({ owner: userId })
-      ]);
-      if (activeBusinessId !== "ALL") {
-        db.transact(db.tx.clients[clientId].link({ business: activeBusinessId }));
-      }
-    } else {
-      // Updating existing client - no need to relink owner
-      db.transact(db.tx.clients[clientId].update(clientData));
-    }
-    if (onSuccess) onSuccess(clientId);
-    onClose();
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[95vh] overflow-y-auto">
-        <h3 className="text-xl font-bold mb-4">
-          {client ? "Edit Client" : "Add Client"}
-        </h3>
-
-        <form onSubmit={handleSubmit}>
-          {/* Client Type */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">
-              Client Type <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  value="Business"
-                  checked={clientType === "Business"}
-                  onChange={(e) => setClientType(e.target.value)}
-                  className="mr-2"
-                />
-                Business
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  value="Individual"
-                  checked={clientType === "Individual"}
-                  onChange={(e) => setClientType(e.target.value)}
-                  className="mr-2"
-                />
-                Individual
-              </label>
-            </div>
-          </div>
-
-          {/* TDS Marking */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="text-sm font-bold mb-2 uppercase text-blue-800">Tax Settings</h4>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isTdsDeducting}
-                onChange={(e) => setIsTdsDeducting(e.target.checked)}
-                className="w-4 h-4"
-              />
-              <span className="text-sm font-bold text-blue-900 uppercase tracking-wide">Client always deducts TDS?</span>
-            </label>
-            <p className="text-[10px] text-blue-600 mt-1 ml-7 uppercase font-bold tabular-nums">Mark this if the client habitually deducts TDS from payments</p>
-          </div>
-
-          {/* Primary Contact */}
-          <div className="mb-6">
-            <h4 className="text-lg font-semibold mb-3 text-gray-700">Primary Contact</h4>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Salutation</label>
-                <select
-                  className="border p-2 rounded-md w-full"
-                  value={salutation}
-                  onChange={(e) => setSalutation(e.target.value)}
-                >
-                  <option value="">Select</option>
-                  <option value="Mr.">Mr.</option>
-                  <option value="Mrs.">Mrs.</option>
-                  <option value="Ms.">Ms.</option>
-                  <option value="Dr.">Dr.</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">First Name</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="First name"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-1">Last Name</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Last name"
-                />
-              </div>
-            </div>
-
-            {clientType === "Business" && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium mb-1">Company Name</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Company name"
-                />
-              </div>
-            )}
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium mb-1">
-                Display Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                className="border p-2 rounded-md w-full"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder={generateDisplayName() || "Display name for invoices"}
-              />
-              {generateDisplayName() && !displayName && (
-                <p className="text-xs text-gray-600 mt-1">
-                  Will use: {generateDisplayName()}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="mb-6">
-            <h4 className="text-lg font-semibold mb-3 text-gray-700">Contact Information</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <input
-                  type="email"
-                  className="border p-2 rounded-md w-full"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Phone</label>
-                <input
-                  type="tel"
-                  className="border p-2 rounded-md w-full"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 1234567890"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Work Phone</label>
-                <input
-                  type="tel"
-                  className="border p-2 rounded-md w-full"
-                  value={workPhone}
-                  onChange={(e) => setWorkPhone(e.target.value)}
-                  placeholder="Work phone"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Mobile</label>
-                <input
-                  type="tel"
-                  className="border p-2 rounded-md w-full"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
-                  placeholder="Mobile number"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium mb-1">Address</label>
-              <textarea
-                className="border p-2 rounded-md w-full"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Full address"
-                rows={3}
-              />
-            </div>
-          </div>
-
-          {/* Additional Fields */}
-          <div className="mb-6">
-            <h4 className="text-lg font-semibold mb-3 text-gray-700">Additional Details</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">PAN</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full uppercase"
-                  value={pan}
-                  onChange={(e) => setPan(e.target.value.toUpperCase())}
-                  placeholder="ABCDE1234F"
-                  maxLength={10}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">TAN</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full uppercase"
-                  value={tan}
-                  onChange={(e) => setTan(e.target.value.toUpperCase())}
-                  placeholder="ABCD12345E"
-                  maxLength={10}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">GST Number</label>
-                <input
-                  type="text"
-                  className="border p-2 rounded-md w-full uppercase"
-                  value={gst}
-                  onChange={(e) => setGst(e.target.value.toUpperCase())}
-                  placeholder="27AAPFU0939F1ZV"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Currency</label>
-                <select
-                  className="border p-2 rounded-md w-full"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                >
-                  <option value="INR">INR - Indian Rupee</option>
-                  <option value="USD">USD - US Dollar</option>
-                  <option value="EUR">EUR - Euro</option>
-                  <option value="GBP">GBP - British Pound</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Payment Terms</label>
-                <select
-                  className="border p-2 rounded-md w-full"
-                  value={paymentTerms}
-                  onChange={(e) => setPaymentTerms(e.target.value)}
-                >
-                  {PAYMENT_TERMS.map((term) => (
-                    <option key={term.value} value={term.value}>
-                      {term.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {paymentTerms === "custom" && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Custom Days</label>
-                  <input
-                    type="number"
-                    className="border p-2 rounded-md w-full"
-                    value={customTermDays}
-                    onChange={(e) => setCustomTermDays(e.target.value)}
-                    placeholder="Number of days"
-                    min="1"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 border-t pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2 border rounded-md hover:bg-gray-100"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
-            >
-              {client ? "Update" : "Add"} Client
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}

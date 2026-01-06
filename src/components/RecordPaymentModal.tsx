@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { db } from "@/lib/db";
 import { id } from "@instantdb/react";
-import { Invoice } from "./Invoices";
+import { Invoice } from "@/types";
 import { X, CheckCircle, Info } from "lucide-react";
 
 interface RecordPaymentModalProps {

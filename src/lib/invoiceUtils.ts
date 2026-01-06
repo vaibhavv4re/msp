@@ -1,4 +1,13 @@
-import { Business, Invoice } from "@/app/page";
+import { Business, Invoice } from "@/types";
+
+export const PAYMENT_TERMS = [
+    { value: "due_on_receipt", label: "Due on Receipt", days: 0 },
+    { value: "net_15", label: "Net 15", days: 15 },
+    { value: "net_30", label: "Net 30", days: 30 },
+    { value: "net_45", label: "Net 45", days: 45 },
+    { value: "net_60", label: "Net 60", days: 60 },
+    { value: "custom", label: "Custom", days: 0 },
+];
 
 export function getFY() {
     const now = new Date();
@@ -47,4 +56,23 @@ export function generateNextInvoiceNumber(business: Business, allInvoices: Invoi
     const paddedSequence = String(nextSequence).padStart(padding, '0');
 
     return `${pattern}${paddedSequence}`;
+}
+
+export function calculateInvoiceTotal(invoice: Partial<Invoice>) {
+    return (invoice.subtotal || 0) + (invoice.cgst || 0) + (invoice.sgst || 0) + (invoice.igst || 0);
+}
+
+export function calculatePendingBalance(invoice: Partial<Invoice>) {
+    const total = calculateInvoiceTotal(invoice);
+    const advance = invoice.isAdvanceReceived ? (invoice.advanceAmount || 0) : 0;
+    const tds = (invoice as any).tdsAmount || 0;
+    return total - advance - tds;
+}
+
+export function calculateDueDate(invoiceDate: string, paymentTerms: string, customDays?: number): string {
+    const date = new Date(invoiceDate);
+    const term = PAYMENT_TERMS.find(t => t.value === paymentTerms);
+    const days = paymentTerms === "custom" && customDays ? customDays : (term?.days || 0);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().split('T')[0];
 }

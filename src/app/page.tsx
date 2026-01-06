@@ -18,24 +18,18 @@ import { GoogleCalendarAuth } from "@/lib/googleOAuth";
 import { APP_CONFIG } from "@/config";
 import { Onboarding } from "@/components/Onboarding";
 
-export type Client = InstaQLEntity<AppSchema, "clients"> & { invoices: Invoice[] };
-export type Invoice = InstaQLEntity<AppSchema, "invoices"> & {
-  client?: Client;
-  lineItems: LineItem[];
-  business?: Business;
-};
-export type LineItem = InstaQLEntity<AppSchema, "lineItems">;
-export type CalendarEvent = InstaQLEntity<AppSchema, "calendarEvents">;
-export type Estimate = InstaQLEntity<AppSchema, "estimates"> & {
-  client?: Client;
-  lineItems: LineItem[];
-  business?: Business;
-  convertedInvoice?: Invoice;
-};
-export type Business = InstaQLEntity<AppSchema, "businesses"> & { bankAccounts: BankAccount[] };
-export type BankAccount = InstaQLEntity<AppSchema, "bankAccounts">;
-
-type View = "dashboard" | "work" | "calendar" | "taxzone" | "settings" | "data";
+import { useRouter } from "next/navigation";
+import { useIsMobile } from "@/lib/device";
+import {
+  Client,
+  Invoice,
+  LineItem,
+  CalendarEvent,
+  Estimate,
+  Business,
+  BankAccount,
+  View
+} from "@/types";
 
 function LoginPage() {
   const handleGoogleLogin = () => {
