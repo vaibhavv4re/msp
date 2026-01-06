@@ -108,6 +108,24 @@ export const CreativeInvoice: React.FC<Props> = ({ data }) => {
             fontFamily: pdfTheme.fonts.bold,
             color: data.business.brandColor,
         },
+        breakdownRow: {
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            marginBottom: 4,
+        },
+        breakdownLabel: {
+            fontSize: 9,
+            color: '#64748b',
+            width: 100,
+            textAlign: 'right',
+            marginRight: 20,
+        },
+        breakdownValue: {
+            fontSize: 9,
+            fontFamily: pdfTheme.fonts.bold,
+            width: 80,
+            textAlign: 'right',
+        },
         highlightBox: {
             backgroundColor: '#f8fafc',
             borderRadius: 16,
@@ -237,6 +255,43 @@ export const CreativeInvoice: React.FC<Props> = ({ data }) => {
                         ))}
                     </View>
 
+                    <View style={{ marginTop: 30 }}>
+                        <View style={styles.breakdownRow}>
+                            <Text style={styles.breakdownLabel}>Subtotal</Text>
+                            <Text style={styles.breakdownValue}>₹{data.totals.subtotal.toLocaleString('en-IN')}</Text>
+                        </View>
+                        {data.totals.discount && (
+                            <View style={styles.breakdownRow}>
+                                <Text style={styles.breakdownLabel}>Discount</Text>
+                                <Text style={styles.breakdownValue}>- ₹{data.totals.discount.toLocaleString('en-IN')}</Text>
+                            </View>
+                        )}
+                        {data.totals.cgst !== undefined && (
+                            <View style={styles.breakdownRow}>
+                                <Text style={styles.breakdownLabel}>CGST</Text>
+                                <Text style={styles.breakdownValue}>₹{data.totals.cgst.toLocaleString('en-IN')}</Text>
+                            </View>
+                        )}
+                        {data.totals.sgst !== undefined && (
+                            <View style={styles.breakdownRow}>
+                                <Text style={styles.breakdownLabel}>SGST</Text>
+                                <Text style={styles.breakdownValue}>₹{data.totals.sgst.toLocaleString('en-IN')}</Text>
+                            </View>
+                        )}
+                        {data.totals.igst !== undefined && (
+                            <View style={styles.breakdownRow}>
+                                <Text style={styles.breakdownLabel}>IGST</Text>
+                                <Text style={styles.breakdownValue}>₹{data.totals.igst.toLocaleString('en-IN')}</Text>
+                            </View>
+                        )}
+                        {data.totals.tdsAmount !== undefined && (
+                            <View style={styles.breakdownRow}>
+                                <Text style={styles.breakdownLabel}>TDS withheld</Text>
+                                <Text style={styles.breakdownValue}>- ₹{data.totals.tdsAmount.toLocaleString('en-IN')}</Text>
+                            </View>
+                        )}
+                    </View>
+
                     <View style={styles.highlightBox} wrap={false}>
                         <View style={{ width: '100%' }}>
                             {!isPaid && hasAdvance ? (
@@ -283,9 +338,10 @@ export const CreativeInvoice: React.FC<Props> = ({ data }) => {
                             <Text style={styles.narrativeLabel}>Payment Information</Text>
                             {data.bankAccount ? (
                                 <Text style={styles.narrativeText}>
-                                    {data.bankAccount.bankName}
+                                    Bank: {data.bankAccount.bankName}
                                     {"\n"}A/C: {data.bankAccount.accountNumber}
                                     {"\n"}IFSC: {data.bankAccount.ifsc}
+                                    {"\n"}Name: {data.bankAccount.holderName}
                                 </Text>
                             ) : (
                                 <Text style={styles.narrativeText}>Please contact for payment details.</Text>

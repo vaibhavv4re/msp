@@ -1,5 +1,5 @@
 import React from 'react';
-import { Page, Document, StyleSheet, View, Text } from '@react-pdf/renderer';
+import { Page, Document, StyleSheet, View, Text, Image } from '@react-pdf/renderer';
 import { InvoicePDFData } from '../types';
 import { pdfTheme } from '../theme';
 
@@ -127,6 +127,23 @@ export const CompactInvoice: React.FC<Props> = ({ data }) => {
             borderTopWidth: 0.5,
             borderTopColor: '#e5e7eb',
             marginVertical: 4,
+        },
+        signatory: {
+            width: 120,
+            textAlign: 'center',
+            alignItems: 'center',
+            marginTop: 10,
+        },
+        signatureImage: {
+            width: 80,
+            height: 30,
+            marginBottom: 4,
+        },
+        signatureLine: {
+            borderTopWidth: 0.5,
+            borderTopColor: '#000',
+            width: '100%',
+            paddingTop: 2,
         }
     });
 
@@ -145,55 +162,68 @@ export const CompactInvoice: React.FC<Props> = ({ data }) => {
 
                 <View style={styles.addressSection}>
                     <View style={styles.addressCol}>
-                        <Text style={styles.label}>From</Text>
-                        <Text style={[styles.addressText, { fontFamily: pdfTheme.fonts.bold }]}>{data.business.name}</Text>
-                        <Text style={styles.addressText}>{data.business.address}</Text>
-                        {data.business.gstin && <Text style={styles.addressText}>GST: {data.business.gstin}</Text>}
+                        <Text style={[styles.label, { marginBottom: 0 }]}>From</Text>
+                        <Text style={[styles.addressText, { fontFamily: pdfTheme.fonts.bold, fontSize: 9 }]}>{data.business.name}</Text>
+                        <Text style={[styles.addressText, { lineHeight: 1.1 }]}>{data.business.address}</Text>
+                        {data.business.gstin && <Text style={[styles.addressText, { lineHeight: 1.1 }]}>GST: {data.business.gstin}</Text>}
                     </View>
                     <View style={styles.addressCol}>
-                        <Text style={styles.label}>To</Text>
-                        <Text style={[styles.addressText, { fontFamily: pdfTheme.fonts.bold }]}>{data.customer.name}</Text>
-                        <Text style={styles.addressText}>{data.customer.address}</Text>
-                        {data.customer.gstin && <Text style={styles.addressText}>GST: {data.customer.gstin}</Text>}
+                        <Text style={[styles.label, { marginBottom: 0 }]}>To</Text>
+                        <Text style={[styles.addressText, { fontFamily: pdfTheme.fonts.bold, fontSize: 9 }]}>{data.customer.name}</Text>
+                        <Text style={[styles.addressText, { lineHeight: 1.1 }]}>{data.customer.address}</Text>
+                        {data.customer.gstin && <Text style={[styles.addressText, { lineHeight: 1.1 }]}>GST: {data.customer.gstin}</Text>}
                     </View>
                 </View>
 
                 <View style={styles.table}>
                     <View style={styles.tableHeader}>
-                        <Text style={[styles.headerCell, styles.colDesc]}>Description</Text>
-                        <Text style={[styles.headerCell, styles.colPrice]}>Amount</Text>
+                        <Text style={[styles.headerCell, { flex: 5 }]}>Description</Text>
+                        <Text style={[styles.headerCell, { flex: 2.5, textAlign: 'center' }]}>Qty x Rate</Text>
+                        <Text style={[styles.headerCell, { flex: 2, textAlign: 'right' }]}>Amount</Text>
                     </View>
                     {data.items.map((item, i) => (
-                        <View key={i} style={styles.tableRow} wrap={false}>
-                            <View style={styles.colDesc}>
-                                <Text style={styles.itemTitle}>{item.description}</Text>
-                                <Text style={styles.itemSub}>
+                        <View key={i} style={[styles.tableRow, { flexDirection: 'column', borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0', paddingVertical: 4 }]} wrap={false}>
+                            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                                <Text style={[styles.itemTitle, { flex: 5 }]}>{item.description}</Text>
+                                <Text style={[styles.itemSub, { flex: 2.5, textAlign: 'center', fontSize: 7.5 }]}>
                                     {item.quantity} × ₹{item.rate.toLocaleString('en-IN')}
                                 </Text>
-                                {item.sacCode ? <Text style={[styles.itemSub, { fontSize: 6, marginTop: 1 }]}>SAC: {item.sacCode}</Text> : null}
+                                <Text style={[{ flex: 2, textAlign: 'right', fontFamily: pdfTheme.fonts.bold, fontSize: 8 }]}>
+                                    ₹{item.amount.toLocaleString('en-IN')}
+                                </Text>
                             </View>
-                            <Text style={[styles.colPrice, { fontFamily: pdfTheme.fonts.bold }]}>
-                                ₹{item.amount.toLocaleString('en-IN')}
-                            </Text>
+                            {item.sacCode ? <Text style={[styles.itemSub, { fontSize: 6.5, marginTop: 1, color: '#888' }]}>SAC: {item.sacCode}</Text> : null}
                         </View>
                     ))}
                 </View>
 
                 <View style={styles.bottomSection}>
                     <View style={styles.paymentBox}>
-                        <Text style={styles.label}>Payment Details</Text>
+                        <Text style={styles.label}>Payment Information</Text>
                         {data.bankAccount && (
-                            <Text style={styles.addressText}>
-                                {data.bankAccount.bankName} - {data.bankAccount.accountNumber}
-                                {"\n"}IFSC: {data.bankAccount.ifsc}
+                            <Text style={[styles.addressText, { lineHeight: 1.2, fontSize: 7.5 }]}>
+                                Bank: {data.bankAccount.bankName}{"\n"}
+                                A/C: {data.bankAccount.accountNumber}{"\n"}
+                                IFSC: {data.bankAccount.ifsc}{"\n"}
+                                Name: {data.bankAccount.holderName}
                             </Text>
                         )}
                         {data.terms && (
-                            <View style={{ marginTop: 8 }}>
-                                <Text style={styles.label}>Terms</Text>
-                                <Text style={[styles.addressText, { fontSize: 6 }]}>{data.terms}</Text>
+                            <View style={{ marginTop: 10 }}>
+                                <Text style={styles.label}>Terms & Conditions</Text>
+                                <Text style={[styles.addressText, { fontSize: 6, lineHeight: 1.1 }]}>{data.terms}</Text>
                             </View>
                         )}
+
+                        <View style={styles.signatory}>
+                            {data.business.signatureUrl ? (
+                                <Image src={data.business.signatureUrl} style={styles.signatureImage} />
+                            ) : <View style={{ height: 30 }} />}
+                            <View style={styles.signatureLine}>
+                                <Text style={[styles.label, { color: '#000', marginBottom: 0 }]}>Authorized Signatory</Text>
+                                <Text style={{ fontSize: 7 }}>{data.business.name}</Text>
+                            </View>
+                        </View>
                     </View>
                     <View style={styles.totalsBox}>
                         <View style={styles.totalRow}>
@@ -206,21 +236,41 @@ export const CompactInvoice: React.FC<Props> = ({ data }) => {
                                 <Text>- ₹{data.totals.discount.toLocaleString('en-IN')}</Text>
                             </View>
                         )}
-                        {(data.totals.cgst || data.totals.sgst || data.totals.igst) && (
+                        {data.totals.cgst !== undefined && (
                             <View style={styles.totalRow}>
-                                <Text>Tax</Text>
-                                <Text>₹{((data.totals.cgst || 0) + (data.totals.sgst || 0) + (data.totals.igst || 0)).toLocaleString('en-IN')}</Text>
+                                <Text>CGST</Text>
+                                <Text>₹{data.totals.cgst.toLocaleString('en-IN')}</Text>
                             </View>
                         )}
-                        <View style={styles.totalRow}>
+                        {data.totals.sgst !== undefined && (
+                            <View style={styles.totalRow}>
+                                <Text>SGST</Text>
+                                <Text>₹{data.totals.sgst.toLocaleString('en-IN')}</Text>
+                            </View>
+                        )}
+                        {data.totals.igst !== undefined && (
+                            <View style={styles.totalRow}>
+                                <Text>IGST</Text>
+                                <Text>₹{data.totals.igst.toLocaleString('en-IN')}</Text>
+                            </View>
+                        )}
+                        {data.totals.tdsAmount !== undefined && (
+                            <View style={styles.totalRow}>
+                                <Text>TDS withheld</Text>
+                                <Text>- ₹{data.totals.tdsAmount.toLocaleString('en-IN')}</Text>
+                            </View>
+                        )}
+
+                        <View style={[styles.totalRow, { marginTop: 4, borderTopWidth: 0.5, borderTopColor: '#000', paddingTop: 4 }]}>
                             <Text style={{ fontFamily: pdfTheme.fonts.bold }}>Invoice Total</Text>
-                            <Text style={{ fontFamily: pdfTheme.fonts.bold }}>₹{data.totals.total.toLocaleString('en-IN')}</Text>
+                            <Text style={{ fontFamily: pdfTheme.fonts.bold, color: data.business.brandColor }}>₹{data.totals.total.toLocaleString('en-IN')}</Text>
                         </View>
+
                         {hasAdvance && !isPaid ? (
-                            <View style={{ marginTop: 4, backgroundColor: '#f9fafb', padding: 6, borderRadius: 4 }}>
+                            <View style={{ marginTop: 4, backgroundColor: '#f9fafb', padding: 6, borderRadius: 4, borderWidth: 0.5, borderColor: '#e5e7eb' }}>
                                 <View style={styles.totalRow}>
                                     <Text style={{ fontSize: 7, color: '#666' }}>Advance Received</Text>
-                                    <Text style={{ fontSize: 7, color: '#666' }}>₹{data.totals.advancePaid!.toLocaleString('en-IN')}</Text>
+                                    <Text style={{ fontSize: 7, color: '#666' }}>- ₹{data.totals.advancePaid!.toLocaleString('en-IN')}</Text>
                                 </View>
                                 <View style={styles.settlementDivider} />
                                 <View style={styles.totalRow}>
@@ -238,8 +288,9 @@ export const CompactInvoice: React.FC<Props> = ({ data }) => {
                                 <Text>FULLY PAID</Text>
                             </View>
                         )}
+
                         {data.totals.amountInWords && (
-                            <Text style={[styles.itemSub, { marginTop: 6, textAlign: 'right', fontStyle: 'italic' }]}>
+                            <Text style={[styles.itemSub, { marginTop: 6, textAlign: 'right', fontStyle: 'italic', fontSize: 6.5 }]}>
                                 {data.totals.amountInWords}
                             </Text>
                         )}
