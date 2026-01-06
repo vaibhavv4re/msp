@@ -157,10 +157,10 @@ function BusinessesTab({ businesses, userId }: { businesses: Business[]; userId:
                     className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl"
                     style={{ backgroundColor: business.color || "#374151" }}
                   >
-                    {business.name.charAt(0).toUpperCase()}
+                    {(business.name || "?").charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h4 className="font-black text-gray-900 uppercase text-base tracking-tight">{business.name}</h4>
+                    <h4 className="font-black text-gray-900 uppercase text-base tracking-tight">{business.name || "Unnamed Business"}</h4>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{business.businessType || "Business Entity"}</p>
                   </div>
                 </div>
@@ -1003,9 +1003,9 @@ function TaxesTab({ taxes, userId, activeBusinessId }: { taxes: Tax[]; userId: s
                       <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Global</span>
                     )}
                   </td>
-                  <td className="py-2 px-4 font-black uppercase text-xs tracking-tight">{tax.name}</td>
-                  <td className="py-2 px-4">{tax.taxType}</td>
-                  <td className="py-2 px-4 text-right">{tax.rate}%</td>
+                  <td className="py-2 px-4 font-black uppercase text-xs tracking-tight">{tax.name || "Unnamed Tax"}</td>
+                  <td className="py-2 px-4">{tax.taxType || "Tax"}</td>
+                  <td className="py-2 px-4 text-right">{tax.rate || 0}%</td>
                   <td className="py-2 px-4 text-center">
                     {tax.isDefault ? (
                       <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
@@ -1059,7 +1059,7 @@ function TaxModal({
 }) {
   const [name, setName] = useState(tax?.name || "");
   const [taxType, setTaxType] = useState(tax?.taxType || "CGST");
-  const [rate, setRate] = useState(tax?.rate.toString() || "");
+  const [rate, setRate] = useState(tax?.rate?.toString() || "");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1250,7 +1250,7 @@ function TermsTab({ termsTemplates, userId, activeBusinessId }: { termsTemplates
                       <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-gray-50 border border-gray-100">Global</span>
                     )}
                   </div>
-                  <h4 className="font-semibold text-lg">{terms.title}</h4>
+                  <h4 className="font-semibold text-lg">{terms.title || "Untitled Template"}</h4>
                   {terms.isDefault && (
                     <span className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                       Default
@@ -1281,7 +1281,7 @@ function TermsTab({ termsTemplates, userId, activeBusinessId }: { termsTemplates
                 </div>
               </div>
               <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                {terms.content}
+                {terms.content || "No content provided."}
               </p>
             </div>
           ))
@@ -1440,7 +1440,7 @@ function UsageTrackerTab({ invoices, clients }: { invoices: Invoice[]; clients: 
 
                 return (
                   <tr key={invoice.id} className="border-t hover:bg-gray-50">
-                    <td className="py-2 px-4 font-medium">{invoice.invoiceNumber}</td>
+                    <td className="py-2 px-4 font-medium">{invoice.invoiceNumber || "—"}</td>
                     <td className="py-2 px-4">{clientName}</td>
                     <td className="py-2 px-4">
                       {invoice.usageType === "Other" ? invoice.usageOther : invoice.usageType || (
