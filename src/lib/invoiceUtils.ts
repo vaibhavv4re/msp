@@ -29,14 +29,14 @@ export function generateNextInvoiceNumber(business: Business, allInvoices: Invoi
     // Filter invoices for this business and this series pattern
     const seriesInvoices = allInvoices.filter(inv =>
         (inv as any).business?.id === business.id &&
-        inv.invoiceNumber.startsWith(pattern)
+        (inv.invoiceNumber || "").startsWith(pattern)
     );
 
     let maxSequence = 0;
 
     seriesInvoices.forEach(inv => {
         // Extract the sequence number part
-        const sequencePart = inv.invoiceNumber.replace(pattern, "");
+        const sequencePart = (inv.invoiceNumber || "").replace(pattern, "");
         const sequence = parseInt(sequencePart, 10);
         if (!isNaN(sequence) && sequence > maxSequence) {
             maxSequence = sequence;
