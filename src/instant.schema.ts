@@ -20,10 +20,10 @@ const _schema = i.schema({
     }),
     calendarEvents: i.entity({
       title: i.string().optional(),
-      start: i.string(), // ISO string
-      end: i.string(),   // ISO string
-      status: i.string(), // "tentative" | "confirmed" | "cancelled"
-      icalUid: i.string(), // Stable UID for iCal
+      start: i.string().optional(), // ISO string
+      end: i.string().optional(),   // ISO string
+      status: i.string().optional(), // "tentative" | "confirmed" | "cancelled"
+      icalUid: i.string().optional(), // Stable UID for iCal
       googleEventId: i.string().optional(),
       // Keep legacy fields for migration support if needed
       date: i.string().optional(),
@@ -53,7 +53,7 @@ const _schema = i.schema({
       source: i.string().optional(), // "manual" | "imported" | "concierge"
     }),
     businesses: i.entity({
-      name: i.string(), // Brand Name
+      name: i.string().optional(), // Brand Name
       legalName: i.string().optional(),
       businessType: i.string().optional(), // Individual, Proprietorship, LLP, Pvt Ltd
       address: i.string().optional(), // Registered Address
@@ -84,29 +84,29 @@ const _schema = i.schema({
       isConfirmed: i.boolean().optional(),
     }),
     bankAccounts: i.entity({
-      label: i.string(), // Primary / Secondary
-      bankName: i.string(),
-      holderName: i.string(),
-      accountNumber: i.string(),
-      ifsc: i.string(),
+      label: i.string().optional(), // Primary / Secondary
+      bankName: i.string().optional(),
+      holderName: i.string().optional(),
+      accountNumber: i.string().optional(),
+      ifsc: i.string().optional(),
       upiId: i.string().optional(),
       chequeName: i.string().optional(),
-      isActive: i.boolean(),
+      isActive: i.boolean().optional(),
       source: i.string().optional(), // "manual" | "imported" | "concierge"
     }),
     invoices: i.entity({
-      invoiceNumber: i.string(),
-      invoiceDate: i.string(),
+      invoiceNumber: i.string().optional(),
+      invoiceDate: i.string().optional(),
       orderNumber: i.string().optional(),
       paymentTerms: i.string().optional(),
-      dueDate: i.string(),
+      dueDate: i.string().optional(),
       subject: i.string().optional(),
-      status: i.string(),
-      subtotal: i.number(),
+      status: i.string().optional(),
+      subtotal: i.number().optional(),
       cgst: i.number().optional(),
       sgst: i.number().optional(),
       igst: i.number().optional(),
-      total: i.number(),
+      total: i.number().optional(),
       notes: i.string().optional(),
       termsAndConditions: i.string().optional(),
       usageType: i.string().optional(),
@@ -125,42 +125,42 @@ const _schema = i.schema({
     }),
     lineItems: i.entity({
       itemType: i.string().optional(), // 'service' or 'custom'
-      description: i.string(),
-      sacCode: i.string().optional(),
-      quantity: i.number(),
-      rate: i.number(),
-      amount: i.number(),
-    }),
-    services: i.entity({
-      name: i.string(),
       description: i.string().optional(),
       sacCode: i.string().optional(),
-      rate: i.number(),
-      isActive: i.boolean(),
+      quantity: i.number().optional(),
+      rate: i.number().optional(),
+      amount: i.number().optional(),
+    }),
+    services: i.entity({
+      name: i.string().optional(),
+      description: i.string().optional(),
+      sacCode: i.string().optional(),
+      rate: i.number().optional(),
+      isActive: i.boolean().optional(),
       source: i.string().optional(), // "manual" | "imported" | "concierge"
     }),
     taxes: i.entity({
-      name: i.string(),
-      taxType: i.string(), // CGST, SGST, IGST, GST, etc
-      rate: i.number(),
-      isDefault: i.boolean(),
+      name: i.string().optional(),
+      taxType: i.string().optional(), // CGST, SGST, IGST, GST, etc
+      rate: i.number().optional(),
+      isDefault: i.boolean().optional(),
     }),
     termsTemplates: i.entity({
-      title: i.string(),
-      content: i.string(),
-      isDefault: i.boolean(),
+      title: i.string().optional(),
+      content: i.string().optional(),
+      isDefault: i.boolean().optional(),
     }),
     taxSettings: i.entity({
-      cgstRate: i.number(),
-      igstRate: i.number(),
-      isDefault: i.boolean(),
-      sgstRate: i.number(),
+      cgstRate: i.number().optional(),
+      igstRate: i.number().optional(),
+      isDefault: i.boolean().optional(),
+      sgstRate: i.number().optional(),
     }),
     expenses: i.entity({
       description: i.string().optional(),
-      amount: i.number(),
-      date: i.string(), // ISO string
-      category: i.string(), // Travel, Assistants, Studio/Rent, Equipment/Rentals, Miscellaneous
+      amount: i.number().optional(),
+      date: i.string().optional(), // ISO string
+      category: i.string().optional(), // Travel, Assistants, Studio/Rent, Equipment/Rentals, Miscellaneous
       notes: i.string().optional(),
       vendorName: i.string().optional(),
       gstCharged: i.boolean().optional(),
@@ -175,25 +175,43 @@ const _schema = i.schema({
       source: i.string().optional(), // "manual" | "imported" | "concierge"
     }),
     tdsEntries: i.entity({
-      amount: i.number(),
-      fy: i.string(), // Financial Year
-      hasCertificate: i.boolean(),
+      amount: i.number().optional(),
+      fy: i.string().optional(), // Financial Year
+      hasCertificate: i.boolean().optional(),
       notes: i.string().optional(),
     }),
+    estimates: i.entity({
+      estimateNumber: i.string().optional(),
+      status: i.string().optional(), // "draft" | "shared" | "confirmed" | "converted" | "expired"
+      date: i.string().optional(),
+      validUntil: i.string().optional(),
+      subtotal: i.number().optional(),
+      total: i.number().optional(),
+      notes: i.string().optional(),
+      termsAndConditions: i.string().optional(),
+      advanceIntent: i.number().optional(),
+      requiresAdvance: i.boolean().optional(),
+      advancePercentage: i.number().optional(),
+      advanceDeadlineDays: i.number().optional(),
+      recipientName: i.string().optional(),
+      recipientContact: i.string().optional(),
+      createdAt: i.string().optional(),
+      updatedAt: i.string().optional(),
+    }),
     attachments: i.entity({
-      publicId: i.string().unique().indexed(),
-      url: i.string(),
-      type: i.string(), // "expense_bill" | "invoice_pdf" | "ca_export"
-      createdAt: i.string(), // ISO string
+      publicId: i.string().unique().indexed().optional(),
+      url: i.string().optional(),
+      type: i.string().optional(), // "expense_bill" | "invoice_pdf" | "ca_export"
+      createdAt: i.string().optional(), // ISO string
     }),
     auditLogs: i.entity({
-      adminId: i.string(),
-      adminEmail: i.string(),
-      action: i.string(), // "delete_user", "create_concierge", etc.
-      targetType: i.string(), // "user", "business"
-      targetId: i.string(),
+      adminId: i.string().optional(),
+      adminEmail: i.string().optional(),
+      action: i.string().optional(), // "delete_user", "create_concierge", etc.
+      targetType: i.string().optional(), // "user", "business"
+      targetId: i.string().optional(),
       targetName: i.string().optional(),
-      timestamp: i.string(), // ISO string
+      timestamp: i.string().optional(), // ISO string
       details: i.string().optional(),
     }),
   },
@@ -352,6 +370,18 @@ const _schema = i.schema({
       },
       reverse: {
         on: "services",
+        has: "many",
+        label: "lineItems",
+      },
+    },
+    lineItemsOwner: {
+      forward: {
+        on: "lineItems",
+        has: "one",
+        label: "owner",
+      },
+      reverse: {
+        on: "$users",
         has: "many",
         label: "lineItems",
       },
@@ -522,6 +552,67 @@ const _schema = i.schema({
         on: "businesses",
         has: "many",
         label: "termsTemplates",
+      },
+    },
+    estimatesOwner: {
+      forward: {
+        on: "estimates",
+        has: "one",
+        label: "owner",
+      },
+      reverse: {
+        on: "$users",
+        has: "many",
+        label: "estimates",
+      },
+    },
+    estimatesClient: {
+      forward: {
+        on: "estimates",
+        has: "one",
+        label: "client",
+      },
+      reverse: {
+        on: "clients",
+        has: "many",
+        label: "estimates",
+      },
+    },
+    estimatesBusiness: {
+      forward: {
+        on: "estimates",
+        has: "one",
+        label: "business",
+      },
+      reverse: {
+        on: "businesses",
+        has: "many",
+        label: "estimates",
+      },
+    },
+    lineItemsEstimate: {
+      forward: {
+        on: "lineItems",
+        has: "one",
+        label: "estimate",
+        onDelete: "cascade",
+      },
+      reverse: {
+        on: "estimates",
+        has: "many",
+        label: "lineItems",
+      },
+    },
+    estimateConvertedInvoice: {
+      forward: {
+        on: "estimates",
+        has: "one",
+        label: "convertedInvoice",
+      },
+      reverse: {
+        on: "invoices",
+        has: "one",
+        label: "sourceEstimate",
       },
     },
   },

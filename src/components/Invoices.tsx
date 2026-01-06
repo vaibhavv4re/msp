@@ -22,6 +22,7 @@ export type Invoice = InstaQLEntity<typeof schema, "invoices"> & {
   lineItems: LineItem[];
   business?: Business;
   bankAccount?: BankAccount;
+  sourceEstimate?: any;
 };
 export type LineItem = InstaQLEntity<typeof schema, "lineItems">;
 
@@ -484,17 +485,17 @@ function InvoiceTable({
     doc.setFont("helvetica", "bold");
     doc.text("Invoice #:", infoX, currentY + 6, { align: "right" });
     doc.setFont("helvetica", "normal");
-    doc.text(invoice.invoiceNumber, infoValX, currentY + 6, { align: "right" });
+    doc.text(invoice.invoiceNumber || "", infoValX, currentY + 6, { align: "right" });
 
     doc.setFont("helvetica", "bold");
     doc.text("Date:", infoX, currentY + 11, { align: "right" });
     doc.setFont("helvetica", "normal");
-    doc.text(formatDate(invoice.invoiceDate), infoValX, currentY + 11, { align: "right" });
+    doc.text(formatDate(invoice.invoiceDate || ""), infoValX, currentY + 11, { align: "right" });
 
     doc.setFont("helvetica", "bold");
     doc.text("Due Date:", infoX, currentY + 16, { align: "right" });
     doc.setFont("helvetica", "normal");
-    doc.text(formatDate(invoice.dueDate), infoValX, currentY + 16, { align: "right" });
+    doc.text(formatDate(invoice.dueDate || ""), infoValX, currentY + 16, { align: "right" });
 
     // Amount Due Highlight Box with Brand Color
     doc.setFillColor(rgbColor[0], rgbColor[1], rgbColor[2]);
@@ -507,11 +508,11 @@ function InvoiceTable({
 
     // 3. Table Section
     const tableData = invoice.lineItems.map(item => [
-      item.description,
+      item.description || "",
       item.sacCode || "-",
-      item.quantity.toLocaleString(),
-      `Rs. ${item.rate.toLocaleString('en-IN')}`,
-      `Rs. ${item.amount.toLocaleString('en-IN')}`
+      (item.quantity || 0).toLocaleString(),
+      `Rs. ${(item.rate || 0).toLocaleString('en-IN')}`,
+      `Rs. ${(item.amount || 0).toLocaleString('en-IN')}`
     ]);
 
     autoTable(doc, {
@@ -545,7 +546,7 @@ function InvoiceTable({
     doc.setFontSize(9);
     doc.setTextColor(0);
     doc.text("Subtotal:", totLabelX, finalY, { align: "right" });
-    doc.text(`Rs. ${invoice.subtotal.toLocaleString('en-IN')}`, totValX, finalY, { align: "right" });
+    doc.text(`Rs. ${(invoice.subtotal || 0).toLocaleString('en-IN')}`, totValX, finalY, { align: "right" });
 
     let ty = finalY + 6;
     if (invoice.cgst) {
@@ -570,7 +571,7 @@ function InvoiceTable({
 
     doc.setFont("helvetica", "bold");
     doc.text("Grand Total:", totLabelX, ty, { align: "right" });
-    doc.text(`Rs. ${invoice.total.toLocaleString('en-IN')}`, totValX, ty, { align: "right" });
+    doc.text(`Rs. ${(invoice.total || 0).toLocaleString('en-IN')}`, totValX, ty, { align: "right" });
 
     if (invoice.isAdvanceReceived) {
       ty += 6;
@@ -802,6 +803,13 @@ function InvoiceTable({
                         <div>
                           <div className="text-sm font-black text-gray-900 group-hover:text-blue-600 transition-colors">{invoice.invoiceNumber}</div>
                           <div className="text-[9px] font-black text-gray-600 uppercase tracking-tight">{business?.name || "No Profile"}</div>
+                          {invoice.sourceEstimate && (
+                            <div className="mt-1">
+                              <span className="text-[7px] font-black bg-blue-50 text-blue-500 px-1 py-0.5 rounded uppercase tracking-widest border border-blue-100">
+                                Est: {invoice.sourceEstimate.id.slice(0, 8).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -1002,6 +1010,19 @@ export function InvoiceModal({
         lineItems: invoice.lineItems.map((li) => ({ ...li })),
         client: invoice.client || { id: "" },
         business: (invoice as any).business || { id: "" },
+        bankAccount: (invoice as any).bankAccount || { id: "" },
+        invoiceDate: (invoice as any).invoiceDate || new Date().toISOString().split('T')[0],
+        dueDate: (invoice as any).dueDate || "",
+        subject: (invoice as any).subject || "",
+        orderNumber: (invoice as any).orderNumber || "",
+        paymentTerms: (invoice as any).paymentTerms || "",
+        notes: (invoice as any).notes || "",
+        termsAndConditions: (invoice as any).termsAndConditions || "",
+        usageType: (invoice as any).usageType || "",
+        usageOther: (invoice as any).usageOther || "",
+        usageDuration: (invoice as any).usageDuration || "",
+        usageGeography: (invoice as any).usageGeography || "",
+        usageExclusivity: (invoice as any).usageExclusivity || "",
         advanceAmount: (invoice as any).advanceAmount || 0,
         isAdvanceReceived: (invoice as any).isAdvanceReceived || false,
         tdsDeducted: (invoice as any).tdsDeducted || false,
@@ -1131,8 +1152,8 @@ export function InvoiceModal({
 
     // Auto-calculate amount
     if (field === 'quantity' || field === 'rate') {
-      const qty = field === 'quantity' ? Number(value) : Number(lineItems[index].quantity);
-      const rate = field === 'rate' ? Number(value) : Number(lineItems[index].rate);
+      const qty = Number(field === 'quantity' ? value : lineItems[index].quantity) || 0;
+      const rate = Number(field === 'rate' ? value : lineItems[index].rate) || 0;
       lineItems[index].amount = qty * rate;
     }
 
@@ -1214,11 +1235,11 @@ export function InvoiceModal({
           dueDate: invoiceData.dueDate,
           subject: invoiceData.subject || undefined,
           status: invoiceData.status,
-          subtotal: Number(invoiceData.subtotal),
-          cgst: taxType === "intrastate" ? Number(invoiceData.cgst) : undefined,
-          sgst: taxType === "intrastate" ? Number(invoiceData.sgst) : undefined,
-          igst: taxType === "interstate" ? Number(invoiceData.igst) : undefined,
-          total: Number(invoiceData.total),
+          subtotal: Number(invoiceData.subtotal) || 0,
+          cgst: taxType === "intrastate" ? (Number(invoiceData.cgst) || 0) : undefined,
+          sgst: taxType === "intrastate" ? (Number(invoiceData.sgst) || 0) : undefined,
+          igst: taxType === "interstate" ? (Number(invoiceData.igst) || 0) : undefined,
+          total: Number(invoiceData.total) || 0,
           notes: invoiceData.notes || undefined,
           termsAndConditions: invoiceData.termsAndConditions || undefined,
           usageType: invoiceData.usageType || undefined,
@@ -1226,10 +1247,10 @@ export function InvoiceModal({
           usageDuration: invoiceData.usageDuration || undefined,
           usageGeography: invoiceData.usageGeography || undefined,
           usageExclusivity: invoiceData.usageExclusivity || undefined,
-          advanceAmount: Number(invoiceData.advanceAmount),
+          advanceAmount: Number(invoiceData.advanceAmount) || 0,
           isAdvanceReceived: !!invoiceData.isAdvanceReceived,
           tdsDeducted: !!formData.tdsDeducted,
-          tdsAmount: Number(formData.tdsAmount),
+          tdsAmount: Number(formData.tdsAmount) || 0,
         }),
         db.tx.invoices[invoiceId].link({ client: formData.client.id }),
         db.tx.invoices[invoiceId].link({ business: formData.business.id }),
@@ -1240,9 +1261,9 @@ export function InvoiceModal({
             itemType: li.itemType || undefined,
             description: li.description,
             sacCode: li.sacCode || undefined,
-            quantity: Number(li.quantity),
-            rate: Number(li.rate),
-            amount: Number(li.amount),
+            quantity: Number(li.quantity) || 0,
+            rate: Number(li.rate) || 0,
+            amount: Number(li.amount) || 0,
           })
         ),
         db.tx.invoices[invoiceId].link({ lineItems: lineItemIds }),
@@ -1743,29 +1764,29 @@ export function InvoiceModal({
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">Subtotal</span>
-                        <span className="font-mono">₹{formData.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        <span className="font-mono">₹{(formData.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
                       {taxType === "intrastate" ? (
                         <>
                           <div className="flex justify-between">
                             <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">CGST ({cgstRate}%)</span>
-                            <span className="font-mono">₹{formData.cgst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                            <span className="font-mono">₹{(formData.cgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">SGST ({sgstRate}%)</span>
-                            <span className="font-mono">₹{formData.sgst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                            <span className="font-mono">₹{(formData.sgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                           </div>
                         </>
                       ) : (
                         <div className="flex justify-between">
                           <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">IGST ({igstRate}%)</span>
-                          <span className="font-mono">₹{formData.igst?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-mono">₹{(formData.igst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                         </div>
                       )}
 
                       <div className="flex justify-between font-black text-xl pt-3 border-t-2 border-gray-200">
                         <span className="uppercase tracking-tighter">Gross Total</span>
-                        <span className="text-gray-900">₹{formData.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-gray-900">₹{(formData.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
 
                       {((Number(formData.advanceAmount) > 0) || ((invoice as any)?.tdsAmount > 0)) && (
@@ -1798,7 +1819,7 @@ export function InvoiceModal({
                           )}
 
                           {(() => {
-                            const netBalance = formData.total - Number(formData.advanceAmount) - Number((invoice as any).tdsAmount);
+                            const netBalance = (formData.total || 0) - Number(formData.advanceAmount || 0) - Number((invoice as any)?.tdsAmount || 0);
                             if (netBalance > 1) { // ₹1 margin for rounding
                               return (
                                 <div className="flex justify-between text-red-600 font-black text-lg pt-3 border-t border-dashed border-gray-200 mt-2">

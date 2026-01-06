@@ -67,10 +67,10 @@ export function Customers({
         onBack={() => setView("list")}
         onEdit={(client) => openModal(client)}
         onCreateInvoice={(clientId) => {
-          if (onNavigate) onNavigate("invoices", "create-invoice");
+          if (onNavigate) onNavigate("sales", "create-invoice");
         }}
         onViewInvoice={(invoiceId) => {
-          if (onNavigate) onNavigate("invoices", `edit-invoice:${invoiceId}`);
+          if (onNavigate) onNavigate("sales", `edit-invoice:${invoiceId}`);
         }}
       />
     );
@@ -333,21 +333,29 @@ export function CustomerModal({
   activeBusinessId,
   onClose,
   onSuccess,
+  initialData,
 }: {
   client: Client | null;
   userId: string;
   activeBusinessId: string;
   onClose: () => void;
   onSuccess?: (clientId: string) => void;
+  initialData?: Partial<{
+    firstName: string;
+    lastName: string;
+    displayName: string;
+    email: string;
+    phone: string;
+  }>;
 }) {
   const [customerType, setCustomerType] = useState(client?.customerType || "Individual");
   const [salutation, setSalutation] = useState(client?.salutation || "");
-  const [firstName, setFirstName] = useState(client?.firstName || "");
-  const [lastName, setLastName] = useState(client?.lastName || "");
+  const [firstName, setFirstName] = useState(client?.firstName || initialData?.firstName || "");
+  const [lastName, setLastName] = useState(client?.lastName || initialData?.lastName || "");
   const [companyName, setCompanyName] = useState(client?.companyName || "");
-  const [displayName, setDisplayName] = useState(client?.displayName || "");
-  const [email, setEmail] = useState(client?.email || "");
-  const [phone, setPhone] = useState(client?.phone || "");
+  const [displayName, setDisplayName] = useState(client?.displayName || initialData?.displayName || "");
+  const [email, setEmail] = useState(client?.email || initialData?.email || "");
+  const [phone, setPhone] = useState(client?.phone || initialData?.phone || "");
   const [workPhone, setWorkPhone] = useState(client?.workPhone || "");
   const [mobile, setMobile] = useState(client?.mobile || "");
   const [address, setAddress] = useState(client?.address || "");

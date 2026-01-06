@@ -358,13 +358,22 @@ export function Dashboard({
           </h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <button
-              onClick={() => onNavigate("invoices", "create-invoice")}
+              onClick={() => onNavigate("sales", "create-invoice")}
               className="flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-2xl border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-all min-h-[100px]"
             >
               <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
               </div>
               <span className="text-[10px] font-black uppercase tracking-tighter">New Invoice</span>
+            </button>
+            <button
+              onClick={() => onNavigate("sales", "create-estimate")}
+              className="flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-2xl border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-all min-h-[100px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-tighter">New Estimate</span>
             </button>
             <button
               onClick={() => setShowRecordPayment(true)}

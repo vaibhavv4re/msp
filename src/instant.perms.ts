@@ -3,114 +3,24 @@
 import type { InstantRules } from "@instantdb/react";
 
 const rules = {
-  // Calendar Events - users can only see their own
-  calendarEvents: {
-    allow: {
-      view: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-      create: "auth.id != null",
-      update: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-    },
-  },
-  // Clients - users can only see their own customers
-  clients: {
-    allow: {
-      view: "auth.id in data.ref('owner.id') || data.source == 'concierge' || root.ref('$users')[auth.id].role == 'admin'",
-      create: "auth.id != null",
-      update: "auth.id in data.ref('owner.id') || data.source == 'concierge' || newData.source == 'concierge' || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "auth.id in data.ref('owner.id') || data.source == 'concierge' || root.ref('$users')[auth.id].role == 'admin'",
-    },
-  },
-  // Invoices - users can only see their own invoices
-  invoices: {
-    allow: {
-      view: "auth.id in data.ref('owner.id') || data.source == 'concierge' || root.ref('$users')[auth.id].role == 'admin'",
-      create: "auth.id != null",
-      update: "auth.id in data.ref('owner.id') || data.source == 'concierge' || newData.source == 'concierge' || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "auth.id in data.ref('owner.id') || data.source == 'concierge' || root.ref('$users')[auth.id].role == 'admin'",
-    },
-  },
-  // Line Items - inherit permissions from invoice owner
-  lineItems: {
-    allow: {
-      view: "auth.id in data.ref('invoice.owner.id') || data.ref('invoice.source') == 'concierge' || root.ref('$users')[auth.id].role == 'admin'",
-      create: "auth.id != null",
-      update: "auth.id in data.ref('invoice.owner.id') || data.ref('invoice.source') == 'concierge' || newData.ref('invoice.source') == 'concierge' || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "auth.id in data.ref('invoice.owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-    },
-  },
-  // Services - users can only see their own services
-  services: {
-    allow: {
-      view: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-      create: "auth.id != null",
-      update: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-    },
-  },
-  // Taxes - users can only see their own tax settings
-  taxes: {
-    allow: {
-      view: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-      create: "auth.id != null",
-      update: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-    },
-  },
-  // Terms Templates - users can only see their own templates
-  termsTemplates: {
-    allow: {
-      view: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-      create: "auth.id != null",
-      update: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-    },
-  },
-  // Businesses - critical for concierge and profile management
-  businesses: {
-    allow: {
-      view: "auth.id in data.ref('owner.id') || auth.email == data.email || data.createdBy == 'admin' || root.ref('$users')[auth.id].role == 'admin'",
-      create: "auth.id != null",
-      update: "auth.id in data.ref('owner.id') || auth.email == newData.email || data.createdBy == 'admin' || newData.createdBy == 'admin' || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "auth.id in data.ref('owner.id') || data.createdBy == 'admin' || root.ref('$users')[auth.id].role == 'admin'",
-    },
-  },
-  // Bank Accounts
-  bankAccounts: {
-    allow: {
-      view: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-      create: "auth.id != null",
-      update: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-    },
-  },
-  // Expenses
-  expenses: {
-    allow: {
-      view: "auth.id in data.ref('owner.id') || data.source == 'concierge' || root.ref('$users')[auth.id].role == 'admin'",
-      create: "auth.id != null",
-      update: "auth.id in data.ref('owner.id') || data.source == 'concierge' || newData.source == 'concierge' || root.ref('$users')[auth.id].role == 'admin'",
-      delete: "auth.id in data.ref('owner.id') || root.ref('$users')[auth.id].role == 'admin'",
-    },
-  },
-  // User profiles - allow role management and profile viewing
-  $users: {
-    allow: {
-      view: "auth.id != null || root.$users[auth.id].role == 'admin'",
-      create: "false", // Handled by InstantDB auth
-      update: "auth.id == data.id || root.$users[auth.id].role == 'admin'",
-      delete: "root.$users[auth.id].role == 'admin'",
-    },
-  },
-  // Audit Logs - admin only
-  auditLogs: {
-    allow: {
-      view: "root.ref('$users')[auth.id].role == 'admin'",
-      create: "root.ref('$users')[auth.id].role == 'admin'", // Admin performing the action writes the log
-      update: "false",
-      delete: "false",
-    },
-  },
+  $files: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  calendarEvents: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  clients: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  invoices: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  lineItems: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  estimates: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  services: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  taxes: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  termsTemplates: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  taxSettings: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  businesses: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  bankAccounts: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  expenses: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  tdsEntries: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  attachments: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  $users: { allow: { view: "true", create: "false", update: "true", delete: "false" } },
+  auditLogs: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
+  rooms: { allow: { view: "true", create: "true", update: "true", delete: "true" } },
 } satisfies InstantRules;
 
 export default rules;

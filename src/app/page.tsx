@@ -11,6 +11,7 @@ import { Customers } from "@/components/Customers";
 import { Services } from "@/components/Services";
 import { Settings } from "@/components/Settings";
 import { TaxZone } from "@/components/TaxZone";
+import { Sales } from "@/components/Sales";
 import { DataManagement } from "@/components/DataManagement";
 import { GoogleCalendarAPI } from "@/lib/googleCalendar";
 import { GoogleCalendarAuth } from "@/lib/googleOAuth";
@@ -25,10 +26,16 @@ export type Invoice = InstaQLEntity<AppSchema, "invoices"> & {
 };
 export type LineItem = InstaQLEntity<AppSchema, "lineItems">;
 export type CalendarEvent = InstaQLEntity<AppSchema, "calendarEvents">;
+export type Estimate = InstaQLEntity<AppSchema, "estimates"> & {
+  client?: Client;
+  lineItems: LineItem[];
+  business?: Business;
+  convertedInvoice?: Invoice;
+};
 export type Business = InstaQLEntity<AppSchema, "businesses"> & { bankAccounts: BankAccount[] };
 export type BankAccount = InstaQLEntity<AppSchema, "bankAccounts">;
 
-type View = "dashboard" | "invoices" | "calendar" | "customers" | "services" | "taxzone" | "settings" | "data";
+type View = "dashboard" | "sales" | "calendar" | "customers" | "services" | "taxzone" | "settings" | "data";
 
 function LoginPage() {
   const handleGoogleLogin = () => {
@@ -221,17 +228,21 @@ function AppContent() {
       $: { where: { id: user.id } },
       clients: { invoices: { attachment: {} }, business: {} },
       invoices: { lineItems: {}, client: {}, business: {}, attachment: {}, bankAccount: {} },
+      estimates: { lineItems: {}, client: {}, business: {}, convertedInvoice: {} },
       calendarEvents: { business: {} },
       services: { business: {} },
       taxes: { business: {} },
       termsTemplates: { business: {} },
-      businesses: { bankAccounts: {} },
+      businesses: {
+        bankAccounts: {},
+        estimates: { lineItems: {}, client: {}, business: {} }
+      },
       bankAccounts: {},
       expenses: { attachment: {}, business: {} },
       tdsEntries: {
-        client: {},
         business: {}
-      }
+      },
+      lineItems: { estimate: { $: { fields: ["id"] } } }
     },
     businesses: {
       $: {
@@ -242,6 +253,7 @@ function AppContent() {
       },
       clients: { invoices: { lineItems: {} } },
       invoices: { lineItems: {} },
+      estimates: { lineItems: {} },
       services: {},
       bankAccounts: {},
       expenses: { attachment: {} },
@@ -254,6 +266,20 @@ function AppContent() {
   const currentUser = (data as any)?.$users?.[0] as any;
   const clients = currentUser?.clients || [];
   const invoices = currentUser?.invoices || [];
+
+  // Merge estimates from both user path and business path to ensure nothing is missed
+  const userEstimates = currentUser?.estimates || [];
+  const businessEstimates = currentUser?.businesses?.flatMap((b: any) => b.estimates || []) || [];
+
+  const conciergeEstimates = (data as any)?.businesses?.flatMap((b: any) => b.estimates || []) || [];
+
+  // Deduplicate by ID
+  const allEstimatesMap = new Map();
+  [...userEstimates, ...businessEstimates, ...conciergeEstimates].forEach(est => {
+    if (est) allEstimatesMap.set(est.id, est);
+  });
+  const estimates = Array.from(allEstimatesMap.values());
+
   const calendarEvents = currentUser?.calendarEvents || [];
   const services = currentUser?.services || [];
   const taxes = currentUser?.taxes || [];
@@ -262,11 +288,31 @@ function AppContent() {
   const bankAccounts = currentUser?.bankAccounts || [];
   const expenses = currentUser?.expenses || [];
   const tdsEntries = currentUser?.tdsEntries || [];
+  const flatLineItems = [
+    ...(currentUser?.lineItems || []),
+    ...estimates.flatMap((e: any) => e.lineItems || []),
+    ...invoices.flatMap((i: any) => i.lineItems || [])
+  ];
+
+  // Re-associate line items if they are missing from the estimate objects
+  estimates.forEach(est => {
+    if (!est.lineItems || est.lineItems.length === 0) {
+      const associatedItems = flatLineItems.filter(li => li.estimate?.id === est.id);
+      if (associatedItems.length > 0) {
+        console.log(`🔗 Backfilled ${associatedItems.length} items for estimate ${est.id}`);
+        est.lineItems = associatedItems;
+      }
+    }
+  });
 
   // Filter logic based on active business context
   const filteredInvoices = activeBusinessId === "ALL"
     ? invoices
     : invoices.filter((inv: any) => inv.business?.id === activeBusinessId);
+
+  const filteredEstimates = activeBusinessId === "ALL"
+    ? estimates
+    : estimates.filter((est: any) => (est as any).business?.id === activeBusinessId);
 
   const filteredExpenses = activeBusinessId === "ALL"
     ? expenses
@@ -451,10 +497,10 @@ function AppContent() {
                 Customers
               </button>
               <button
-                onClick={() => setView("invoices")}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "invoices" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
+                onClick={() => setView("sales")}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${view === "sales" ? "bg-gray-900 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"} transition-all`}
               >
-                Invoices
+                Sales
               </button>
               <button
                 onClick={() => setView("calendar")}
@@ -601,11 +647,11 @@ function AppContent() {
           <span className="text-[10px] font-black uppercase tracking-tighter">Home</span>
         </button>
         <button
-          onClick={() => { setView("invoices"); setIsMoreMenuOpen(false); }}
-          className={`flex flex-col items-center gap-1 ${view === "invoices" ? "text-gray-900" : "text-gray-400"} `}
+          onClick={() => { setView("sales"); setIsMoreMenuOpen(false); }}
+          className={`flex flex-col items-center gap-1 ${view === "sales" ? "text-gray-900" : "text-gray-400"} `}
         >
-          <svg className="w-6 h-6" fill={view === "invoices" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-          <span className="text-[10px] font-black uppercase tracking-tighter">Invoices</span>
+          <svg className="w-6 h-6" fill={view === "sales" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span className="text-[10px] font-black uppercase tracking-tighter">Sales</span>
         </button>
         <button
           onClick={() => { setView("calendar"); setIsMoreMenuOpen(false); }}
@@ -692,6 +738,7 @@ function AppContent() {
             <div className="grid grid-cols-1 gap-4">
               {[
                 { id: 'customers', label: 'Customers', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /> },
+                { id: 'sales', label: 'Sales', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /> },
                 { id: 'services', label: 'Services', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 00-2-2m0 0V5a2 2 0 012-2h6.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V7n" /> },
                 { id: 'data', label: 'Data Mgmt', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3zm0 4h16m-16 4h16" /> },
                 { id: 'settings', label: 'Settings', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /> },
@@ -752,10 +799,11 @@ function AppContent() {
             }}
           />
         )}
-        {view === "invoices" && (
-          <Invoices
+        {view === "sales" && (
+          <Sales
             invoices={filteredInvoices as any}
-            allInvoices={invoices as any} // Might need for customer logic
+            allInvoices={invoices as any}
+            estimates={filteredEstimates as any}
             clients={clients as any}
             services={services as any}
             taxes={taxes as any}
