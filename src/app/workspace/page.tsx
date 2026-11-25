@@ -1,15 +1,22 @@
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { WorkspaceActions } from "./WorkspaceActions";
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 export const metadata = {
   title: "Business workspaces | Backdrop",
 };
 
+const ACTIVE_WORKSPACE_COOKIE = "backdrop_active_business_id";
+
 export default async function WorkspacePage() {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const cookieStore = await cookies();
+  const requestedActiveWorkspaceId = cookieStore.get(ACTIVE_WORKSPACE_COOKIE)?.value ?? null;
 
   let profileName: string | null = null;
+  let activeWorkspaceId: string | null = null;
   let workspaces: Array<{
     id: string;
     name: string;
@@ -18,7 +25,8 @@ export default async function WorkspacePage() {
     role: string;
     joined_at: string;
   }> = [];
-  let loadError: string | null = authError?.message ?? null;
+  // A missing session is the normal signed-out state, not an error to show.
+  let loadError: string | null = user ? authError?.message ?? null : null;
 
   if (user) {
     const [{ data: profile }, { data: memberships, error: membershipError }] = await Promise.all([
@@ -57,6 +65,11 @@ export default async function WorkspacePage() {
             joined_at: membership?.joined_at ?? "",
           };
         });
+
+        // Only accept a cookie value that is still in the user's membership list.
+        activeWorkspaceId = workspaces.some((workspace) => workspace.id === requestedActiveWorkspaceId)
+          ? requestedActiveWorkspaceId
+          : workspaces[0]?.id ?? null;
       }
     }
   }
@@ -91,33 +104,17 @@ export default async function WorkspacePage() {
           )}
 
           {user && (
-            <div className="mt-8 space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-neutral-200">Your workspaces</h2>
-                <span className="text-xs text-neutral-500">{workspaces.length} found</span>
-              </div>
-              {workspaces.length ? (
-                <ul className="space-y-2">
-                  {workspaces.map((workspace) => (
-                    <li key={workspace.id} className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="font-semibold">{workspace.name}</p>
-                        <p className="mt-1 text-xs text-neutral-500">
-                          {[workspace.legal_name, workspace.business_type].filter(Boolean).join(" · ") || "Business workspace"}
-                        </p>
-                      </div>
-                      <span className="w-fit rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium capitalize text-blue-300">
-                        {workspace.role}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-white/15 p-5 text-sm text-neutral-400">
+            <>
+              <WorkspaceSwitcher
+                workspaces={workspaces.map(({ id, name, role }) => ({ id, name, role }))}
+                activeWorkspaceId={activeWorkspaceId}
+              />
+              {workspaces.length === 0 && !loadError && (
+                <div className="mt-8 rounded-2xl border border-dashed border-white/15 p-5 text-sm text-neutral-400">
                   No workspaces yet. Create your first business below.
                 </div>
               )}
-            </div>
+            </>
           )}
 
           <div className="mt-8 border-t border-white/10 pt-7">
