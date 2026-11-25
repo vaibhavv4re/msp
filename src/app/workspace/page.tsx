@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { WorkspaceActions } from "./WorkspaceActions";
@@ -109,6 +110,11 @@ export default async function WorkspacePage() {
                 workspaces={workspaces.map(({ id, name, role }) => ({ id, name, role }))}
                 activeWorkspaceId={activeWorkspaceId}
               />
+              {activeWorkspaceId && (
+                <Link href="/workspace/clients" className="mt-4 inline-flex items-center rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/20">
+                  Open Clients module preview →
+                </Link>
+              )}
               {workspaces.length === 0 && !loadError && (
                 <div className="mt-8 rounded-2xl border border-dashed border-white/15 p-5 text-sm text-neutral-400">
                   No workspaces yet. Create your first business below.
