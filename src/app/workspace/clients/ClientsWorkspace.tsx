@@ -76,7 +76,7 @@ export function ClientsWorkspace({
     startTransition(async () => {
       const result = await deleteClient(data);
       if ("error" in result) {
-        setMessage(result.error);
+        setMessage(result.error ?? "The operation could not be completed. Please try again.");
         return;
       }
       setMessage("Client deleted.");
