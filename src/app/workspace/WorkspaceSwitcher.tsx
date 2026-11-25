@@ -31,7 +31,7 @@ export function WorkspaceSwitcher({
     try {
       const result = await setActiveWorkspace(id);
       if ("error" in result) {
-        setError(result.error);
+        setError(result.error ?? "Unable to switch workspaces. Please try again.");
         return;
       }
       router.refresh();
