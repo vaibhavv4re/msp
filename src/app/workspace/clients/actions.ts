@@ -72,20 +72,25 @@ export async function saveClient(formData: FormData) {
     return { error: "Custom payment days must be a positive whole number." };
   }
 
+  if (!["owner", "admin", "accountant", "employee"].includes(context.role)) return { error: "You do not have permission to manage clients." };
   const id = value(formData, "id");
-  const query = context.supabase.from("clients");
-  const result = id
-    ? await query.update(payload).eq("id", id).eq("business_id", context.businessId)
-    : await query.insert({ ...payload, business_id: context.businessId, created_by: context.user.id });
-
-  if (result.error) return { error: result.error.message };
+  if (id) {
+    const { data, error } = await context.supabase.from("clients").update(payload).eq("id", id).eq("business_id", context.businessId).select("id").maybeSingle();
+    if (error) return { error: error.message };
+    if (!data) return { error: "Client not found in this workspace." };
+    revalidatePath("/workspace/clients");
+    return { success: true, id: data.id };
+  }
+  const { data, error } = await context.supabase.from("clients").insert({ ...payload, business_id: context.businessId, created_by: context.user.id }).select("id").single();
+  if (error) return { error: error.message };
   revalidatePath("/workspace/clients");
-  return { success: true };
+  return { success: true, id: data.id };
 }
 
 export async function deleteClient(formData: FormData) {
   const context = await getAuthorizedWorkspace();
   if ("error" in context) return context;
+  if (!["owner", "admin", "accountant"].includes(context.role)) return { error: "You do not have permission to delete clients." };
   const id = value(formData, "id");
   if (!id) return { error: "Client ID is required." };
 
