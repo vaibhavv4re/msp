@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { saveClient, deleteClient } from "@/app/workspace/clients/actions";
+import { saveClient, deleteClient as deleteClientAction } from "@/app/workspace/clients/actions";
 import type { Client, Invoice, Business } from "@/app/page";
 import { ClientSummary } from "@/components/ClientSummary";
 
@@ -122,7 +122,7 @@ export function Clients({
       const data = new FormData();
       data.set("id", client.id);
       startTransition(async () => {
-        const result = await deleteClient(data);
+        const result = await deleteClientAction(data);
         if ("error" in result) alert(result.error);
         else window.location.reload();
       });
