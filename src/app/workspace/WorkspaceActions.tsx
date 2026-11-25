@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { setActiveWorkspace } from "./actions";
 
 type WorkspaceActionsProps = {
   isAuthenticated: boolean;
@@ -60,7 +61,7 @@ export function WorkspaceActions({ isAuthenticated }: WorkspaceActionsProps) {
 
     setPending(true);
     const supabase = createClient();
-    const { error: createError } = await supabase.rpc("create_business", {
+    const { data: businessId, error: createError } = await supabase.rpc("create_business", {
       p_name: trimmedName,
       p_legal_name: legalName.trim() || undefined,
       p_business_type: businessType.trim() || undefined,
@@ -70,6 +71,15 @@ export function WorkspaceActions({ isAuthenticated }: WorkspaceActionsProps) {
       setError(createError.message);
       setPending(false);
       return;
+    }
+
+    if (businessId) {
+      const selection = await setActiveWorkspace(businessId);
+      if (selection.error) {
+        setError(selection.error);
+        setPending(false);
+        return;
+      }
     }
 
     setName("");
