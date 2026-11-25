@@ -75,8 +75,8 @@ export function WorkspaceActions({ isAuthenticated }: WorkspaceActionsProps) {
 
     if (businessId) {
       const selection = await setActiveWorkspace(businessId);
-      if ("error" in selection) {
-        setError(selection.error);
+      if ("error" in selection && selection.error) {
+        setError(selection.error ?? "Workspace was created, but could not be selected. Please refresh and choose it.");
         setPending(false);
         return;
       }
