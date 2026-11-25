@@ -24,24 +24,32 @@ export async function GET(request: Request) {
   }
 
   const cookieStore = await cookies();
+  const cookiesToSet: Array<{
+    name: string;
+    value: string;
+    options?: Parameters<typeof cookieStore.set>[2];
+  }> = [];
+
   const supabase = createServerClient(url, publishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
+      setAll(cookies) {
+        cookiesToSet.push(...cookies);
       },
     },
   });
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const destination = error
+    ? new URL("/?auth_error=oauth_callback", origin)
+    : new URL(next, origin);
+  const response = NextResponse.redirect(destination);
 
-  if (error) {
-    return NextResponse.redirect(new URL("/?auth_error=oauth_callback", origin));
-  }
+  cookiesToSet.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, options);
+  });
 
-  return NextResponse.redirect(new URL(next, origin));
+  return response;
 }
