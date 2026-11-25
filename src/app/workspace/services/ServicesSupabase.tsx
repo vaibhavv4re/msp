@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { removeService, saveService, updateServiceStatus } from "@/app/workspace/services/actions";
 
