@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ServicesSupabase } from "./ServicesSupabase";
+import { Services as ServicesSupabase } from "./ServicesSupabase";
 
 const ACTIVE_WORKSPACE_COOKIE = "backdrop_active_business_id";
 
