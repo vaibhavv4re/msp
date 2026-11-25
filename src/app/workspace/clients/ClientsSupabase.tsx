@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { saveClient, deleteClient } from "@/app/workspace/clients/actions";
 import type { Client, Invoice, Business } from "@/app/page";
-import { ClientSummary } from "./ClientSummary";
+import { ClientSummary } from "@/components/ClientSummary";
 
 const PAYMENT_TERMS = [
   { value: "due_on_receipt", label: "Due on Receipt" },
