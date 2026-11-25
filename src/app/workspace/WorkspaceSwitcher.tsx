@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setActiveWorkspace } from "./actions";
 
@@ -20,19 +20,21 @@ export function WorkspaceSwitcher({
   activeWorkspaceId,
 }: WorkspaceSwitcherProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [pendingWorkspaceId, setPendingWorkspaceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (!workspaces.length) return null;
 
   async function chooseWorkspace(id: string) {
     setError(null);
+    setPendingWorkspaceId(id);
     const result = await setActiveWorkspace(id);
-    if (result.error) {
+    if ("error" in result) {
       setError(result.error);
+      setPendingWorkspaceId(null);
       return;
     }
-    startTransition(() => router.refresh());
+    router.refresh();
   }
 
   return (
@@ -48,7 +50,7 @@ export function WorkspaceSwitcher({
             <li key={workspace.id}>
               <button
                 type="button"
-                disabled={isPending || active}
+                disabled={pendingWorkspaceId !== null || active}
                 onClick={() => chooseWorkspace(workspace.id)}
                 aria-current={active ? "true" : undefined}
                 className={`flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition disabled:cursor-default ${
@@ -64,7 +66,7 @@ export function WorkspaceSwitcher({
                 <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
                   active ? "bg-blue-400/15 text-blue-200" : "bg-white/5 text-neutral-400"
                 }`}>
-                  {active ? "Active" : isPending ? "Switching…" : "Select"}
+                  {active ? "Active" : pendingWorkspaceId === workspace.id ? "Switching…" : "Select"}
                 </span>
               </button>
             </li>
