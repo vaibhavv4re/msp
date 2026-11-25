@@ -354,6 +354,7 @@ export function ClientModal({
     phone: string;
   }>;
 }) {
+  const [, startTransition] = useTransition();
   const [clientType, setClientType] = useState(client?.clientType || "Individual");
   const [salutation, setSalutation] = useState(client?.salutation || "");
   const [firstName, setFirstName] = useState(client?.firstName || initialData?.firstName || "");
