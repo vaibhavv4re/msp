@@ -116,7 +116,7 @@ export function Clients({
     const displayName = client.displayName || client.firstName || "this client";
     if (
       confirm(
-        `Are you sure you want to delete ${displayName}? This will also delete all their invoices.`
+        `Are you sure you want to delete ${displayName}? Financial records may prevent deletion if they still refer to this client.`
       )
     ) {
       const data = new FormData();
