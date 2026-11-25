@@ -50,3 +50,17 @@ npm run build
 ```
 
 Commit the generated `package-lock.json` update along with the dependency changes. Then add the environment variables and test the Google provider callback before switching the production login.
+
+
+## 6. Test Supabase sign-in and workspace provisioning
+
+The isolated `/workspace` preview exercises Supabase without replacing the existing InstantDB login:
+
+1. Start the app with the Supabase URL and publishable key configured.
+2. Open `http://localhost:3000/workspace`.
+3. Sign in with Google. The callback returns to `/workspace`.
+4. Confirm the profile is created automatically in `public.profiles`.
+5. Create a business workspace. The `create_business` RPC creates the business and owner membership in one database transaction.
+6. Confirm the workspace appears with the `owner` role. Select it and refresh; the active workspace is stored in an HTTP-only cookie and is revalidated against the signed-in user's membership on every page render.
+
+The preview is intentionally separate from the current root application. Do not switch the production login until the full identity bridge and feature-by-feature data migration are ready.
