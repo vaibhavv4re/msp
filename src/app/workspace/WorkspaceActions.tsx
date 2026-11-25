@@ -75,7 +75,7 @@ export function WorkspaceActions({ isAuthenticated }: WorkspaceActionsProps) {
 
     if (businessId) {
       const selection = await setActiveWorkspace(businessId);
-      if (selection.error) {
+      if ("error" in selection) {
         setError(selection.error);
         setPending(false);
         return;
