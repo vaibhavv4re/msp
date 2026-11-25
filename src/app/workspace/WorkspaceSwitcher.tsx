@@ -28,13 +28,18 @@ export function WorkspaceSwitcher({
   async function chooseWorkspace(id: string) {
     setError(null);
     setPendingWorkspaceId(id);
-    const result = await setActiveWorkspace(id);
-    if ("error" in result) {
-      setError(result.error);
+    try {
+      const result = await setActiveWorkspace(id);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Unable to switch workspaces. Please try again.");
+    } finally {
       setPendingWorkspaceId(null);
-      return;
     }
-    router.refresh();
   }
 
   return (
