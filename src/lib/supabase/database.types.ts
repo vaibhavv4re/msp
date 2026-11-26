@@ -1240,6 +1240,23 @@ export type Database = {
         }
         Returns: string
       }
+      save_invoice_with_items: {
+        Args: {
+          p_invoice: Json
+          p_items: Json
+        }
+        Returns: string
+      }
+      record_invoice_payment: {
+        Args: {
+          p_invoice_id: string
+          p_business_id: string
+          p_cash_amount: number
+          p_tds_amount: number
+          p_tds_section?: string | null
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
