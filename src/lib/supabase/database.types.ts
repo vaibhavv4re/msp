@@ -1257,6 +1257,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      convert_estimate_to_invoice: {
+        Args: {
+          p_estimate_id: string
+          p_client_id?: string | null
+          p_invoice_number?: string | null
+          p_invoice_date?: string
+          p_bank_account_id?: string | null
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
