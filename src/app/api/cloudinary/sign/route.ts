@@ -5,6 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 cloudinary.config({cloud_name:process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,api_key:process.env.CLOUDINARY_API_KEY,api_secret:process.env.CLOUDINARY_API_SECRET,secure:true});
 export async function POST(request:Request){
  try{
+  const cloudName=process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const apiKey=process.env.CLOUDINARY_API_KEY;
+  const apiSecret=process.env.CLOUDINARY_API_SECRET;
+  if(!cloudName||!apiKey||!apiSecret){
+   console.error("Cloudinary upload signing is not configured",{cloudName:!!cloudName,apiKey:!!apiKey,apiSecret:!!apiSecret});
+   return NextResponse.json({error:"Cloudinary is not configured. Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET, then restart the server."},{status:500});
+  }
   const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();
   if(!user)return NextResponse.json({error:"Authentication required"},{status:401});
   const businessId=(await cookies()).get("backdrop_active_business_id")?.value;
@@ -15,7 +22,7 @@ export async function POST(request:Request){
   if(!folder.startsWith(`expenses/${businessId}/`)||folder.length>240)return NextResponse.json({error:"Invalid upload folder"},{status:400});
   const timestamp=Number(body?.paramsToSign?.timestamp);if(!Number.isInteger(timestamp)||Math.abs(Math.round(Date.now()/1000)-timestamp)>300)return NextResponse.json({error:"Invalid upload timestamp"},{status:400});const paramsToSign:any={timestamp,folder};
   if(body?.paramsToSign?.ocr==="adv_ocr")paramsToSign.ocr="adv_ocr";
-  const signature=cloudinary.utils.api_sign_request(paramsToSign,process.env.CLOUDINARY_API_SECRET!);
-  return NextResponse.json({signature,apiKey:process.env.CLOUDINARY_API_KEY,cloudName:process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,timestamp});
+  const signature=cloudinary.utils.api_sign_request(paramsToSign,apiSecret);
+  return NextResponse.json({signature,apiKey,cloudName,timestamp});
  }catch(error){console.error("Cloudinary sign error",error);return NextResponse.json({error:"Failed to sign upload"},{status:500});}
 }
