@@ -1233,6 +1233,13 @@ export type Database = {
         }
         Returns: string
       }
+      save_estimate_with_items: {
+        Args: {
+          p_estimate: Json
+          p_items: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
