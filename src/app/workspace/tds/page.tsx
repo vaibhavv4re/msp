@@ -19,7 +19,7 @@ export default async function WorkspaceTdsPage(){
  if(entriesError) return <main className="p-8">Unable to load TDS records: {entriesError.message}</main>;
  const clientById=new Map((clients??[]).map(c=>[c.id,c]));
  const invoiceById=new Map((invoices??[]).map(i=>[i.id,i]));
- const rows=(entries??[]).map(e=>({...e,clients:clientById.get(e.client_id)||null,invoices:invoiceById.get(e.invoice_id)||null}));
+ const rows=(entries??[]).map(e=>({...e,clients:e.client_id?clientById.get(e.client_id)??null:null,invoices:e.invoice_id?invoiceById.get(e.invoice_id)??null:null}));
  const business=Array.isArray(member.businesses)?member.businesses[0]:member.businesses;
  return <TdsWorkspace entries={rows as any} clients={clients??[]} invoices={invoices??[]} role={member.role} businessName={business?.name??"Workspace"}/>;
 }
