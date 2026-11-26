@@ -169,26 +169,7 @@ export function Estimates({
                                     </td>
                                     <td className="py-6 text-right pr-4">
                                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => {
-                                                    const url = `${window.location.origin}/estimates/${est.id}`;
-                                                    navigator.clipboard.writeText(url);
-                                                    alert("Link copied to clipboard!");
-                                                    if (est.status === 'draft') updateEstimateStatus(est.id, "shared").then(result => { if ("error" in result) alert(result.error); else window.location.reload(); });
-                                                }}
-                                                className="p-2 text-gray-400 hover:text-blue-500 transition-colors"
-                                                title="Copy Public Link"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 2h8a2 2 0 012 2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2v-8a2 2 0 012-2z" /></svg>
-                                            </button>
-                                            <a
-                                                href={`/estimates/${est.id}`}
-                                                target="_blank"
-                                                className="p-2 text-gray-400 hover:text-gray-900 transition-colors"
-                                                title="View Public Page"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                            </a>
+                                            <span className="px-2 text-[8px] font-black uppercase tracking-widest text-gray-300" title="Public estimate pages will be enabled after that route is migrated">Public link pending</span>
                                             <button
                                                 onClick={() => openModal(est)}
                                                 className="p-2 text-gray-400 hover:text-gray-900 transition-colors"
