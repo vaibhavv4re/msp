@@ -7,7 +7,7 @@ import autoTable from "jspdf-autotable";
 
 import { APP_CONFIG } from "@/config";
 import { generateNextInvoiceNumber } from "@/lib/invoiceUtils";
-import { RecordPaymentModal } from "./RecordPaymentModal";
+import { RecordPaymentModal } from "./RecordPaymentSupabase";
 import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import { normalizeInvoiceData } from "@/lib/pdf/utils";
