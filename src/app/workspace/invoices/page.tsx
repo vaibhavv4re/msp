@@ -8,7 +8,7 @@ export default async function WorkspaceInvoicesPage(){
  const supabase=await createClient();
  const {data:{user},error:authError}=await supabase.auth.getUser();
  if(authError||!user)redirect("/workspace");
- const {data:memberships,error:membershipError}=await supabase.from("business_members").select("business_id,role,businesses(*)").eq("user_id",user.id).order("created_at",{ascending:true});
+ const {data:memberships,error:membershipError}=await supabase.from("business_members").select("business_id,role,businesses(*)").eq("user_id",user.id).order("joined_at",{ascending:true});
  if(membershipError||!memberships?.length)redirect("/workspace");
  const cookieBusinessId=(await cookies()).get(ACTIVE_WORKSPACE_COOKIE)?.value;
  const active=memberships.find(x=>x.business_id===cookieBusinessId)??memberships[0];
