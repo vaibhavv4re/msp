@@ -1138,11 +1138,11 @@ export type Database = {
           client_id: string | null
           created_at: string
           created_by: string | null
-          certificate_reference?: string | null
-        deduction_date?: string
-        invoice_id?: string | null
-        tds_section?: string | null
-        financial_year: string | null
+          certificate_reference: string | null
+          deduction_date: string
+          invoice_id: string | null
+          tds_section: string | null
+          financial_year: string | null
           has_certificate: boolean
           id: string
           notes: string | null
@@ -1155,10 +1155,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           certificate_reference?: string | null
-        deduction_date?: string
-        invoice_id?: string | null
-        tds_section?: string | null
-        financial_year?: string | null
+          deduction_date?: string
+          invoice_id?: string | null
+          tds_section?: string | null
+          financial_year?: string | null
           has_certificate?: boolean
           id?: string
           notes?: string | null
@@ -1171,10 +1171,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           certificate_reference?: string | null
-        deduction_date?: string
-        invoice_id?: string | null
-        tds_section?: string | null
-        financial_year?: string | null
+          deduction_date?: string
+          invoice_id?: string | null
+          tds_section?: string | null
+          financial_year?: string | null
           has_certificate?: boolean
           id?: string
           notes?: string | null
@@ -1188,7 +1188,6 @@ export type Database = {
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
-
           {
             foreignKeyName: "tds_entries_business_id_fkey"
             columns: ["business_id"]
