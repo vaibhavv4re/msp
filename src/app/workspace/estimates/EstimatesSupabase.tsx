@@ -724,7 +724,6 @@ function EstimateModal({
                 </div>
             </div>
 
-}
         </div>
     );
 }
