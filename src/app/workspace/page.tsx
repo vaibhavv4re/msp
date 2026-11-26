@@ -1,10 +1,7 @@
-import Link from "next/link";
 import {cookies} from "next/headers";
 import {createClient} from "@/lib/supabase/server";
 import {WorkspaceActions} from "./WorkspaceActions";
-import {WorkspaceSwitcher} from "./WorkspaceSwitcher";
 import {DashboardSupabase} from "./DashboardSupabase";
-import {WorkspaceLogout} from "./WorkspaceLogout";
 export const metadata={title:"Backdrop | Business Overview"};
 const COOKIE="backdrop_active_business_id";
 export default async function WorkspacePage(){
