@@ -14,9 +14,7 @@ export async function uploadToCloudinary(
     options: { ocr?: boolean } = {}
 ): Promise<CloudinaryUploadResult & { info?: any }> {
     // 1. Get signature from our API
-    const timestamp = Math.round(new Date().getTime() / 1000);
     const paramsToSign: any = {
-        timestamp,
         folder,
     };
     if (options.ocr) {
@@ -34,8 +32,8 @@ export async function uploadToCloudinary(
         throw new Error(signPayload.error || `Failed to get upload signature (HTTP ${signResponse.status})`);
     }
 
-    const { signature, apiKey, cloudName } = signPayload;
-    if (!signature || !apiKey || !cloudName) {
+    const { signature, apiKey, cloudName, timestamp } = signPayload;
+    if (!signature || !apiKey || !cloudName || !Number.isInteger(timestamp)) {
         throw new Error("Cloudinary signature response is incomplete. Check the Cloudinary environment variables and restart the Next.js server.");
     }
 
@@ -43,7 +41,7 @@ export async function uploadToCloudinary(
     const formData = new FormData();
     formData.append("file", file);
     formData.append("api_key", apiKey);
-    formData.append("timestamp", timestamp.toString());
+    formData.append("timestamp", String(timestamp));
     formData.append("signature", signature);
     formData.append("folder", folder);
     if (options.ocr) {
