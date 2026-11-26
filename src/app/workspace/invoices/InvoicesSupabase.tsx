@@ -492,7 +492,7 @@ function InvoiceTable({
     doc.setTextColor(0);
 
     // 3. Table Section
-    const tableData = invoice.lineItems.map(item => [
+    const tableData = invoice.lineItems.map((item: LineItem) => [
       item.description || "",
       item.sacCode || "-",
       (item.quantity || 0).toLocaleString(),
