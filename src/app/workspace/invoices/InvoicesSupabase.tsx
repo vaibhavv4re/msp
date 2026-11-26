@@ -963,7 +963,7 @@ export function InvoiceModal({
     if (invoice) {
       return {
         ...invoice,
-        lineItems: invoice.lineItems.map((li) => ({ ...li })),
+        lineItems: invoice.lineItems.map((li: LineItem) => ({ ...li })),
         client: invoice.client || { id: "" },
         business: (invoice as any).business || { id: "" },
         bankAccount: (invoice as any).bankAccount || { id: "" },
