@@ -870,6 +870,7 @@ export type Database = {
           source?: string
           source_estimate_id?: string | null
           status?: string
+          tax_details?: Json
           subject?: string | null
           subtotal?: number
           tds_amount?: number
