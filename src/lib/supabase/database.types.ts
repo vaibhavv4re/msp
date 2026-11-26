@@ -1268,6 +1268,9 @@ export type Database = {
         Returns: string
       }
     }
+      save_expense_with_attachment: { Args: { p_expense: Json; p_attachment?: Json | null }; Returns: string }
+      update_expense_ocr: { Args: { p_expense_id: string; p_business_id: string; p_status: string; p_suggestions: Json | null }; Returns: undefined }
+    }
     Enums: {
       [_ in never]: never
     }
