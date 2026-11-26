@@ -549,6 +549,11 @@ function InvoiceTable({
       doc.text(`Rs. ${invoice.igst.toLocaleString('en-IN')}`, totValX, ty, { align: "right" });
       ty += 6;
     }
+    for (const tax of (invoice.taxDetails || invoice.tax_details || [])) {
+      doc.text(`${tax.name || tax.tax_type || "Tax"} (${tax.rate || 0}%):`, totLabelX, ty, { align: "right" });
+      doc.text(`Rs. ${Number(tax.amount || 0).toLocaleString('en-IN')}`, totValX, ty, { align: "right" });
+      ty += 6;
+    }
 
     doc.setLineWidth(0.2);
     doc.line(totLabelX - 5, ty, totValX, ty);
