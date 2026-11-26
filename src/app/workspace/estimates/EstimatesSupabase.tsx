@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { saveEstimate, deleteEstimate, updateEstimateStatus } from "./actions";
+import { saveEstimate, deleteEstimate, updateEstimateStatus, convertEstimateToInvoice } from "./actions";
 type Business = { id: string; name: string };
 type Client = { id: string; displayName?: string; firstName?: string };
 type Invoice = { id: string };
@@ -41,7 +41,7 @@ export function Estimates({
     const [statusFilter, setStatusFilter] = useState("all");
     const [businessFilter, setBusinessFilter] = useState("all");
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingEstimate, setEditingEstimate] = useState<Estimate | null>(null);
+    const [editingEstimate, setEditingEstimate] = useState<Estimate | null>(null);\n    const [convertingEstimate, setConvertingEstimate] = useState<Estimate | null>(null);\n    const [conversionClientId, setConversionClientId] = useState("");\n    const [isConverting, setIsConverting] = useState(false);
 
     React.useEffect(() => {
         if (initiallyOpenModal === true || initiallyOpenModal === "create-estimate") {
@@ -83,6 +83,22 @@ export function Estimates({
         setEditingEstimate(null);
         if (onModalClose) onModalClose();
     }
+
+    const handleConvertEstimate = async () => {
+        if (!convertingEstimate) return;
+        if (!conversionClientId) return alert("Please select a client for this invoice.");
+        setIsConverting(true);
+        try {
+            const result = await convertEstimateToInvoice({ estimateId: convertingEstimate.id, clientId: conversionClientId });
+            if ("error" in result) return alert(result.error);
+            setConvertingEstimate(null);
+            window.location.href = "/workspace/invoices";
+        } catch (error: any) {
+            alert(error?.message || "Could not convert estimate.");
+        } finally {
+            setIsConverting(false);
+        }
+    };
 
     const handleDeleteEstimate = async (idOfEstimate: string) => {
         if (!confirm("Delete this estimate and its line items?")) return;
@@ -170,6 +186,15 @@ export function Estimates({
                                     <td className="py-6 text-right pr-4">
                                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <span className="px-2 text-[8px] font-black uppercase tracking-widest text-gray-300" title="Public estimate pages will be enabled after that route is migrated">Public link pending</span>
+                                            {est.status === "confirmed" && (
+                                                <button
+                                                    onClick={() => { setConvertingEstimate(est); setConversionClientId(est.client?.id || ""); }}
+                                                    className="px-3 py-2 rounded-xl bg-gray-900 text-white text-[8px] font-black uppercase tracking-widest hover:bg-black transition-colors"
+                                                    title="Convert confirmed estimate to invoice"
+                                                >
+                                                    Convert
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => openModal(est)}
                                                 className="p-2 text-gray-400 hover:text-gray-900 transition-colors"
@@ -198,6 +223,28 @@ export function Estimates({
                     </div>
                 )}
             </div>
+
+            {convertingEstimate && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl">
+                        <h3 className="text-lg font-black uppercase tracking-tight text-gray-900">Convert to invoice</h3>
+                        <p className="mt-2 text-xs text-gray-500">Create an invoice from {convertingEstimate.estimateNumber || "this estimate"}. The estimate will be marked as converted.</p>
+                        <label className="mt-6 mb-2 block text-[10px] font-black uppercase tracking-widest text-gray-400">Invoice client</label>
+                        <select
+                            value={conversionClientId}
+                            onChange={(e) => setConversionClientId(e.target.value)}
+                            className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 outline-none focus:ring-2 focus:ring-gray-900"
+                        >
+                            <option value="">Select a client</option>
+                            {clients.map(client => <option key={client.id} value={client.id}>{client.displayName || client.firstName || "Unnamed client"}</option>)}
+                        </select>
+                        <div className="mt-7 flex justify-end gap-3">
+                            <button onClick={() => setConvertingEstimate(null)} disabled={isConverting} className="rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100">Cancel</button>
+                            <button onClick={handleConvertEstimate} disabled={isConverting || !conversionClientId} className="rounded-xl bg-gray-900 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-50">{isConverting ? "Converting..." : "Create invoice"}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {isModalOpen && (
                 <EstimateModal
