@@ -795,6 +795,7 @@ export type Database = {
           source_estimate_id: string | null
           status: string
           subject: string | null
+          tax_details: Json
           subtotal: number
           tds_amount: number
           tds_deducted: boolean
@@ -832,6 +833,7 @@ export type Database = {
           source_estimate_id?: string | null
           status?: string
           subject?: string | null
+          tax_details?: Json
           subtotal?: number
           tds_amount?: number
           tds_deducted?: boolean
