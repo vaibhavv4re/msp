@@ -21,6 +21,10 @@ export async function saveInvoice(input:any){
  const payload={...input,created_by:user.id};
  const {data,error}=await supabase.rpc("save_invoice_with_items",{p_invoice:payload,p_items:input.items??[]});
  if(error) throw new Error(error.message);
+ if(input.tax_details!==undefined){
+  const {error:taxError}=await supabase.from("invoices").update({tax_details:input.tax_details}).eq("id",data).eq("business_id",businessId);
+  if(taxError) throw new Error(taxError.message);
+ }
  revalidatePath("/workspace/invoices");
  return data as string;
 }
