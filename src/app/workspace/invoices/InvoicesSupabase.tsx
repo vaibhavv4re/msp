@@ -21,7 +21,7 @@ export type Invoice = any;
 export type LineItem = any;
 
 type Service = { id: string; name: string; sacCode?: string; rate: number; isActive: boolean };
-type Tax = { id: string; name: string; rate: number; isDefault: boolean };
+type Tax = { id: string; name: string; taxType: string; rate: number; isDefault: boolean };
 type TermsTemplate = { id: string; title: string; content: string; isDefault: boolean };
 
 const PAYMENT_TERMS = [
@@ -1031,6 +1031,8 @@ export function InvoiceModal({
   const [cgstRate, setCgstRate] = useState(9);
   const [sgstRate, setSgstRate] = useState(9);
   const [igstRate, setIgstRate] = useState(18);
+  const [customTaxId, setCustomTaxId] = useState("");
+  const [customTaxLines, setCustomTaxLines] = useState<Array<{tax_rate_id:string;name:string;tax_type:string;rate:number;amount:number}>>(() => (invoice as any)?.taxDetails || (invoice as any)?.tax_details || []);
 
   // Auto-calculate due date when invoice date or payment terms change
   React.useEffect(() => {
@@ -1068,7 +1070,9 @@ export function InvoiceModal({
       igst = (subtotal * igstRate) / 100;
     }
 
-    const total = subtotal + cgst + sgst + igst;
+    const updatedCustomTaxes = customTaxLines.map(t => ({...t, amount: subtotal * Number(t.rate) / 100}));
+    const customTaxTotal = updatedCustomTaxes.reduce((sum,t)=>sum+Number(t.amount||0),0);
+    const total = subtotal + cgst + sgst + igst + customTaxTotal;
 
     setFormData((prev: any) => ({
       ...prev,
@@ -1076,9 +1080,10 @@ export function InvoiceModal({
       cgst,
       sgst,
       igst,
+      tax_details: updatedCustomTaxes,
       total,
     }));
-  }, [formData.lineItems, taxType, cgstRate, sgstRate, igstRate]);
+  }, [formData.lineItems, taxType, cgstRate, sgstRate, igstRate, customTaxLines]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value, type } = e.target;
@@ -1189,6 +1194,7 @@ export function InvoiceModal({
         cgst: taxType === "intrastate" ? Number(invoiceData.cgst)||0 : 0,
         sgst: taxType === "intrastate" ? Number(invoiceData.sgst)||0 : 0,
         igst: taxType === "interstate" ? Number(invoiceData.igst)||0 : 0,
+        tax_details: customTaxLines,
         total: Number(invoiceData.total)||0,
         notes: invoiceData.notes || null,
         terms_and_conditions: invoiceData.termsAndConditions || null,
@@ -1601,6 +1607,19 @@ export function InvoiceModal({
                           <option value="interstate">Inter-State (IGST)</option>
                         </select>
 
+                        <div className="mt-3 rounded-xl border border-dashed border-gray-300 p-3 space-y-2">
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500">Additional custom tax</label>
+                          <div className="flex gap-2">
+                            <select className="min-w-0 flex-1 rounded-lg border p-2 text-xs" value={customTaxId} onChange={e=>setCustomTaxId(e.target.value)}>
+                              <option value="">Select configured tax rate</option>
+                              {taxes.map(t=><option key={t.id} value={t.id}>{t.name} · {t.taxType} · {t.rate}%</option>)}
+                            </select>
+                            <button type="button" className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-40" disabled={!customTaxId || customTaxLines.some(t=>t.tax_rate_id===customTaxId)} onClick={()=>{const t=taxes.find(x=>x.id===customTaxId);if(t){setCustomTaxLines(v=>[...v,{tax_rate_id:t.id,name:t.name,tax_type:t.taxType,rate:t.rate,amount:0}]);setCustomTaxId("");}}}>Add</button>
+                          </div>
+                          {customTaxLines.map(t=><div key={t.tax_rate_id} className="flex items-center justify-between text-xs"><span>{t.name} ({t.rate}%)</span><span className="flex items-center gap-3"><b>₹{Number(t.amount||0).toLocaleString("en-IN",{minimumFractionDigits:2})}</b><button type="button" className="text-red-600" onClick={()=>setCustomTaxLines(v=>v.filter(x=>x.tax_rate_id!==t.tax_rate_id))}>Remove</button></span></div>)}
+                          {taxes.length===0&&<p className="text-[11px] text-gray-500">Add custom tax rates in Workspace → Tax Settings first.</p>}
+                        </div>
+
                         {taxType === "intrastate" ? (
                           <div className="grid grid-cols-2 gap-2">
                             <div className="flex items-center gap-2">
@@ -1685,6 +1704,7 @@ export function InvoiceModal({
                         <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">Subtotal</span>
                         <span className="font-mono">₹{(formData.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
+                      {customTaxLines.map(t=><div key={t.tax_rate_id} className="flex justify-between"><span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">{t.name} ({t.rate}%)</span><span className="font-mono">₹{Number(t.amount||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>)}
                       {taxType === "intrastate" ? (
                         <>
                           <div className="flex justify-between">
