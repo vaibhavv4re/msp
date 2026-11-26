@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {usePathname} from "next/navigation";
-import {LayoutDashboard,BriefcaseBusiness,WalletCards,ReceiptText,Database,Settings2,LogOut,CalendarDays} from "lucide-react";
+import {LayoutDashboard,BriefcaseBusiness,WalletCards,ReceiptText,Database} from "lucide-react";
 import {WorkspaceSwitcher} from "./WorkspaceSwitcher";
 import {WorkspaceLogout} from "./WorkspaceLogout";
 
@@ -13,7 +13,6 @@ const items=[
  {label:"Money",href:"/workspace/expenses",icon:WalletCards,match:["/workspace/expenses","/workspace/bank-accounts"]},
  {label:"Tax Zone",href:"/workspace/gst",icon:ReceiptText,match:["/workspace/gst","/workspace/tds","/workspace/tax-settings"]},
  {label:"Data",href:"/workspace/ca-handover",icon:Database,match:["/workspace/ca-handover"]},
- {label:"Settings",href:"/workspace/bank-accounts",icon:Settings2,match:["/workspace/bank-accounts"]},
 ];
 export function WorkspaceShell({children,workspaces,activeWorkspaceId,profileName}:{children:React.ReactNode;workspaces:Workspace[];activeWorkspaceId:string|null;profileName:string}){
  const pathname=usePathname();
