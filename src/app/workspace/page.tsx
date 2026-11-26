@@ -122,6 +122,7 @@ export default async function WorkspacePage() {
                     ["Tax Settings","/workspace/tax-settings"],
                     ["TDS Tracking","/workspace/tds"],
                     ["GST & ITC","/workspace/gst"],
+                    ["CA Handover","/workspace/ca-handover"],
                   ].map(([label,href]) => (
                     <Link key={href} href={href} className="inline-flex items-center rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/20">
                       Open {label} →
