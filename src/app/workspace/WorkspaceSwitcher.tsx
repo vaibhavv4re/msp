@@ -4,81 +4,61 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setActiveWorkspace } from "./actions";
 
-type WorkspaceOption = {
-  id: string;
-  name: string;
-  role: string;
-};
+type WorkspaceOption = { id: string; name: string; role: string };
+type WorkspaceSwitcherProps = { workspaces: WorkspaceOption[]; activeWorkspaceId: string | null };
 
-type WorkspaceSwitcherProps = {
-  workspaces: WorkspaceOption[];
-  activeWorkspaceId: string | null;
-};
-
-export function WorkspaceSwitcher({
-  workspaces,
-  activeWorkspaceId,
-}: WorkspaceSwitcherProps) {
+export function WorkspaceSwitcher({ workspaces, activeWorkspaceId }: WorkspaceSwitcherProps) {
   const router = useRouter();
-  const [pendingWorkspaceId, setPendingWorkspaceId] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!workspaces.length) return null;
 
   async function chooseWorkspace(id: string) {
+    if (!id || id === activeWorkspaceId || pending) return;
     setError(null);
-    setPendingWorkspaceId(id);
+    setPending(true);
     try {
       const result = await setActiveWorkspace(id);
       if ("error" in result) {
-        setError(result.error ?? "Unable to switch workspaces. Please try again.");
+        setError(result.error ?? "Unable to switch workspace.");
         return;
       }
       router.refresh();
     } catch {
-      setError("Unable to switch workspaces. Please try again.");
+      setError("Unable to switch workspace. Please try again.");
     } finally {
-      setPendingWorkspaceId(null);
+      setPending(false);
     }
   }
 
+  const active = workspaces.find((workspace) => workspace.id === activeWorkspaceId);
+
   return (
-    <section className="mt-8 space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-neutral-200">Switch workspace</h2>
-        <span className="text-xs text-neutral-500">Your access-controlled businesses</span>
+    <div className="flex min-w-0 items-center gap-3">
+      <label htmlFor="workspace-select" className="hidden text-[10px] font-black uppercase tracking-[0.16em] text-gray-400 sm:block">
+        Workspace
+      </label>
+      <div className="relative min-w-0">
+        <select
+          id="workspace-select"
+          value={activeWorkspaceId ?? ""}
+          disabled={pending}
+          onChange={(event) => chooseWorkspace(event.target.value)}
+          aria-label="Switch business workspace"
+          className="max-w-[220px] cursor-pointer appearance-none rounded-xl border border-gray-200 bg-white py-2 pl-3 pr-9 text-xs font-bold text-gray-800 shadow-sm outline-none transition hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-60 sm:max-w-[260px]"
+        >
+          {workspaces.map((workspace) => (
+            <option key={workspace.id} value={workspace.id}>
+              {workspace.name} · {workspace.role}
+            </option>
+          ))}
+        </select>
+        <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">⌄</span>
       </div>
-      <ul className="space-y-2">
-        {workspaces.map((workspace) => {
-          const active = workspace.id === activeWorkspaceId;
-          return (
-            <li key={workspace.id}>
-              <button
-                type="button"
-                disabled={pendingWorkspaceId !== null || active}
-                onClick={() => chooseWorkspace(workspace.id)}
-                aria-current={active ? "true" : undefined}
-                className={`flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition disabled:cursor-default ${
-                  active
-                    ? "border-blue-400/40 bg-blue-500/10"
-                    : "border-white/10 bg-black/20 hover:border-white/25 hover:bg-white/[0.04]"
-                }`}
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold text-white">{workspace.name}</span>
-                  <span className="mt-1 block text-xs capitalize text-neutral-500">{workspace.role}</span>
-                </span>
-                <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
-                  active ? "bg-blue-400/15 text-blue-200" : "bg-white/5 text-neutral-400"
-                }`}>
-                  {active ? "Active" : pendingWorkspaceId === workspace.id ? "Switching…" : "Select"}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
-    </section>
+      {pending && <span className="text-[10px] text-gray-400">Switching…</span>}
+      {error && <span role="alert" className="max-w-[180px] text-[10px] text-red-600">{error}</span>}
+      <span className="sr-only">{active ? `Active workspace: ${active.name}` : "No active workspace"}</span>
+    </div>
   );
 }
