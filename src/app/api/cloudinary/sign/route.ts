@@ -20,7 +20,8 @@ export async function POST(request:Request){
   if(!member||!["owner","admin","accountant","employee"].includes(member.role))return NextResponse.json({error:"Not authorized"},{status:403});
   const body=await request.json();const folder=String(body?.paramsToSign?.folder??"");
   if(!folder.startsWith(`expenses/${businessId}/`)||folder.length>240)return NextResponse.json({error:"Invalid upload folder"},{status:400});
-  const timestamp=Number(body?.paramsToSign?.timestamp);if(!Number.isInteger(timestamp)||Math.abs(Math.round(Date.now()/1000)-timestamp)>300)return NextResponse.json({error:"Invalid upload timestamp"},{status:400});const paramsToSign:any={timestamp,folder};
+  // Generate the timestamp on the server to avoid browser clock skew and stale client timestamps.
+  const timestamp=Math.round(Date.now()/1000);const paramsToSign:any={timestamp,folder};
   if(body?.paramsToSign?.ocr==="adv_ocr")paramsToSign.ocr="adv_ocr";
   const signature=cloudinary.utils.api_sign_request(paramsToSign,apiSecret);
   return NextResponse.json({signature,apiKey,cloudName,timestamp});
