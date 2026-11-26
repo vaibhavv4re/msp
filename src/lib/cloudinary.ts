@@ -29,13 +29,14 @@ export async function uploadToCloudinary(
         body: JSON.stringify({ paramsToSign }),
     });
 
+    const signPayload = await signResponse.json().catch(() => ({}));
     if (!signResponse.ok) {
-        throw new Error("Failed to get upload signature");
+        throw new Error(signPayload.error || `Failed to get upload signature (HTTP ${signResponse.status})`);
     }
 
-    const { signature, apiKey, cloudName } = await signResponse.json();
+    const { signature, apiKey, cloudName } = signPayload;
     if (!signature || !apiKey || !cloudName) {
-        throw new Error("Invalid response from signature endpoint");
+        throw new Error("Cloudinary signature response is incomplete. Check the Cloudinary environment variables and restart the Next.js server.");
     }
 
     // 2. Upload to Cloudinary
