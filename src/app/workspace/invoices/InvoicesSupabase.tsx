@@ -1621,7 +1621,7 @@ export function InvoiceModal({
                             </select>
                             <button type="button" className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-40" disabled={!customTaxId || customTaxLines.some(t=>t.tax_rate_id===customTaxId)} onClick={()=>{const t=taxes.find(x=>x.id===customTaxId);if(t){setCustomTaxLines(v=>[...v,{tax_rate_id:t.id,name:t.name,tax_type:t.taxType,rate:t.rate,amount:0}]);setCustomTaxId("");}}}>Add</button>
                           </div>
-                          {customTaxLines.map(t=><div key={t.tax_rate_id} className="flex items-center justify-between text-xs"><span>{t.name} ({t.rate}%)</span><span className="flex items-center gap-3"><b>₹{Number(t.amount||0).toLocaleString("en-IN",{minimumFractionDigits:2})}</b><button type="button" className="text-red-600" onClick={()=>setCustomTaxLines(v=>v.filter(x=>x.tax_rate_id!==t.tax_rate_id))}>Remove</button></span></div>)}
+                          {customTaxLines.map(t=><div key={t.tax_rate_id} className="flex items-center justify-between text-xs"><span>{t.name} ({t.rate}%)</span><span className="flex items-center gap-3"><b>₹{(Number(formData.subtotal||0)*Number(t.rate||0)/100).toLocaleString("en-IN",{minimumFractionDigits:2})}</b><button type="button" className="text-red-600" onClick={()=>setCustomTaxLines(v=>v.filter(x=>x.tax_rate_id!==t.tax_rate_id))}>Remove</button></span></div>)}
                           {taxes.length===0&&<p className="text-[11px] text-gray-500">Add custom tax rates in Workspace → Tax Settings first.</p>}
                         </div>
 
