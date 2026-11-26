@@ -232,7 +232,6 @@ export function Estimates({
                 />
             )}
 
-}
         </div>
     );
 }
