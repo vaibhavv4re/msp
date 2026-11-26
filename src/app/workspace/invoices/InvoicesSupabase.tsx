@@ -1709,7 +1709,7 @@ export function InvoiceModal({
                         <span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">Subtotal</span>
                         <span className="font-mono">₹{(formData.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
-                      {customTaxLines.map(t=><div key={t.tax_rate_id} className="flex justify-between"><span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">{t.name} ({t.rate}%)</span><span className="font-mono">₹{Number(t.amount||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>)}
+                      {customTaxLines.map(t=><div key={t.tax_rate_id} className="flex justify-between"><span className="text-gray-600 tracking-wide uppercase text-[11px] font-bold">{t.name} ({t.rate}%)</span><span className="font-mono">₹{(Number(formData.subtotal||0)*Number(t.rate||0)/100).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>)}
                       {taxType === "intrastate" ? (
                         <>
                           <div className="flex justify-between">
