@@ -41,7 +41,10 @@ export function Estimates({
     const [statusFilter, setStatusFilter] = useState("all");
     const [businessFilter, setBusinessFilter] = useState("all");
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingEstimate, setEditingEstimate] = useState<Estimate | null>(null);\n    const [convertingEstimate, setConvertingEstimate] = useState<Estimate | null>(null);\n    const [conversionClientId, setConversionClientId] = useState("");\n    const [isConverting, setIsConverting] = useState(false);
+    const [editingEstimate, setEditingEstimate] = useState<Estimate | null>(null);
+    const [convertingEstimate, setConvertingEstimate] = useState<Estimate | null>(null);
+    const [conversionClientId, setConversionClientId] = useState("");
+    const [isConverting, setIsConverting] = useState(false);
 
     React.useEffect(() => {
         if (initiallyOpenModal === true || initiallyOpenModal === "create-estimate") {
