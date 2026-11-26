@@ -44,7 +44,6 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }
 ::selection { background: rgba(37, 99, 235, .18); }
 .workspace-hero { animation: backdrop-enter .55s cubic-bezier(.2,.75,.25,1) both; }
-.workspace-hero > * { position: relative; }
 @keyframes backdrop-enter {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
