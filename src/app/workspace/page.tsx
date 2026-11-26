@@ -111,9 +111,18 @@ export default async function WorkspacePage() {
                 activeWorkspaceId={activeWorkspaceId}
               />
               {activeWorkspaceId && (
-                <Link href="/workspace/clients" className="mt-4 inline-flex items-center rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/20">
-                  Open Clients module preview →
-                </Link>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  {[
+                    ["Clients","/workspace/clients"],
+                    ["Services","/workspace/services"],
+                    ["Estimates","/workspace/estimates"],
+                    ["Invoices","/workspace/invoices"],
+                  ].map(([label,href]) => (
+                    <Link key={href} href={href} className="inline-flex items-center rounded-xl border border-blue-400/30 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/20">
+                      Open {label} →
+                    </Link>
+                  ))}
+                </div>
               )}
               {workspaces.length === 0 && !loadError && (
                 <div className="mt-8 rounded-2xl border border-dashed border-white/15 p-5 text-sm text-neutral-400">
