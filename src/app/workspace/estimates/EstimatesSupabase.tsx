@@ -350,8 +350,8 @@ function EstimateModal({
     const [scope, setScope] = useState(parseScope(estimate?.notes || ""));
 
 
-    const initialTemplate = documentTemplates.find(t => t.id === estimate?.templateId) || documentTemplates.find(t => t.isDefault && (t.documentType === "both" || t.documentType === "estimate"));
-    const [templateId, setTemplateId] = useState<string | null>(estimate?.templateId ?? initialTemplate?.id ?? null);
+    const initialTemplate = estimate ? documentTemplates.find(t => t.id === estimate.templateId) : documentTemplates.find(t => t.isDefault && (t.documentType === "both" || t.documentType === "estimate"));
+    const [templateId, setTemplateId] = useState<string | null>(estimate ? (estimate.templateId ?? null) : (initialTemplate?.id ?? null));
     const [contentBlocks, setContentBlocks] = useState<DocumentContentBlock[]>(estimate?.contentBlocks ?? (initialTemplate?.blocks ?? []).filter(b => b.isEnabled).map(b => ({blockKey:b.blockKey,blockType:b.blockType,title:b.title,content:{...(b.defaultContent ?? {})},isEnabled:true,isRequired:b.isRequired})));
 
     const [lineItems, setLineItems] = useState<any[]>(
