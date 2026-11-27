@@ -1,16 +1,16 @@
 "use client";
 import React, { useState } from "react";
-import { saveEstimate, deleteEstimate, updateEstimateStatus, convertEstimateToInvoice } from "./actions";
+import { saveEstimate, deleteEstimate, updateEstimateStatus, convertEstimateToInvoice } from "./actions";\nimport { DocumentBlocksEditor, DocumentTemplateOption, DocumentContentBlock } from "../document-templates/DocumentBlocksEditor";
 type Business = { id: string; name: string };
 type Client = { id: string; displayName?: string; firstName?: string };
 type Invoice = { id: string };
-type Estimate = { id:string; estimateNumber?:string; date?:string; validUntil?:string; status?:string; total?:number; subtotal?:number; notes?:string; termsAndConditions?:string; advanceIntent?:number; requiresAdvance?:boolean; advancePercentage?:number; advanceDeadlineDays?:number; recipientName?:string; recipientContact?:string; client?:{id:string}; business?:{id:string}; lineItems?:any[] };
+type Estimate = { id:string; estimateNumber?:string; date?:string; validUntil?:string; status?:string; total?:number; subtotal?:number; notes?:string; termsAndConditions?:string; advanceIntent?:number; requiresAdvance?:boolean; advancePercentage?:number; advanceDeadlineDays?:number; recipientName?:string; recipientContact?:string; client?:{id:string}; business?:{id:string}; lineItems?:any[]; templateId?:string|null; contentBlocks?:DocumentContentBlock[]; documentVersion?:number };
 
 type Service = { id: string; name: string; sacCode?: string; rate: number; isActive: boolean };
 type Tax = { id: string; name: string; rate: number; isDefault: boolean };
 type TermsTemplate = { id: string; title: string; content: string; isDefault: boolean };
 
-interface EstimatesProps {
+interface EstimatesProps {\n    documentTemplates?: DocumentTemplateOption[];
     estimates: Estimate[];
     clients: Client[];
     userId: string;
@@ -344,7 +344,7 @@ function EstimateModal({
     const [scope, setScope] = useState(parseScope(estimate?.notes || ""));
 
 
-    const [lineItems, setLineItems] = useState<any[]>(
+    const initialTemplate = documentTemplates.find(t => t.id === estimate?.templateId) || documentTemplates.find(t => t.isDefault && (t.documentType === "both" || t.documentType === "estimate"));\n    const [templateId, setTemplateId] = useState<string | null>(estimate?.templateId ?? initialTemplate?.id ?? null);\n    const [contentBlocks, setContentBlocks] = useState<DocumentContentBlock[]>(estimate?.contentBlocks ?? (initialTemplate?.blocks ?? []).filter(b => b.isEnabled).map(b => ({blockKey:b.blockKey,blockType:b.blockType,title:b.title,content:{...(b.defaultContent ?? {})},isEnabled:true,isRequired:b.isRequired})));\n\n    const [lineItems, setLineItems] = useState<any[]>(
         estimate?.lineItems ? [...estimate.lineItems] : []
     );
 
@@ -376,7 +376,7 @@ function EstimateModal({
                     recipientName: estimate.recipientName || "",
                     recipientContact: estimate.recipientContact || "",
                 });
-                setScope(parseScope(estimate.notes || ""));
+                setScope(parseScope(estimate.notes || ""));\n                setTemplateId(estimate.templateId ?? null);\n                setContentBlocks(estimate.contentBlocks ?? []);
                 if (estimate.client?.id) setSelectedClientId(estimate.client.id);
                 if (estimate.business?.id) setSelectedBusinessId(estimate.business.id);
             }
@@ -438,7 +438,7 @@ function EstimateModal({
             status: formData.status || "draft", recipientName: formData.recipientName,
             recipientContact: formData.recipientContact, subtotal: Number(formData.subtotal ?? formData.total ?? 0),
             total: Number(formData.total ?? 0), notes: JSON.stringify(scope),
-            termsAndConditions: formData.termsAndConditions || "", advanceIntent: Number(formData.advanceIntent || 0),
+            termsAndConditions: formData.termsAndConditions || "", templateId, contentBlocks: contentBlocks.filter(block => block.isEnabled), documentVersion: estimate?.documentVersion ?? 1, advanceIntent: Number(formData.advanceIntent || 0),
             requiresAdvance: Boolean(formData.requiresAdvance), advancePercentage: Number(formData.advancePercentage || 0),
             advanceDeadlineDays: Number(formData.advanceDeadlineDays || 0),
             lineItems: lineItems.filter(item => item.description?.trim()).map((item,index)=>({
