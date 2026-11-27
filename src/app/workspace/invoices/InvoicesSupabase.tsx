@@ -1058,6 +1058,7 @@ export function InvoiceModal({
   const [isUploading, setIsUploading] = useState(false);
 
   const [modalTab, setModalTab] = useState<"general" | "usage">("general");
+  const showLegacyUsage = contentBlocks.some(block => block.blockKey === "image_licensing") || Boolean(invoice?.usageType || invoice?.usageOther || invoice?.usageDuration || invoice?.usageGeography || invoice?.usageExclusivity);
 
   const [taxType, setTaxType] = useState<"intrastate" | "interstate">(
     invoice && invoice.igst && invoice.igst > 0 ? "interstate" : "intrastate"
@@ -1277,6 +1278,7 @@ export function InvoiceModal({
               >
                 General & Items
               </button>
+              {showLegacyUsage && (
               <button
                 onClick={() => setModalTab("usage")}
                 className={`${modalTab === "usage"
@@ -1286,13 +1288,14 @@ export function InvoiceModal({
               >
                 Usage Rights & Licensing
               </button>
-            </nav>
+                          )}
+</nav>
           </div>
         </div>
 
         <div className="overflow-y-auto flex-1 p-6">
           <form id="invoice-form" onSubmit={handleSubmit} className="space-y-6">
-            {modalTab === "general" ? (
+            {modalTab === "general" || !showLegacyUsage ? (
               <>
                 {/* Business & Account Selection */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
