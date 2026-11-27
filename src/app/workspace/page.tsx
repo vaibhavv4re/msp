@@ -25,5 +25,15 @@ export default async function WorkspacePage(){
  const activeId=workspaces.some(b=>b.id===cookie.get(COOKIE)?.value)?cookie.get(COOKIE)!.value!:workspaces[0]?.id;
  if(!activeId)return <main className="p-8">No business workspace found.</main>;
  const business=workspaces.find(b=>b.id===activeId)!;const filter=<T,>(rows:T[]|null|undefined):T[]=>rows??[];
- return <DashboardSupabase business={business} profileName={profile?.full_name??""} role={business.role} invoices={filter(invoices).filter(x=>x.business_id===activeId)} clients={filter(clients).filter(x=>x.business_id===activeId)} expenses={filter(expenses).filter(x=>x.business_id===activeId)} payments={filter(payments).filter(x=>x.business_id===activeId)} tds={filter(tds).filter(x=>x.business_id===activeId)} events={filter(events).filter(x=>x.business_id===activeId)}/>;
+ const [{count:bankCount},{count:serviceCount},{data:taxSettings}]=await Promise.all([
+  supabase.from("bank_accounts").select("id",{count:"exact",head:true}).eq("business_id",activeId).eq("is_active",true),
+  supabase.from("services").select("id",{count:"exact",head:true}).eq("business_id",activeId).eq("is_active",true),
+  supabase.from("tax_settings").select("business_id").eq("business_id",activeId).maybeSingle()
+ ]);
+ const setupProgress={
+  profile:!!(business.legal_name&&business.address&&business.city&&business.state&&business.email&&business.contact),
+  taxIdentity:!!(business.pan&&(business.gstin||business.gst_type==="Unregistered"||business.gst_type==="Composition")),
+  bank:(bankCount??0)>0,services:(serviceCount??0)>0,tax:!!taxSettings
+ };
+ return <DashboardSupabase setupProgress={setupProgress} business={business} profileName={profile?.full_name??""} role={business.role} invoices={filter(invoices).filter(x=>x.business_id===activeId)} clients={filter(clients).filter(x=>x.business_id===activeId)} expenses={filter(expenses).filter(x=>x.business_id===activeId)} payments={filter(payments).filter(x=>x.business_id===activeId)} tds={filter(tds).filter(x=>x.business_id===activeId)} events={filter(events).filter(x=>x.business_id===activeId)}/>;
 }
