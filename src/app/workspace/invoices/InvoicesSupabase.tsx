@@ -262,6 +262,7 @@ export function Invoices({
       {isModalOpen && (
         <InvoiceModal
           invoice={editingInvoice as any}
+          documentTemplates={documentTemplates}
           clients={clients}
           businesses={businesses}
           userId={userId}
