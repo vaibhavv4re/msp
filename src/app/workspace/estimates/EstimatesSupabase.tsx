@@ -566,6 +566,8 @@ function EstimateModal({
                         </div>
                     </div>
 
+                    <DocumentBlocksEditor templates={documentTemplates} documentType="estimate" templateId={templateId} blocks={contentBlocks} onTemplateChange={setTemplateId} onBlocksChange={setContentBlocks} />
+
                     <div className="pt-8 border-t border-gray-100">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Line Items</h3>
