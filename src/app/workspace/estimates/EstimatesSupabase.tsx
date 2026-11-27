@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
-import { saveEstimate, deleteEstimate, updateEstimateStatus, convertEstimateToInvoice } from "./actions";\nimport { DocumentBlocksEditor, DocumentTemplateOption, DocumentContentBlock } from "../document-templates/DocumentBlocksEditor";
+import { saveEstimate, deleteEstimate, updateEstimateStatus, convertEstimateToInvoice } from "./actions";
+import { DocumentBlocksEditor, DocumentTemplateOption, DocumentContentBlock } from "../document-templates/DocumentBlocksEditor";
 type Business = { id: string; name: string };
 type Client = { id: string; displayName?: string; firstName?: string };
 type Invoice = { id: string };
@@ -10,7 +11,8 @@ type Service = { id: string; name: string; sacCode?: string; rate: number; isAct
 type Tax = { id: string; name: string; rate: number; isDefault: boolean };
 type TermsTemplate = { id: string; title: string; content: string; isDefault: boolean };
 
-interface EstimatesProps {\n    documentTemplates?: DocumentTemplateOption[];
+interface EstimatesProps {
+    documentTemplates?: DocumentTemplateOption[];
     estimates: Estimate[];
     clients: Client[];
     userId: string;
@@ -344,7 +346,11 @@ function EstimateModal({
     const [scope, setScope] = useState(parseScope(estimate?.notes || ""));
 
 
-    const initialTemplate = documentTemplates.find(t => t.id === estimate?.templateId) || documentTemplates.find(t => t.isDefault && (t.documentType === "both" || t.documentType === "estimate"));\n    const [templateId, setTemplateId] = useState<string | null>(estimate?.templateId ?? initialTemplate?.id ?? null);\n    const [contentBlocks, setContentBlocks] = useState<DocumentContentBlock[]>(estimate?.contentBlocks ?? (initialTemplate?.blocks ?? []).filter(b => b.isEnabled).map(b => ({blockKey:b.blockKey,blockType:b.blockType,title:b.title,content:{...(b.defaultContent ?? {})},isEnabled:true,isRequired:b.isRequired})));\n\n    const [lineItems, setLineItems] = useState<any[]>(
+    const initialTemplate = documentTemplates.find(t => t.id === estimate?.templateId) || documentTemplates.find(t => t.isDefault && (t.documentType === "both" || t.documentType === "estimate"));
+    const [templateId, setTemplateId] = useState<string | null>(estimate?.templateId ?? initialTemplate?.id ?? null);
+    const [contentBlocks, setContentBlocks] = useState<DocumentContentBlock[]>(estimate?.contentBlocks ?? (initialTemplate?.blocks ?? []).filter(b => b.isEnabled).map(b => ({blockKey:b.blockKey,blockType:b.blockType,title:b.title,content:{...(b.defaultContent ?? {})},isEnabled:true,isRequired:b.isRequired})));
+
+    const [lineItems, setLineItems] = useState<any[]>(
         estimate?.lineItems ? [...estimate.lineItems] : []
     );
 
@@ -376,7 +382,9 @@ function EstimateModal({
                     recipientName: estimate.recipientName || "",
                     recipientContact: estimate.recipientContact || "",
                 });
-                setScope(parseScope(estimate.notes || ""));\n                setTemplateId(estimate.templateId ?? null);\n                setContentBlocks(estimate.contentBlocks ?? []);
+                setScope(parseScope(estimate.notes || ""));
+                setTemplateId(estimate.templateId ?? null);
+                setContentBlocks(estimate.contentBlocks ?? []);
                 if (estimate.client?.id) setSelectedClientId(estimate.client.id);
                 if (estimate.business?.id) setSelectedBusinessId(estimate.business.id);
             }
