@@ -12,7 +12,7 @@ export default async function WorkspacePage(){
  const ids=(memberships??[]).map(m=>m.business_id);
  if(!ids.length)return <main className="min-h-screen bg-[#090b10] px-5 py-12 text-white"><div className="mx-auto max-w-2xl rounded-3xl border border-white/10 bg-white/[0.03] p-8"><h1 className="text-3xl font-black">Create your workspace</h1><p className="mt-3 text-sm text-neutral-400">Set up your business to start managing clients, estimates, invoices and expenses.</p><div className="mt-8"><WorkspaceActions isAuthenticated/></div></div></main>;
  const [{data:businesses,error:businessError},{data:invoices,error:invoiceError},{data:clients},{data:expenses},{data:payments},{data:tds},{data:events}]=await Promise.all([
-  supabase.from("businesses").select("id,name,legal_name,business_type,brand_color,gstin").in("id",ids).order("name"),
+  supabase.from("businesses").select("id,name,legal_name,business_type,brand_color,gstin,address,city,state,email,contact,pan,gst_type").in("id",ids).order("name"),
   supabase.from("invoices").select("id,business_id,client_id,invoice_number,invoice_date,due_date,status,total,subtotal,cgst,sgst,igst,advance_amount,tds_amount").in("business_id",ids).order("invoice_date",{ascending:false}),
   supabase.from("clients").select("id,business_id,display_name,first_name,company_name,phone,mobile,work_phone").in("business_id",ids),
   supabase.from("expenses").select("id,business_id,amount,expense_date,status,gst_amount").in("business_id",ids),
