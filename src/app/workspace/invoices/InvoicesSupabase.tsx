@@ -623,6 +623,24 @@ function InvoiceTable({
       footerY = 20;
     }
 
+    // Optional modular content sections from the selected document template.
+    for (const block of (invoice.contentBlocks || invoice.content_blocks || []).filter((item: any) => item.isEnabled !== false)) {
+      const value = String(block.content?.text ?? "").trim();
+      if (!value) continue;
+      if (footerY > 255) { doc.addPage(); footerY = 20; }
+      doc.setTextColor(100);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.text(String(block.title || "Additional information").toUpperCase(), 20, footerY);
+      doc.setTextColor(50);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      const lines = doc.splitTextToSize(value, 170);
+      if (footerY + 5 + lines.length * 4 > 275) { doc.addPage(); footerY = 20; }
+      doc.text(lines, 20, footerY + 4);
+      footerY += lines.length * 4 + 10;
+    }
+
     // 6. Payment Information (Left Side)
     let paymentEndY = footerY;
     if (bankAccount) {
