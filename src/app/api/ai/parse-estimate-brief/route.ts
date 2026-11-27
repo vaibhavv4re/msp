@@ -69,13 +69,13 @@ export async function POST(request: Request) {
     if (!member) return NextResponse.json({ error: "You do not have access to this workspace." }, { status: 403 });
 
     const [servicesResult, templatesResult] = await Promise.all([
-      supabase.from("services").select("id,name,description,rate,sac_code,is_active").eq("business_id", businessId).eq("is_active", true).order("name").limit(100),
+      supabase.from("services").select("id,name,rate,sac_code,is_active").eq("business_id", businessId).eq("is_active", true).order("name").limit(100),
       (supabase as any).from("document_templates").select("name,document_type,document_template_blocks(block_key,title,is_enabled,default_content)").eq("business_id", businessId).eq("is_active", true).limit(30)
     ]);
     if (servicesResult.error) return NextResponse.json({ error: servicesResult.error.message }, { status: 500 });
     if (templatesResult.error) return NextResponse.json({ error: templatesResult.error.message }, { status: 500 });
 
-    const services = (servicesResult.data ?? []).map(s => ({ id: s.id, name: s.name, description: s.description, rate: s.rate, sacCode: s.sac_code }));
+    const services = (servicesResult.data ?? []).map(s => ({ id: s.id, name: s.name, rate: s.rate, sacCode: s.sac_code }));
     const templates = (templatesResult.data ?? []).map((t: any) => ({
       name: t.name,
       type: t.document_type,
