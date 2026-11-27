@@ -65,6 +65,7 @@ export async function saveDocumentTemplate(input: {
       : await supabase.from("document_template_blocks").insert(payload);
     if (result.error) throw new Error(result.error.message);
   }
+  if (!templateId) throw new Error("Could not determine the saved template ID.");
   revalidatePath("/workspace/document-templates");
   revalidatePath("/workspace/estimates");
   revalidatePath("/workspace/invoices");
