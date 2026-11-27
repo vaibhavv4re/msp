@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 const COOKIE = "backdrop_active_business_id";
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
@@ -105,16 +106,18 @@ ${JSON.stringify(templates)}
 CLIENT BRIEF:
 ${brief}`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    const startedAt = Date.now();
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL)}:generateContent`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", responseSchema, temperature: 0.2 }
+        generationConfig: { responseMimeType: "application/json", responseSchema, maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "MINIMAL" } }
       }),
-      signal: AbortSignal.timeout(45000)
+      signal: AbortSignal.timeout(90000)
     });
     const payload = await response.json();
+    console.info("[Backdrop AI] Gemini response", { model: MODEL, status: response.status, durationMs: Date.now() - startedAt });
     if (!response.ok) {
       const message = payload?.error?.message || "Gemini could not process this brief.";
       return NextResponse.json({ error: message }, { status: response.status === 429 ? 429 : 502 });
@@ -138,7 +141,9 @@ ${brief}`;
     }) : [];
     return NextResponse.json({ result: parsed, model: MODEL });
   } catch (error: any) {
-    const message = error?.name === "TimeoutError" ? "Gemini took too long. Please try again." : error?.message || "Could not generate the estimate brief.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const timedOut = error?.name === "TimeoutError" || error?.name === "AbortError";
+    console.error("[Backdrop AI] Brief generation failed", { name: error?.name, message: error?.message });
+    const message = timedOut ? "Gemini did not respond within 90 seconds. This can happen when the selected model is busy. Please try again; no estimate has been saved." : error?.message || "Could not generate the estimate brief.";
+    return NextResponse.json({ error: message }, { status: timedOut ? 504 : 500 });
   }
 }
