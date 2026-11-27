@@ -28,6 +28,7 @@ export function DocumentTemplates({ initialTemplates, businessName }: { initialT
   const [name, setName] = useState(selected?.name ?? "");
   const [description, setDescription] = useState(selected?.description ?? "");
   const [documentType, setDocumentType] = useState<Template["documentType"]>(selected?.documentType ?? "both");
+  const [isDefault, setIsDefault] = useState(selected?.isDefault ?? false);
   const [blocks, setBlocks] = useState<Block[]>(selected?.blocks ?? starterBlocks("both"));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -35,7 +36,7 @@ export function DocumentTemplates({ initialTemplates, businessName }: { initialT
 
   function load(template?: Template) {
     setSelectedId(template?.id ?? ""); setName(template?.name ?? ""); setDescription(template?.description ?? "");
-    setDocumentType(template?.documentType ?? "both"); setBlocks(template?.blocks?.map(b => ({...b})) ?? starterBlocks("both")); setError("");
+    setDocumentType(template?.documentType ?? "both"); setIsDefault(template?.isDefault ?? false); setBlocks(template?.blocks?.map(b => ({...b})) ?? starterBlocks("both")); setError("");
   }
   function addBlock(key: string) {
     const item = catalog.find(x => x[0] === key); if (!item) return;
@@ -44,8 +45,8 @@ export function DocumentTemplates({ initialTemplates, businessName }: { initialT
   async function save() {
     setSaving(true); setError("");
     try {
-      const result = await saveDocumentTemplate({ id: selectedId || undefined, name, description, documentType, blocks });
-      const saved: Template = { id: result.id, name, description, documentType, isDefault: selected?.isDefault ?? false, blocks: blocks.map((b, i) => ({...b, sortOrder:i})) };
+      const result = await saveDocumentTemplate({ id: selectedId || undefined, name, description, documentType, isDefault, blocks });
+      const saved: Template = { id: result.id, name, description, documentType, isDefault, blocks: blocks.map((b, i) => ({...b, sortOrder:i})) };
       setTemplates(prev => selectedId ? prev.map(t => t.id === selectedId ? saved : t) : [...prev, saved]);
       load(saved);
     } catch (e: any) { setError(e.message || "Could not save template."); }
