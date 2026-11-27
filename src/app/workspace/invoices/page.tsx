@@ -21,7 +21,8 @@ export default async function WorkspaceInvoicesPage(){
   supabase.from("bank_accounts").select("*").eq("business_id",bid).order("created_at"),
   supabase.from("services").select("*").eq("business_id",bid).order("name"),
   supabase.from("tax_rates").select("*").eq("business_id",bid),
-  supabase.from("terms_templates").select("*").eq("business_id",bid)
+  supabase.from("terms_templates").select("*").eq("business_id",bid),
+  (supabase as any).from("document_templates").select("id,name,document_type,is_default,document_template_blocks(id,block_key,block_type,title,default_content,is_enabled,is_required,sort_order)").eq("business_id",bid).eq("is_active",true)
  ]);
  if(inv.error)return <main className="p-8">Unable to load invoices: {inv.error.message}</main>;
  const business:any={id:bid,name:rawBusiness?.name??"Workspace",legalName:rawBusiness?.legal_name,address:rawBusiness?.address,city:rawBusiness?.city,state:rawBusiness?.state,pin:rawBusiness?.pin,country:rawBusiness?.country,email:rawBusiness?.email,gst:rawBusiness?.gstin,color:rawBusiness?.brand_color,signatureUrl:rawBusiness?.signature_url,invoiceTemplate:rawBusiness?.invoice_template,bankAccounts:(accounts.data??[]).map(a=>({id:a.id,label:a.label,bankName:a.bank_name,holderName:a.holder_name,accountNumber:a.account_number,ifsc:a.ifsc,upiId:a.upi_id,chequeName:a.cheque_name,isActive:a.is_active}))};
