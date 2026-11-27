@@ -112,7 +112,7 @@ ${brief}`;
       headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", responseSchema, maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "MINIMAL" } }
+        generationConfig: { responseMimeType: "application/json", responseSchema, maxOutputTokens: 4096 }
       }),
       signal: AbortSignal.timeout(90000)
     });
