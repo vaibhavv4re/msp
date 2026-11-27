@@ -27,6 +27,7 @@ interface EstimatesProps {
 }
 
 export function Estimates({
+    documentTemplates = [],
     estimates,
     clients,
     userId,
@@ -287,6 +288,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function EstimateModal({
     estimate,
+    documentTemplates,
     clients,
     businesses,
     userId,
@@ -297,6 +299,7 @@ function EstimateModal({
     onClose,
 }: {
     estimate: Estimate | null;
+    documentTemplates: DocumentTemplateOption[];
     clients: Client[];
     businesses: Business[];
     userId: string;
