@@ -547,6 +547,9 @@ export type Database = {
           created_by: string | null
           estimate_date: string | null
           estimate_number: string
+          content_blocks: Json
+          document_version: number
+          template_id: string | null
           id: string
           notes: string | null
           recipient_contact: string | null
@@ -570,6 +573,9 @@ export type Database = {
           created_by?: string | null
           estimate_date?: string | null
           estimate_number: string
+          content_blocks?: Json
+          document_version?: number
+          template_id?: string | null
           id?: string
           notes?: string | null
           recipient_contact?: string | null
@@ -593,6 +599,9 @@ export type Database = {
           created_by?: string | null
           estimate_date?: string | null
           estimate_number?: string
+          content_blocks?: Json
+          document_version?: number
+          template_id?: string | null
           id?: string
           notes?: string | null
           recipient_contact?: string | null
@@ -779,6 +788,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           due_date: string | null
+          content_blocks: Json
+          document_version: number
+          template_id: string | null
           id: string
           igst: number
           invoice_date: string | null
@@ -817,6 +829,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           due_date?: string | null
+          content_blocks?: Json
+          document_version?: number
+          template_id?: string | null
           id?: string
           igst?: number
           invoice_date?: string | null
@@ -855,6 +870,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           due_date?: string | null
+          content_blocks?: Json
+          document_version?: number
+          template_id?: string | null
           id?: string
           igst?: number
           invoice_date?: string | null
