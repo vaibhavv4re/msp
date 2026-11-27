@@ -1051,8 +1051,8 @@ export function InvoiceModal({
     };
   });
 
-  const initialDocTemplate = documentTemplates.find(t => t.id === invoice?.templateId) || documentTemplates.find(t => t.isDefault && (t.documentType === "both" || t.documentType === "invoice"));
-  const [templateId, setTemplateId] = useState<string | null>(invoice?.templateId ?? initialDocTemplate?.id ?? null);
+  const initialDocTemplate = invoice ? documentTemplates.find(t => t.id === invoice.templateId) : documentTemplates.find(t => t.isDefault && (t.documentType === "both" || t.documentType === "invoice"));
+  const [templateId, setTemplateId] = useState<string | null>(invoice ? (invoice.templateId ?? null) : (initialDocTemplate?.id ?? null));
   const [contentBlocks, setContentBlocks] = useState<DocumentContentBlock[]>(invoice?.contentBlocks ?? (initialDocTemplate?.blocks ?? []).filter(b => b.isEnabled).map(b => ({blockKey:b.blockKey,blockType:b.blockType,title:b.title,content:{...(b.defaultContent ?? {})},isEnabled:true,isRequired:b.isRequired})));
 
   const [isUploading, setIsUploading] = useState(false);
