@@ -14,7 +14,8 @@ import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import { normalizeInvoiceData } from "@/lib/pdf/utils";
 import { renderInvoiceTemplate } from "@/lib/pdf/renderInvoice";
-import { InvoiceTemplate } from "@/lib/pdf/types";\nimport { DocumentBlocksEditor, DocumentTemplateOption, DocumentContentBlock } from "../document-templates/DocumentBlocksEditor";
+import { InvoiceTemplate } from "@/lib/pdf/types";
+import { DocumentBlocksEditor, DocumentTemplateOption, DocumentContentBlock } from "../document-templates/DocumentBlocksEditor";
 
 export type Client = any;
 export type Invoice = any;
@@ -721,7 +722,8 @@ function InvoiceTable({
         status: "Unpaid",
         subtotal: invoice.subtotal ?? 0, cgst: invoice.cgst ?? 0, sgst: invoice.sgst ?? 0, igst: invoice.igst ?? 0,
         total: invoice.total ?? 0, notes: invoice.notes ?? null, terms_and_conditions: invoice.termsAndConditions ?? null,
-        template_id: invoice.templateId ?? null, content_blocks: invoice.contentBlocks ?? [], document_version: invoice.documentVersion ?? 1,\n        usage_type: invoice.usageType ?? null, usage_other: invoice.usageOther ?? null,
+        template_id: invoice.templateId ?? null, content_blocks: invoice.contentBlocks ?? [], document_version: invoice.documentVersion ?? 1,
+        usage_type: invoice.usageType ?? null, usage_other: invoice.usageOther ?? null,
         usage_duration: invoice.usageDuration ?? null, usage_geography: invoice.usageGeography ?? null,
         usage_exclusivity: invoice.usageExclusivity ?? null, advance_amount: 0, is_advance_received: false,
         tds_deducted: false, tds_amount: 0,
@@ -1044,7 +1046,11 @@ export function InvoiceModal({
     };
   });
 
-  const initialDocTemplate = documentTemplates.find(t => t.id === invoice?.templateId) || documentTemplates.find(t => t.isDefault && (t.documentType === "both" || t.documentType === "invoice"));\n  const [templateId, setTemplateId] = useState<string | null>(invoice?.templateId ?? initialDocTemplate?.id ?? null);\n  const [contentBlocks, setContentBlocks] = useState<DocumentContentBlock[]>(invoice?.contentBlocks ?? (initialDocTemplate?.blocks ?? []).filter(b => b.isEnabled).map(b => ({blockKey:b.blockKey,blockType:b.blockType,title:b.title,content:{...(b.defaultContent ?? {})},isEnabled:true,isRequired:b.isRequired})));\n\n  const [isUploading, setIsUploading] = useState(false);
+  const initialDocTemplate = documentTemplates.find(t => t.id === invoice?.templateId) || documentTemplates.find(t => t.isDefault && (t.documentType === "both" || t.documentType === "invoice"));
+  const [templateId, setTemplateId] = useState<string | null>(invoice?.templateId ?? initialDocTemplate?.id ?? null);
+  const [contentBlocks, setContentBlocks] = useState<DocumentContentBlock[]>(invoice?.contentBlocks ?? (initialDocTemplate?.blocks ?? []).filter(b => b.isEnabled).map(b => ({blockKey:b.blockKey,blockType:b.blockType,title:b.title,content:{...(b.defaultContent ?? {})},isEnabled:true,isRequired:b.isRequired})));
+
+  const [isUploading, setIsUploading] = useState(false);
 
   const [modalTab, setModalTab] = useState<"general" | "usage">("general");
 
@@ -1220,7 +1226,8 @@ export function InvoiceModal({
         tax_details: customTaxLines,
         total: Number(invoiceData.total)||0,
         notes: invoiceData.notes || null,
-        terms_and_conditions: invoiceData.termsAndConditions || null,\n        template_id: templateId, content_blocks: contentBlocks.filter(block => block.isEnabled), document_version: invoice?.documentVersion ?? 1,
+        terms_and_conditions: invoiceData.termsAndConditions || null,
+        template_id: templateId, content_blocks: contentBlocks.filter(block => block.isEnabled), document_version: invoice?.documentVersion ?? 1,
         usage_type: invoiceData.usageType || null,
         usage_other: invoiceData.usageOther || null,
         usage_duration: invoiceData.usageDuration || null,
