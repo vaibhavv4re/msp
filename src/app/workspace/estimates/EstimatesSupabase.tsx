@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { saveEstimate, deleteEstimate, updateEstimateStatus, convertEstimateToInvoice } from "./actions";
 import { DocumentBlocksEditor, DocumentTemplateOption, DocumentContentBlock } from "../document-templates/DocumentBlocksEditor";
+import { BriefToEstimate, ParsedEstimateBrief } from "./BriefToEstimate";
 type Business = { id: string; name: string };
 type Client = { id: string; displayName?: string; firstName?: string };
 type Invoice = { id: string };
@@ -463,6 +464,37 @@ function EstimateModal({
         onClose(); window.location.reload();
     };
 
+    const applyGeneratedBrief = (result: ParsedEstimateBrief) => {
+        if (result.clientName) setFormData(prev => ({ ...prev, recipientName: result.clientName, recipientContact: result.clientContact || prev.recipientContact }));
+        const textFor = (key: string) => {
+            if (key === "introduction") return result.summary;
+            if (key === "project_description") return result.summary;
+            if (key === "scope_of_work") return result.scopeItems.join("\\n");
+            if (key === "deliverables") return result.deliverables.join("\\n");
+            if (key === "timeline") return result.timeline;
+            if (key === "milestones") return result.milestones.join("\\n");
+            if (key === "image_licensing") return result.usageOrRights;
+            if (key === "notes") return [...result.exclusions.map(x => "Exclusion: " + x), ...result.assumptions.map(x => "Assumption: " + x)].join("\\n");
+            return "";
+        };
+        const template = documentTemplates.find(t => t.id === templateId);
+        const sourceBlocks = template?.blocks ?? [];
+        const moduleKeys = result.selectedModules.length ? result.selectedModules : ["introduction", "scope_of_work", "deliverables", "timeline"];
+        const generatedBlocks = moduleKeys.map(key => {
+            const source = sourceBlocks.find(block => block.blockKey === key);
+            const title = source?.title ?? key.replace(/_/g, " ").replace(/\\b\\w/g, x => x.toUpperCase());
+            return { blockKey: key, blockType: source?.blockType ?? "rich_text", title, content: { ...(source?.defaultContent ?? {}), text: textFor(key) }, isEnabled: true, isRequired: source?.isRequired ?? false };
+        }).filter(block => String(block.content.text ?? "").trim() || block.blockKey === "introduction");
+        setContentBlocks(generatedBlocks);
+        setScope(prev => ({ ...prev, deliverables: result.deliverables.join("\\n"), schedule: [result.timeline, result.location].filter(Boolean).join(" · "), usage: result.usageOrRights, exclusions: result.exclusions.join("\\n"), additionalNotes: result.assumptions.join("\\n") }));
+        if (result.suggestedLineItems.length) {
+            const generatedItems = result.suggestedLineItems.map((item, index) => ({ id: crypto.randomUUID(), description: item.description, quantity: item.quantity || 1, rate: item.rate || 0, amount: (item.quantity || 1) * (item.rate || 0), serviceId: item.serviceId || null, itemType: item.serviceId ? "service" : "custom", sacCode: services.find(s => s.id === item.serviceId)?.sacCode ?? null }));
+            setLineItems(generatedItems);
+            const subtotal = generatedItems.reduce((sum, item) => sum + item.amount, 0);
+            setFormData(prev => ({ ...prev, subtotal, total: subtotal }));
+        }
+    };
+
     const handleClientChange = (val: string) => setSelectedClientId(val);
 
     return (
@@ -569,6 +601,8 @@ function EstimateModal({
                             </div>
                         </div>
                     </div>
+
+                    {!estimate && <BriefToEstimate businessId={selectedBusinessId} onApply={applyGeneratedBrief} />}
 
                     <DocumentBlocksEditor templates={documentTemplates} documentType="estimate" templateId={templateId} blocks={contentBlocks} onTemplateChange={setTemplateId} onBlocksChange={setContentBlocks} />
 
