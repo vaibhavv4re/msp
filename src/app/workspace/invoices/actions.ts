@@ -18,7 +18,7 @@ export async function saveInvoice(input:any){
  const {supabase,user,businessId,role}=await context();
  if(!writers.includes(role)) throw new Error("You do not have permission to edit invoices.");
  if(input.business_id!==businessId) throw new Error("Invoice workspace mismatch.");
- const payload={...input,created_by:user.id};
+ const payload={...input,template_id:input.template_id??null,content_blocks:input.content_blocks??[],document_version:input.document_version??1,created_by:user.id};
  const {data,error}=await supabase.rpc("save_invoice_with_items",{p_invoice:payload,p_items:input.items??[]});
  if(error) throw new Error(error.message);
  if(input.tax_details!==undefined){
