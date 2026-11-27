@@ -255,6 +255,7 @@ export function Estimates({
             {isModalOpen && (
                 <EstimateModal
                     estimate={editingEstimate}
+                    documentTemplates={documentTemplates}
                     clients={clients}
                     businesses={businesses}
                     userId={userId}
