@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const COOKIE = "backdrop_active_business_id";
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 const responseSchema = {
   type: "OBJECT",
