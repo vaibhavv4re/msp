@@ -54,6 +54,7 @@ function calculateDueDate(invoiceDate: string, paymentTerms: string, customDays?
 }
 
 export function Invoices({
+  documentTemplates = [],
   invoices,
   clients,
   userId,
@@ -66,6 +67,7 @@ export function Invoices({
   initiallyOpenModal,
   onModalClose,
 }: {
+  documentTemplates?: DocumentTemplateOption[];
   invoices: Invoice[];
   clients: Client[];
   userId: string;
@@ -960,6 +962,7 @@ function InvoiceTable({
 
 export function InvoiceModal({
   invoice,
+  documentTemplates,
   clients,
   businesses,
   userId,
@@ -971,6 +974,7 @@ export function InvoiceModal({
   invoices: allInvoices,
 }: {
   invoice: Invoice | null;
+  documentTemplates: DocumentTemplateOption[];
   clients: Client[];
   businesses: Business[];
   userId: string;
