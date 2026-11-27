@@ -1506,6 +1506,8 @@ export function InvoiceModal({
                   </div>
                 </div>
 
+                <DocumentBlocksEditor templates={documentTemplates} documentType="invoice" templateId={templateId} blocks={contentBlocks} onTemplateChange={setTemplateId} onBlocksChange={setContentBlocks} />
+
                 <div className="border rounded-lg p-4 bg-gray-50 mb-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <h3 className="text-lg font-black uppercase tracking-tight text-gray-900 leading-none">Line Items</h3>
