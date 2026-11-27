@@ -13,7 +13,7 @@ async function context(){
  return {supabase,user,businessId,role:member.role};
 }
 const writers=["owner","admin","accountant","employee"];
-export async function saveEstimate(input:{id?:string;businessId:string;clientId:string|null;estimateNumber?:string;date?:string;validUntil?:string;status:string;recipientName:string;recipientContact?:string;subtotal:number;total:number;notes:string;termsAndConditions:string;advanceIntent:number;requiresAdvance:boolean;advancePercentage:number;advanceDeadlineDays:number;lineItems:Array<{id?:string;description:string;quantity:number;rate:number;amount:number;itemType:string;serviceId:string|null;sacCode:string|null;sortOrder:number}>}){
+export async function saveEstimate(input:{id?:string;businessId:string;clientId:string|null;estimateNumber?:string;date?:string;validUntil?:string;status:string;recipientName:string;recipientContact?:string;subtotal:number;total:number;notes:string;termsAndConditions:string;advanceIntent:number;requiresAdvance:boolean;advancePercentage:number;advanceDeadlineDays:number;templateId?:string|null;contentBlocks?:any[];documentVersion?:number;lineItems:Array<{id?:string;description:string;quantity:number;rate:number;amount:number;itemType:string;serviceId:string|null;sacCode:string|null;sortOrder:number}>}){
  const c=await context();if("error"in c)return c;if(!writers.includes(c.role))return {error:"You do not have permission to manage estimates."};
  if(input.businessId!==c.businessId)return {error:"Estimates can only be saved in the active workspace."};
  if(!input.recipientName.trim())return {error:"Recipient name is required."};
