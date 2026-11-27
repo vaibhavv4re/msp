@@ -14,9 +14,7 @@ export async function uploadToCloudinary(
     options: { ocr?: boolean } = {}
 ): Promise<CloudinaryUploadResult & { info?: any }> {
     // 1. Get signature from our API
-    const timestamp = Math.round(new Date().getTime() / 1000);
     const paramsToSign: any = {
-        timestamp,
         folder,
     };
     if (options.ocr) {
@@ -29,20 +27,21 @@ export async function uploadToCloudinary(
         body: JSON.stringify({ paramsToSign }),
     });
 
+    const signPayload = await signResponse.json().catch(() => ({}));
     if (!signResponse.ok) {
-        throw new Error("Failed to get upload signature");
+        throw new Error(signPayload.error || `Failed to get upload signature (HTTP ${signResponse.status})`);
     }
 
-    const { signature, apiKey, cloudName } = await signResponse.json();
-    if (!signature || !apiKey || !cloudName) {
-        throw new Error("Invalid response from signature endpoint");
+    const { signature, apiKey, cloudName, timestamp } = signPayload;
+    if (!signature || !apiKey || !cloudName || !Number.isInteger(timestamp)) {
+        throw new Error("Cloudinary signature response is incomplete. Check the Cloudinary environment variables and restart the Next.js server.");
     }
 
     // 2. Upload to Cloudinary
     const formData = new FormData();
     formData.append("file", file);
     formData.append("api_key", apiKey);
-    formData.append("timestamp", timestamp.toString());
+    formData.append("timestamp", String(timestamp));
     formData.append("signature", signature);
     formData.append("folder", folder);
     if (options.ocr) {
@@ -50,7 +49,7 @@ export async function uploadToCloudinary(
     }
 
     const uploadResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
         {
             method: "POST",
             body: formData,
